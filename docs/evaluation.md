@@ -8,7 +8,7 @@ Each case has one expected outcome:
 - `unresolved` is a valid request that the bounded assistant may decline because of a domain, size, oscillation, identity, or unsupported-degree condition.
 - `rejected` is outside the grammar and belongs in validation correctness, not solved-answer accuracy.
 
-The scorer parses result text through a small allowlist of arithmetic operators, symbols, and functions. It never calls `eval`, `exec`, `sympify`, or an unrestricted expression parser. It uses symbolic equivalence only after the result has passed that allowlist. Equation roots are compared as sorted real values. The identity and inconsistent equation sentinels are `all real x` and `no real solutions`. An HTTP error, missing result, malformed model text, or provider transport failure is not a correct mathematical answer.
+The scorer parses result text through a small allowlist of arithmetic operators, symbols, and functions. It accepts the `erf` special function in returned Gaussian primitives. For indefinite integrals it differentiates the difference, so arbitrary constants do not cause false failures. It never calls `eval`, `exec`, `sympify`, or an unrestricted expression parser. It uses symbolic equivalence only after the result has passed that allowlist. Equation roots are compared as sorted real values. The identity and inconsistent equation sentinels are `all real x` and `no real solutions`. An HTTP error, missing result, malformed model text, or provider transport failure is not a correct mathematical answer.
 
 ## AI baseline contract
 
