@@ -256,6 +256,11 @@
     heading.append(element('span', `verification-icon ${response.verification ? response.verification.status : 'not_checked'}`, verificationIcon(response.verification && response.verification.status)));
     heading.append(element('span', '', resultLabel(response)));
     heading.append(element('span', 'check-label', checkLabel(response.verification && response.verification.status)));
+    const routeMetrics = combinedMetrics(message);
+    const routeText = routeMetrics.aiCalls === null
+      ? 'AI calls not reported'
+      : `${routeMetrics.aiCalls} general-model call${routeMetrics.aiCalls === 1 ? '' : 's'}`;
+    heading.append(element('span', 'route-label', routeText));
     card.append(heading);
     if (response.result !== null && response.result !== undefined) card.append(element('div', 'formula', response.result));
     if (response.verification && response.verification.detail) card.append(element('p', 'message-time', response.verification.detail));
