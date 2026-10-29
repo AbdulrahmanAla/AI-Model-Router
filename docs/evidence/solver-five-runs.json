@@ -12043,6 +12043,8 @@
   "environment": {
     "concurrency": 1,
     "cpu": "12th Gen Intel Core i5-12400F",
+    "cpu_load_percent_before_run": 32,
+    "cpu_load_percent_during_run_sample": 24,
     "fixture_sha256": "EE15FF9C9E6733C99FB09B8BD96CF9E5746516059582AECD34EF4BC06D321DF2",
     "logical_processors": 12,
     "note": "No concurrent test suite. Background desktop activity remained; these are local observations, not controlled hardware benchmarks.",
