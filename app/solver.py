@@ -222,8 +222,11 @@ def parse_expression(source: str, *, allow_oo: bool = False) -> ParsedExpression
     _tree_limits(tree)
     _validate_power_shapes(tree)
     expression = _compile(tree, allow_oo=allow_oo, source=normalised)
+    _validate_constant_function_values(tree, normalised)
     if expression.free_symbols - {_X}:
         raise GrammarError("Only the real variable x is supported.")
+    if expression in (sp.zoo, sp.nan) or expression.is_real is False:
+        raise GrammarError("Only defined real-valued expressions are supported.")
     return ParsedExpression(expression=expression, tree=tree, source=normalised)
 
 
@@ -231,8 +234,18 @@ def _contains_variable(node: ast.AST) -> bool:
     return any(isinstance(item, ast.Name) and item.id == "x" for item in ast.walk(node))
 
 
-def _contains_function_call(node: ast.AST) -> bool:
-    return any(isinstance(item, ast.Call) for item in ast.walk(node))
+def _contains_variable_function_call(node: ast.AST) -> bool:
+    return any(isinstance(item, ast.Call) and _contains_variable(item) for item in ast.walk(node))
+
+
+def _validate_constant_function_values(tree: ast.AST, source: str) -> None:
+    """Reject complex or undefined constant function calls in real input."""
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call) or _contains_variable(node):
+            continue
+        value = _compile(node, allow_oo=False, source=source)
+        if value in (sp.zoo, sp.nan) or value.is_real is not True:
+            raise GrammarError("Only defined real-valued expressions are supported.")
 
 
 def _has_variable_denominator(node: ast.AST, *, source: str | None = None) -> bool:
@@ -355,9 +368,9 @@ def _verify_branch_antiderivative(original: sp.Expr, result: sp.Expr) -> dict[st
                 valid += 1
         if valid >= 3:
             return {
-                "status": "symbolic_check",
-                "method": "differentiate real logarithmic branch",
-                "detail": "The derivative matches on real intervals where each logarithm argument is nonzero.",
+                "status": "numerical_evidence",
+                "method": "sampled real logarithmic branch",
+                "detail": f"The derivative matched at {valid} safe real sample points away from logarithm zeros.",
             }
     except Exception:
         pass
@@ -532,14 +545,14 @@ def _compute(payload: dict[str, Any]) -> dict[str, Any]:
             raw_right_tree = ast.parse(_normalise_source(right_source), mode="eval")
             if _has_variable_denominator(raw_tree.body, source=_normalise_source(left_source)) or _has_variable_denominator(raw_right_tree.body, source=_normalise_source(right_source)):
                 raise GrammarError("Equations with a variable in a denominator are not supported.")
-            if _contains_function_call(raw_tree.body) or _contains_function_call(raw_right_tree.body):
+            if _contains_variable_function_call(raw_tree.body) or _contains_variable_function_call(raw_right_tree.body):
                 raise RuntimeError("Only real polynomial equations are supported.")
             equation_input = left.expression - right.expression
         else:
             parsed = parse_expression(source)
             if _has_variable_denominator(parsed.tree.body, source=parsed.source):
                 raise GrammarError("Equations with a variable in a denominator are not supported.")
-            if _contains_function_call(parsed.tree.body):
+            if _contains_variable_function_call(parsed.tree.body):
                 raise RuntimeError("Only real polynomial equations are supported.")
             equation_input = parsed.expression
         try:
@@ -591,7 +604,7 @@ def _compute(payload: dict[str, Any]) -> dict[str, Any]:
                 transformed, branch_sensitive = _real_log_antiderivative(result_expr)
                 if branch_sensitive:
                     verification = _verify_branch_antiderivative(expression, transformed)
-                    if verification["status"] != "symbolic_check":
+                    if verification["status"] != "numerical_evidence":
                         raise RuntimeError("The real logarithmic branch is unresolved.")
                     result_expr = transformed
                 else:

@@ -44,7 +44,8 @@ def test_real_logarithmic_antiderivative_uses_abs_and_states_domain() -> None:
     body = response.json()
     assert response.status_code == 200
     assert body["result"] == "log(Abs(x))"
-    assert body["verification"]["status"] == "symbolic_check"
+    assert body["verification"]["status"] == "numerical_evidence"
+    assert "sample points" in body["verification"]["detail"]
     assert "nonzero" in body["notes"][1]
 
 
@@ -88,6 +89,17 @@ def test_cancelled_nonpolynomial_equation_does_not_claim_all_real_x() -> None:
     response = client.post("/api/solve", json={"operation": "equation", "expression": "log(x)=log(x)"})
     assert response.status_code == 200
     assert response.json()["status"] == "unresolved"
+
+
+def test_real_constant_function_coefficients_remain_polynomial() -> None:
+    response = client.post("/api/solve", json={"operation": "equation", "expression": "sqrt(2)*x=1"})
+    assert response.status_code == 200
+    assert response.json()["result"] == "{sqrt(2)/2}"
+
+
+def test_complex_constant_function_values_are_rejected() -> None:
+    response = client.post("/api/solve", json={"operation": "derivative", "expression": "sqrt(-1)*x"})
+    assert response.status_code == 422
 
 
 def test_decimal_literals_are_exact_before_symbolic_cancellation() -> None:
