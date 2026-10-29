@@ -4,7 +4,7 @@ Run `python scripts/check.py` from the project virtual environment before you de
 
 ## Start without a model key
 
-On a Python 3.14 host, install `requirements.txt` in a virtual environment. Copy `app/` and `web/`, then start:
+On a Python 3.14 host, run `python -m pip install -c requirements.lock -r requirements.txt` in a virtual environment. Copy `app/` and `web/`, then start:
 
 ```powershell
 python -m uvicorn app.main:app --host 0.0.0.0 --port 8000

@@ -10,7 +10,7 @@ Python 3.14 is the tested runtime. Node.js is used only to check JavaScript synt
 
 ```powershell
 python -m venv .venv
-.\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
+.\.venv\Scripts\python.exe -m pip install -c requirements.lock -r requirements-dev.txt
 .\.venv\Scripts\python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8000
 ```
 

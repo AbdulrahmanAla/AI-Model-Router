@@ -1,7 +1,7 @@
 FROM python:3.14-slim
 WORKDIR /app
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+COPY requirements.txt requirements.lock ./
+RUN pip install --no-cache-dir -c requirements.lock -r requirements.txt
 COPY app ./app
 COPY web ./web
 RUN useradd --create-home assistant
