@@ -21,6 +21,8 @@ The actual website at `http://127.0.0.1:8000` was exercised through the in-app b
 - Repeated submissions exposed an unbounded conversation layout. The final shell uses a viewport height and an internal scroll area. After the fix, the newest result remained visible above the composer on wide and narrow viewports.
 - A narrow viewport displayed a real derivative result without horizontal page overflow in the captured view.
 - Browser console inspection during these journeys returned no errors or warnings.
+- The current UI also exposes the exact-first rationale, a visible general-model call count, inline validation for incomplete bounds or targets, copy actions for the result and full solution, and cancel/retry controls for slow solver or optional AI requests.
+- A repeated-question browser journey keeps duplicate sidebar entries addressable, and a cancelled solve returns to a ready service state with the original question available for retry.
 
 The wide and narrow viewport controls were set to 1366 by 900 and 390 by 844 respectively. Browser zoom and screenshot pixel scaling can make captured pixel dimensions differ from those requested values.
 
