@@ -559,6 +559,102 @@ def _verify_limit_numeric(original: sp.Expr, result: sp.Expr, target: sp.Expr, d
     return {"status": "not_checked", "method": "near-target samples", "detail": "The symbolic limit was returned without a safe numerical check."}
 
 
+def _bounded_steps(items: list[str]) -> list[str]:
+    """Keep educational route descriptions bounded like every other response field."""
+    return [item[:500] for item in items[:8]]
+
+
+def _verification_step(verification: dict[str, str]) -> str:
+    status = verification.get("status", "not_checked")
+    detail = verification.get("detail")
+    return f"Verification ({status}): {detail}" if detail else f"Verification status: {status}."
+
+
+def _solved_steps(
+    operation: str,
+    source: str,
+    result: str,
+    verification: dict[str, str],
+    *,
+    expression: sp.Expr | None = None,
+    lower: sp.Expr | None = None,
+    upper: sp.Expr | None = None,
+    target: sp.Expr | None = None,
+    direction: str | None = None,
+    expanded_equation: str | None = None,
+    polynomial_degree: int | None = None,
+    branch_sensitive: bool = False,
+) -> list[str]:
+    """Describe the bounded exact route in language suitable for the result card."""
+    if operation == "derivative":
+        steps = [f"Read the function as f(x) = {source}."]
+        if expression is not None and expression.is_Add:
+            steps.append("Differentiate each term and combine the derivatives.")
+        elif expression is not None and expression.is_Mul:
+            steps.append("Apply the product rule to the factors that depend on x.")
+        elif expression is not None and expression.is_Pow:
+            steps.append("Apply the power rule to the expression in x.")
+        else:
+            steps.append("Apply the supported differentiation rules with respect to x.")
+        steps.extend([f"Simplify the derivative to {result}.", _verification_step(verification)])
+        return _bounded_steps(steps)
+
+    if operation == "integral":
+        steps = [f"Read the integrand as {source}."]
+        if lower is None and upper is None:
+            steps.append("Find an antiderivative with respect to x.")
+            if branch_sensitive:
+                steps.append("Use the real logarithmic branch log(Abs(...)) and keep its nonzero-domain restriction.")
+            steps.append(f"Display the antiderivative as {result}; the arbitrary constant C is omitted.")
+        else:
+            steps.append(f"Check the original real domain across [{_sstr(lower)}, {_sstr(upper)}].")
+            steps.append(f"Evaluate the definite integral from {_sstr(lower)} to {_sstr(upper)}.")
+            steps.append(f"Simplify the bounded result to {result}.")
+        steps.append(_verification_step(verification))
+        return _bounded_steps(steps)
+
+    if operation == "limit":
+        direction_text = "both sides" if direction == "both" else ("the right side" if direction == "+" else "the left side")
+        steps = [f"Read the expression {source} as x approaches {_sstr(target)}."]
+        if direction == "both":
+            steps.append("Compute the left-hand and right-hand limits, then compare them.")
+        else:
+            steps.append(f"Compute the one-sided limit from {direction_text}.")
+        steps.extend([f"Simplify the limit to {result}.", _verification_step(verification)])
+        return _bounded_steps(steps)
+
+    if operation == "equation":
+        steps = [f"Parse the equation {source} with the bounded real expression grammar."]
+        if "=" in source:
+            steps.append("Move both sides to one polynomial expression equal to zero.")
+        else:
+            steps.append("Treat the expression as an equation equal to zero.")
+        if expanded_equation is not None:
+            steps.append(f"Expand the polynomial: {expanded_equation} = 0.")
+        if result == "all real x":
+            steps.append("Recognize a polynomial identity, so every real x is a solution.")
+        elif result == "no real solutions":
+            steps.append("Recognize a nonzero constant equation, so no real solution exists.")
+        else:
+            degree_text = f" of degree {polynomial_degree}" if polynomial_degree is not None else ""
+            steps.append(f"Solve the real polynomial{degree_text} for its candidate roots.")
+            steps.append(f"Substitute the returned roots to verify the solution set {result}.")
+        steps.append(_verification_step(verification))
+        return _bounded_steps(steps)
+
+    return _bounded_steps([f"Compute the exact result {result}.", _verification_step(verification)])
+
+
+def _unresolved_steps(payload: dict[str, Any], note: str) -> list[str]:
+    """Explain where an unresolved exact route stopped without inventing a result."""
+    operation = payload.get("operation", "request")
+    source = payload.get("expression", "the supplied expression")
+    return _bounded_steps([
+        f"Read the {operation} request for {source}.",
+        f"Stop before returning an exact answer: {note}",
+    ])
+
+
 def _compute(payload: dict[str, Any]) -> dict[str, Any]:
     operation = payload["operation"]
     source = payload["expression"]
@@ -616,13 +712,28 @@ def _compute(payload: dict[str, Any]) -> dict[str, Any]:
             result = "{" + ", ".join(_sstr(root) for root in roots) + "}"
             verification = _verify_equation(equation, roots)
         latex = result if result.startswith("all ") or result.startswith("no ") else _latex(sp.FiniteSet(*roots))
-        return {"result": result, "latex": latex, "verification": verification, "notes": ["The returned set is the complete real polynomial solution set."]}
+        return {
+            "result": result,
+            "latex": latex,
+            "verification": verification,
+            "notes": ["The returned set is the complete real polynomial solution set."],
+            "steps": _solved_steps(
+                operation,
+                source,
+                result,
+                verification,
+                expanded_equation=_sstr(equation),
+                polynomial_degree=None if polynomial.is_zero else int(polynomial.degree()),
+            ),
+        }
 
     parsed = parse_expression(source)
     expression = parsed.expression
     if operation == "derivative":
         result_expr = sp.diff(expression, _X)
-        return {"result": _sstr(result_expr), "latex": _latex(result_expr), "verification": _verify_derivative(expression, result_expr, parsed.tree, parsed.source), "notes": []}
+        result_text = _sstr(result_expr)
+        verification = _verify_derivative(expression, result_expr, parsed.tree, parsed.source)
+        return {"result": result_text, "latex": _latex(result_expr), "verification": verification, "notes": [], "steps": _solved_steps(operation, source, result_text, verification, expression=expression)}
     if operation == "integral":
         if payload.get("lower") is None and payload.get("upper") is None:
             result_expr = sp.integrate(expression, _X)
@@ -643,7 +754,8 @@ def _compute(payload: dict[str, Any]) -> dict[str, Any]:
             notes = ["The arbitrary constant C is omitted."]
             if branch_sensitive:
                 notes.append("Real logarithms use Abs and are valid on intervals where each logarithm argument is nonzero.")
-            return {"result": _sstr(result_expr), "latex": _latex(result_expr), "verification": verification, "notes": notes}
+            result_text = _sstr(result_expr)
+            return {"result": result_text, "latex": _latex(result_expr), "verification": verification, "notes": notes, "steps": _solved_steps(operation, source, result_text, verification, expression=expression, branch_sensitive=branch_sensitive)}
         lower = parse_constant(payload["lower"])
         upper = parse_constant(payload["upper"])
         if (lower not in (sp.oo, -sp.oo) and lower.is_real is not True) or (upper not in (sp.oo, -sp.oo) and upper.is_real is not True):
@@ -682,7 +794,9 @@ def _compute(payload: dict[str, Any]) -> dict[str, Any]:
             result_expr = sp.integrate(expression, (_X, lower, upper))
         if result_expr.has(sp.Integral, sp.AccumBounds) or result_expr in (sp.nan, sp.zoo, sp.oo, -sp.oo) or result_expr.is_real is False:
             raise RuntimeError("The definite integral is unresolved.")
-        return {"result": _sstr(result_expr), "latex": _latex(result_expr), "verification": _verify_definite_integral(expression, result_expr, lower, upper), "notes": []}
+        result_text = _sstr(result_expr)
+        verification = _verify_definite_integral(expression, result_expr, lower, upper)
+        return {"result": result_text, "latex": _latex(result_expr), "verification": verification, "notes": [], "steps": _solved_steps(operation, source, result_text, verification, expression=expression, lower=lower, upper=upper)}
     if operation == "limit":
         target = parse_constant(payload["target"])
         direction = payload.get("direction") or "both"
@@ -706,7 +820,8 @@ def _compute(payload: dict[str, Any]) -> dict[str, Any]:
         if result_expr in (sp.nan, sp.zoo) or result_expr.has(sp.Limit, sp.AccumBounds):
             raise RuntimeError("The limit is unresolved.")
         verification = _verify_limit_numeric(expression, result_expr, target, direction, parsed.tree, parsed.source)
-        return {"result": _sstr(result_expr), "latex": _latex(result_expr), "verification": verification, "notes": []}
+        result_text = _sstr(result_expr)
+        return {"result": result_text, "latex": _latex(result_expr), "verification": verification, "notes": [], "steps": _solved_steps(operation, source, result_text, verification, expression=expression, target=target, direction=direction)}
     raise GrammarError("That operation is not supported.")
 
 
