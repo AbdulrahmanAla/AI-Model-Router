@@ -15,6 +15,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ConfigDict, Field
 
+from .ai import AIServiceError, handle_ai
 from .solver import GrammarError, SolveTimeout, SolveUnresolved, SolverBusy, run_bounded
 
 
@@ -28,6 +29,13 @@ class SolveRequest(BaseModel):
     upper: str | None = Field(default=None, max_length=100)
     target: str | None = Field(default=None, max_length=100)
     direction: Literal["both", "+", "-"] | None = None
+
+
+class AIRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    action: Literal["explain", "fallback", "baseline"]
+    request: SolveRequest
 
 
 app = FastAPI(title="AI Math Assistant", version="0.1.0")
@@ -136,6 +144,20 @@ async def solve(request: SolveRequest) -> dict[str, object]:
 async def solve_request(request: SolveRequest) -> dict[str, object]:
     """Run one exact solve without blocking an async caller."""
     return await asyncio.to_thread(_solve_request_sync, request)
+
+
+@app.post("/api/ai", response_model=None)
+async def ai(request: AIRequest, http_request: Request) -> dict[str, object] | JSONResponse:
+    validated_payload = validate_solve_request(request.request)
+    try:
+        return await handle_ai(http_request.app, request.action, request.request, validated_payload)
+    except GrammarError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except AIServiceError as exc:
+        return JSONResponse(
+            status_code=exc.status_code,
+            content={"error": exc.code, "detail": exc.detail, "metrics": exc.metrics},
+        )
 
 
 static_root = Path(__file__).resolve().parent.parent / "web"
