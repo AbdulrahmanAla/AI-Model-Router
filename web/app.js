@@ -2,7 +2,7 @@
   'use strict';
 
   const $ = (selector) => document.querySelector(selector);
-  const state = { messages: [], solving: false, health: null, chatFilter: '' };
+  const state = { messages: [], solving: false, health: null, chatFilter: '', nextMessageId: 1 };
   const operationCopy = {
     derivative: { hint: 'Find d/dx of an expression', help: 'Use explicit multiplication, such as 2*x.' },
     integral: { hint: 'Find an antiderivative or a definite integral', help: 'Leave bounds blank for an antiderivative, or provide both.' },
@@ -299,6 +299,7 @@
     elements.welcome.hidden = state.messages.length > 0;
     state.messages.forEach((message) => {
       const wrapper = element('div', 'message');
+      wrapper.dataset.messageId = message.id;
       const user = element('div', 'user-message');
       user.append(element('div', 'user-bubble', message.display));
       wrapper.append(user, renderAssistant(message));
@@ -319,7 +320,7 @@
       const button = element('button', 'chat-row', requestTitle(message.request));
       button.type = 'button';
       button.addEventListener('click', () => {
-        const target = [...elements.messages.querySelectorAll('.message')].find((node) => node.textContent.includes(message.display));
+        const target = elements.messages.querySelector(`[data-message-id="${message.id}"]`);
         if (target) target.scrollIntoView({ behavior: 'smooth', block: 'center' });
       });
       elements.chatList.append(button);
@@ -406,7 +407,7 @@
     if (validationError) { showToast(validationError); elements.expression.focus(); return; }
     state.solving = true;
     elements.send.disabled = true;
-    const message = { request, display: displayRequest(request), loading: true };
+    const message = { id: String(state.nextMessageId++), request, display: displayRequest(request), loading: true };
     state.messages.push(message);
     renderMessages();
     solve(request, message);
@@ -425,6 +426,7 @@
 
   function resetChat() {
     state.messages = [];
+    state.nextMessageId = 1;
     state.chatFilter = '';
     elements.chatSearch.value = '';
     elements.expression.value = '';
