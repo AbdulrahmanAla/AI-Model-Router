@@ -83,3 +83,9 @@ All 200 requests recorded zero general-model calls with no unknown call counts. 
 Median HTTP latency over all outcomes was 585.12 ms, with observation range 515.20 to 1278.83 ms. The five per-repeat HTTP medians were 590.93, 601.46, 580.17, 569.96, 561.45 ms; their median was 580.17 ms and range 561.45 to 601.46 ms. Fast rejections contribute to this all-outcome distribution. Fresh subprocess startup and math imports are material overhead, as the separate import diagnostic shows. No AI latency comparison was run.
 
 [Raw requests, responses, scores, counters, and environment](evidence/solver-five-runs.json). [Measurement protocol](evidence/measurement-plan.md).
+
+## Repository completion and cleanup
+
+The reviewed integration was directly merged into `main`, pushed, and made the GitHub default branch. All in-scope GitHub issues, including the Wayfinder map, are closed with evidence links. No PR or GitHub Actions run was created.
+
+Managed-worktree cleanup was attempted through the Codex archive tool. The app refused to archive the solver, website, and evaluation worktrees because active tasks still reference them, and refused the review worktree as a primary checkout. These recoverable local checkouts were retained. No checkout was deleted manually. The final local server remains on port 8000; synthetic-provider services are stopped.
