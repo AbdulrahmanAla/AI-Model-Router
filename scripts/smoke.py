@@ -1,9 +1,11 @@
 """Exercise the real HTTP server on a temporary local port, then stop it."""
+import json
 import os
 from pathlib import Path
 import socket
 import subprocess
 import sys
+import tempfile
 import time
 
 import httpx
@@ -55,6 +57,23 @@ def main():
             assert rejected.status_code == 422, rejected.text
             assert client.get("/.env").status_code == 404
             print("PASS unsafe input rejected and secrets not served")
+            with tempfile.TemporaryDirectory(prefix="math-evaluation-") as temporary:
+                report_path = Path(temporary) / "report.json"
+                subprocess.run(
+                    [sys.executable, "-m", "benchmarks.run_benchmark", "--base-url",
+                     str(client.base_url).rstrip("/"), "--output", str(report_path)],
+                    cwd=ROOT, check=True, stdout=subprocess.DEVNULL,
+                )
+                report = json.loads(report_path.read_text(encoding="utf-8"))
+                failures = []
+                for case in report["cases"]:
+                    for trial in case["solver"]["runs"]:
+                        if not trial["score"]["passed"]:
+                            failures.append(f"{case['id']}: {trial['score']['reason']}")
+                        if (trial.get("body") or {}).get("metrics", {}).get("ai_calls") != 0:
+                            failures.append(f"{case['id']}: missing zero-call routing evidence")
+                assert not failures, "Frozen evaluation failed: " + "; ".join(failures)
+                print("PASS all 40 frozen evaluation cases and zero-call routing")
     finally:
         server.terminate()
         try:

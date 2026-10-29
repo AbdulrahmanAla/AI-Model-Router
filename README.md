@@ -22,7 +22,7 @@ Open [AI Math Assistant locally](http://127.0.0.1:8000). Choose an operation, en
 .\.venv\Scripts\python.exe scripts/check.py
 ```
 
-The local gate runs public API tests, JavaScript syntax checks, and a real HTTP smoke test of all four operations. Provider contract tests use a fake external transport and make no paid calls. Browser journey evidence is recorded separately in [delivery validation](docs/delivery-validation.md).
+The local gate runs public API tests, JavaScript syntax checks, and real HTTP checks of all four operations and the 40 frozen evaluation cases. It fails if any expected outcome is wrong or zero-call routing evidence is missing. Provider contract tests use a fake external transport and make no paid calls. Browser journey evidence is recorded separately in [delivery validation](docs/delivery-validation.md).
 
 ## Connect an optional model provider
 
