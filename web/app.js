@@ -14,6 +14,7 @@
     form: $('#solve-form'), operation: $('#operation'), expression: $('#expression'), lower: $('#lower'), upper: $('#upper'),
     target: $('#target'), direction: $('#direction'), integralOptions: $('#integral-options'), limitOptions: $('#limit-options'),
     operationHint: $('#operation-hint'), inputHelp: $('#input-help'), send: $('#send-button'), messages: $('#messages'), welcome: $('#welcome'),
+    formError: $('#form-error'),
     chatList: $('#chat-list'), chatSearchWrap: $('#chat-search-wrap'), chatSearch: $('#chat-search'), status: $('#service-status'), toast: $('#toast'),
     appShell: document.querySelector('.app-shell'), sidebar: $('#sidebar'), help: $('#help-dialog'), routeHelp: $('#route-dialog'), conversation: $('#conversation')
   };
@@ -79,6 +80,18 @@
     if (request.operation === 'integral' && Boolean(request.lower) !== Boolean(request.upper)) return 'Enter both integral bounds, or leave both blank.';
     if (request.operation === 'limit' && !request.target) return 'Enter the value that x approaches.';
     return '';
+  }
+
+  function clearFormError() {
+    elements.formError.hidden = true;
+    setText(elements.formError, '');
+    [elements.expression, elements.lower, elements.upper, elements.target].forEach((field) => field.removeAttribute('aria-invalid'));
+  }
+
+  function showFormError(message, fields = [elements.expression]) {
+    setText(elements.formError, message);
+    elements.formError.hidden = false;
+    fields.forEach((field) => field.setAttribute('aria-invalid', 'true'));
   }
 
   function prettyOperation(operation) {
@@ -463,7 +476,14 @@
     if (state.solving) return;
     const request = buildRequest();
     const validationError = validateRequest(request);
-    if (validationError) { showToast(validationError); elements.expression.focus(); return; }
+    if (validationError) {
+      const fields = request.operation === 'integral' ? [elements.lower, elements.upper] : request.operation === 'limit' ? [elements.target] : [elements.expression];
+      showFormError(validationError, fields);
+      showToast(validationError);
+      (fields[0] || elements.expression).focus();
+      return;
+    }
+    clearFormError();
     state.solving = true;
     elements.send.disabled = true;
     const message = { id: String(state.nextMessageId++), generation: state.solveGeneration, request, display: displayRequest(request), loading: true };
@@ -509,7 +529,8 @@
   function wireEvents() {
     elements.form.addEventListener('submit', submit);
     elements.operation.addEventListener('change', updateOperationFields);
-    elements.expression.addEventListener('input', resizeExpression);
+    elements.expression.addEventListener('input', () => { resizeExpression(); clearFormError(); });
+    [elements.lower, elements.upper, elements.target].forEach((field) => field.addEventListener('input', clearFormError));
     elements.expression.addEventListener('keydown', (event) => {
       if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); elements.form.requestSubmit(); }
     });
