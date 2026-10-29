@@ -15,7 +15,7 @@
     target: $('#target'), direction: $('#direction'), integralOptions: $('#integral-options'), limitOptions: $('#limit-options'),
     operationHint: $('#operation-hint'), inputHelp: $('#input-help'), send: $('#send-button'), messages: $('#messages'), welcome: $('#welcome'),
     chatList: $('#chat-list'), chatSearchWrap: $('#chat-search-wrap'), chatSearch: $('#chat-search'), status: $('#service-status'), toast: $('#toast'),
-    sidebar: $('#sidebar'), help: $('#help-dialog'), conversation: $('#conversation')
+    appShell: document.querySelector('.app-shell'), sidebar: $('#sidebar'), help: $('#help-dialog'), conversation: $('#conversation')
   };
 
   function setText(node, value) {
@@ -379,8 +379,8 @@
     $('#syntax-help').addEventListener('click', () => elements.help.showModal());
     $('#open-help-inline').addEventListener('click', () => elements.help.showModal());
     $('#close-help').addEventListener('click', () => elements.help.close());
-    $('#close-sidebar').addEventListener('click', () => elements.sidebar.classList.remove('open'));
-    $('#open-sidebar').addEventListener('click', () => elements.sidebar.classList.add('open'));
+    $('#close-sidebar').addEventListener('click', () => { elements.sidebar.classList.remove('open'); elements.appShell.classList.add('sidebar-collapsed'); });
+    $('#open-sidebar').addEventListener('click', () => { elements.appShell.classList.remove('sidebar-collapsed'); elements.sidebar.classList.add('open'); });
     $('#search-toggle').addEventListener('click', () => { elements.chatSearchWrap.hidden = !elements.chatSearchWrap.hidden; if (!elements.chatSearchWrap.hidden) elements.chatSearch.focus(); });
     elements.chatSearch.addEventListener('input', () => { state.chatFilter = elements.chatSearch.value; renderChatList(); });
   }
