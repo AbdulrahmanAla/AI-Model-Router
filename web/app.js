@@ -2,7 +2,7 @@
   'use strict';
 
   const $ = (selector) => document.querySelector(selector);
-  const state = { messages: [], solving: false, health: null, chatFilter: '', nextMessageId: 1, solveGeneration: 0 };
+  const state = { messages: [], solving: false, health: null, chatFilter: '', nextMessageId: 1, solveGeneration: 0, activeSolve: null };
   const operationCopy = {
     derivative: { hint: 'Find d/dx of an expression', help: 'Use explicit multiplication, such as 2*x.' },
     integral: { hint: 'Find an antiderivative or a definite integral', help: 'Leave bounds blank for an antiderivative, or provide both.' },
@@ -456,19 +456,25 @@
 
   async function solve(request, message) {
     message.cancelled = false;
-    message.controller = new AbortController();
+    const controller = new AbortController();
+    message.controller = controller;
+    state.activeSolve = controller;
+    const current = () => message.controller === controller && state.activeSolve === controller && message.generation === state.solveGeneration;
     try {
-      const response = await readResponse(await fetchWithTimeout('/api/solve', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(request) }, 20000, message.controller));
+      const response = await readResponse(await fetchWithTimeout('/api/solve', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(request) }, 20000, controller));
+      if (!current()) return;
       message.loading = false;
       message.response = response;
       setServiceStatus('ready', 'Solver ready');
     } catch (error) {
+      if (!current()) return;
       message.loading = false;
       message.error = message.cancelled ? 'Solve cancelled. You can retry this question.' : (error.message || 'The solver is unavailable.');
       if (message.cancelled || error.status === 422) setServiceStatus('ready', 'Solver ready');
       else setServiceStatus('error', 'Solver unavailable');
     } finally {
-      if (message.generation !== state.solveGeneration) return;
+      if (!current()) return;
+      state.activeSolve = null;
       state.solving = false;
       elements.send.disabled = false;
       renderMessages();
@@ -479,6 +485,8 @@
     if (!message.loading) return;
     message.cancelled = true;
     if (message.controller) message.controller.abort();
+    message.controller = null;
+    state.activeSolve = null;
     message.loading = false;
     message.error = 'Solve cancelled. You can retry this question.';
     state.solving = false;
@@ -500,20 +508,26 @@
     if (!message.response || !message.request || message.aiLoading) return;
     message.aiLoading = true;
     message.aiCancelled = false;
-    message.aiController = new AbortController();
+    const controller = new AbortController();
+    const generation = state.solveGeneration;
+    message.aiController = controller;
+    const current = () => message.aiController === controller && generation === state.solveGeneration;
     if (!Array.isArray(message.aiAttempts)) message.aiAttempts = [];
     const attempt = { action, status: 'loading', message: 'Contacting the configured AI provider...' };
     message.aiAttempts.push(attempt);
     message.ai = attempt;
     renderMessages();
     try {
-      const response = await readResponse(await fetchWithTimeout('/api/ai', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action, request: message.request }) }, 45000, message.aiController));
+      const response = await readResponse(await fetchWithTimeout('/api/ai', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action, request: message.request }) }, 45000, controller));
+      if (!current()) return;
       Object.assign(attempt, response, { action });
       message.ai = attempt;
     } catch (error) {
+      if (!current()) return;
       Object.assign(attempt, { action, status: 'error', message: message.aiCancelled ? 'AI request cancelled.' : (error.message || 'The AI response is unavailable.'), metrics: error.payload && error.payload.metrics });
       message.ai = attempt;
     } finally {
+      if (!current()) return;
       message.aiLoading = false;
       renderMessages();
     }
@@ -523,6 +537,8 @@
     if (!message.aiLoading) return;
     message.aiCancelled = true;
     if (message.aiController) message.aiController.abort();
+    message.aiController = null;
+    Object.assign(message.ai, { status: 'error', message: 'AI request cancelled. Provider usage is not yet known.' });
     message.aiLoading = false;
     renderMessages();
   }

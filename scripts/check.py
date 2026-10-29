@@ -14,6 +14,7 @@ def main():
         raise SystemExit("Install Node.js for the JavaScript syntax check, then rerun.")
     for path in sorted((ROOT / "web").rglob("*.js")):
         commands.append([node, "--check", str(path)])
+    commands.append([node, "--test", "tests/frontend_requests.test.cjs"])
     commands.append([sys.executable, "scripts/smoke.py"])
     for command in commands:
         print("Running", " ".join(command), flush=True)
