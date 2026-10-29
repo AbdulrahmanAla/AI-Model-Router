@@ -175,8 +175,34 @@ def test_limit_verification_does_not_sample_outside_raw_domain() -> None:
     )
     body = response.json()
     assert response.status_code == 200
-    assert body["result"] == "-10"
+    assert body["status"] == "unresolved"
+    assert body["result"] is None
     assert body["verification"]["status"] == "not_checked"
+
+
+def test_limit_requires_real_domain_points_in_the_requested_direction() -> None:
+    for expression, target, direction in [
+        ("sqrt(x)^2", "0", "-"),
+        ("sqrt(x)^2", "0", "both"),
+        ("sqrt(-x^2)", "0", "+"),
+        ("sqrt(x)*sqrt(-x)", "0", "+"),
+    ]:
+        body = client.post("/api/solve", json={"operation": "limit", "expression": expression,
+            "target": target, "direction": direction}).json()
+        assert body["status"] == "unresolved", (expression, body)
+        assert body["result"] is None
+
+
+def test_limit_retains_valid_endpoints_holes_and_unbounded_real_domains() -> None:
+    for expression, target, direction, expected in [
+        ("sqrt(x)^2", "0", "+", "0"),
+        ("sqrt(x-10)^2", "10", "+", "0"),
+        ("x/x", "0", "both", "1"),
+    ]:
+        body = client.post("/api/solve", json={"operation": "limit", "expression": expression,
+            "target": target, "direction": direction}).json()
+        assert body["status"] == "solved", (expression, body)
+        assert body["result"] == expected
 
 
 def test_rejects_unsafe_python_and_implicit_multiplication() -> None:

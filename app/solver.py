@@ -533,6 +533,36 @@ def _check_raw_denominator_domains(tree: ast.AST, lower: sp.Expr, upper: sp.Expr
         raise RuntimeError("The denominator domain is unresolved across the interval.")
 
 
+def _check_limit_approach_domain(tree: ast.AST, source: str, target: sp.Expr, direction: str) -> None:
+    """Require raw-domain samples in every direction used by the limit.
+
+    SymPy may simplify away restrictions from the original expression, such as
+    ``sqrt(x)**2`` becoming ``x``.  Sampling the parsed expression itself keeps
+    that information without trying to symbolically reconstruct every possible
+    real domain.  This is deliberately conservative: failure to find a safe
+    approach point yields an unresolved result rather than an unverified answer.
+    """
+    finite_target = target.is_finite is True
+    if finite_target:
+        distances = (sp.Rational(1, 1), sp.Rational(1, 10), sp.Rational(1, 100), sp.Rational(1, 1000), sp.Rational(1, 100000))
+        sides = ("-", "+") if direction == "both" else (direction,)
+        for side in sides:
+            sign = -1 if side == "-" else 1
+            valid = any(_raw_point_is_real(tree, source, target + sign * distance) for distance in distances)
+            if not valid:
+                raise SolveUnresolved("The original real domain does not approach the target from the requested direction.")
+        return
+
+    # At infinity, use increasingly distant real samples in the requested
+    # direction.  Two successful samples avoid accepting a bounded domain that
+    # happens to contain one arbitrary probe point.
+    sign = 1 if target == sp.oo else -1
+    distances = (10, 100, 1000, 1000000)
+    valid = sum(_raw_point_is_real(tree, source, sign * distance) for distance in distances)
+    if valid < 2:
+        raise SolveUnresolved("The original real domain does not extend toward the requested infinite target.")
+
+
 def _verify_limit_numeric(original: sp.Expr, result: sp.Expr, target: sp.Expr, direction: str, raw_tree: ast.AST | None = None, source: str | None = None) -> dict[str, str]:
     if target.is_finite is not True or result in (sp.oo, -sp.oo, sp.zoo, sp.nan) or result.has(sp.Limit, sp.AccumBounds):
         return {"status": "not_checked", "method": "near-target samples", "detail": "A finite real sample check was not available."}
@@ -800,6 +830,7 @@ def _compute(payload: dict[str, Any]) -> dict[str, Any]:
     if operation == "limit":
         target = parse_constant(payload["target"])
         direction = payload.get("direction") or "both"
+        _check_limit_approach_domain(parsed.tree, parsed.source, target, direction)
         if direction == "both":
             left = sp.limit(expression, _X, target, dir="-")
             right = sp.limit(expression, _X, target, dir="+")
