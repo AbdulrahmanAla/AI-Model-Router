@@ -98,6 +98,7 @@ def test_limit_uses_both_sides_when_direction_is_omitted() -> None:
     assert response.status_code == 200
     assert body["result"] == "1"
     assert body["verification"]["status"] == "numerical_evidence"
+    assert any("real domain" in step for step in body["steps"])
 
 
 def test_equation_returns_real_roots_and_checks_substitution() -> None:

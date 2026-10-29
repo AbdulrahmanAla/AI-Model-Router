@@ -647,6 +647,7 @@ def _solved_steps(
     if operation == "limit":
         direction_text = "both sides" if direction == "both" else ("the right side" if direction == "+" else "the left side")
         steps = [f"Read the expression {source} as x approaches {_sstr(target)}."]
+        steps.append("Check the original real domain for safe points approaching the target.")
         if direction == "both":
             steps.append("Compute the left-hand and right-hand limits, then compare them.")
         else:
