@@ -547,6 +547,18 @@
     elements.expression.focus();
   }
 
+  function applyExample(button) {
+    elements.operation.value = button.dataset.operation;
+    elements.expression.value = button.dataset.expression || '';
+    elements.lower.value = '';
+    elements.upper.value = '';
+    elements.target.value = button.dataset.target || '';
+    clearFormError();
+    updateOperationFields();
+    elements.help.close();
+    elements.expression.focus();
+  }
+
   function wireEvents() {
     elements.form.addEventListener('submit', submit);
     elements.operation.addEventListener('change', () => { updateOperationFields(); clearFormError(); });
@@ -566,15 +578,10 @@
     $('#search-toggle').addEventListener('click', () => { elements.chatSearchWrap.hidden = !elements.chatSearchWrap.hidden; if (!elements.chatSearchWrap.hidden) elements.chatSearch.focus(); });
     elements.chatSearch.addEventListener('input', () => { state.chatFilter = elements.chatSearch.value; renderChatList(); });
     document.querySelectorAll('.starter-prompt').forEach((button) => {
-      button.addEventListener('click', () => {
-        elements.operation.value = button.dataset.operation;
-        elements.expression.value = button.dataset.expression || '';
-        elements.lower.value = '';
-        elements.upper.value = '';
-        elements.target.value = button.dataset.target || '';
-        updateOperationFields();
-        elements.expression.focus();
-      });
+      button.addEventListener('click', () => applyExample(button));
+    });
+    document.querySelectorAll('.syntax-example').forEach((button) => {
+      button.addEventListener('click', () => applyExample(button));
     });
   }
 
