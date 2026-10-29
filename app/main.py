@@ -16,7 +16,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ConfigDict, Field
 
 from .ai import AIServiceError, AIValidationBusy, handle_ai
-from .solver import GrammarError, SolveTimeout, SolveUnresolved, SolverBusy, run_bounded
+from .solver import GrammarError, SolveTimeout, SolveUnresolved, SolverBusy, _unresolved_steps, run_bounded
 
 
 class SolveRequest(BaseModel):
@@ -128,7 +128,7 @@ def validate_solve_request(request: SolveRequest) -> dict[str, object]:
 
 def _unresolved(payload: dict[str, object], reason: str, note: str, started: float) -> dict[str, object]:
     elapsed = (time.perf_counter() - started) * 1000
-    return {"status": "unresolved", "operation": payload["operation"], "expression": payload["expression"], "result": None, "latex": None, "verification": {"status": "not_checked", "method": reason, "detail": note}, "notes": [note], "metrics": {"route": "solver", "ai_calls": 0, "solver_ms": None, "elapsed_ms": round(elapsed, 3), "model": None, "input_tokens": None, "output_tokens": None, "total_tokens": None}, "request": payload}
+    return {"status": "unresolved", "operation": payload["operation"], "expression": payload["expression"], "result": None, "latex": None, "verification": {"status": "not_checked", "method": reason, "detail": note}, "notes": [note], "steps": _unresolved_steps(payload, note), "metrics": {"route": "solver", "ai_calls": 0, "solver_ms": None, "elapsed_ms": round(elapsed, 3), "model": None, "input_tokens": None, "output_tokens": None, "total_tokens": None}, "request": payload}
 
 
 def _solve_request_sync(request: SolveRequest) -> dict[str, object]:
@@ -148,7 +148,7 @@ def _solve_request_sync(request: SolveRequest) -> dict[str, object]:
         return _unresolved(payload, "unresolved", "The exact solver could not safely finish this request.", started)
     elapsed = (time.perf_counter() - started) * 1000
     metrics = {"route": "solver", "ai_calls": 0, "solver_ms": outcome.get("solver_ms"), "elapsed_ms": round(elapsed, 3), "model": None, "input_tokens": None, "output_tokens": None, "total_tokens": None}
-    return {"status": "solved", "operation": request.operation, "expression": request.expression, "result": outcome["result"], "latex": outcome["latex"], "verification": outcome["verification"], "notes": outcome.get("notes", []), "metrics": metrics, "request": payload}
+    return {"status": "solved", "operation": request.operation, "expression": request.expression, "result": outcome["result"], "latex": outcome["latex"], "verification": outcome["verification"], "notes": outcome.get("notes", []), "steps": outcome.get("steps", []), "metrics": metrics, "request": payload}
 
 
 @app.post("/api/solve")
