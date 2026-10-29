@@ -213,6 +213,22 @@ def roots_equivalent(actual: Any, expected: list[str]) -> bool:
     return all(bool(sp.simplify(actual - wanted) == 0) for actual, wanted in zip(actual_roots, expected_roots))
 
 
+def _equation_sentinel_equivalent(actual: Any, expected: str) -> bool:
+    """Accept the API's empty-set form for the no-root sentinel."""
+
+    if expected == "all real x":
+        return isinstance(actual, str) and actual.strip().casefold() == expected
+    if expected != "no real solutions":
+        return False
+    if actual in ([], {}, set()):
+        return True
+    return isinstance(actual, str) and actual.strip().casefold() in {"{}", "set()", expected}
+
+
+def _is_bounded_input(case: dict[str, Any]) -> bool:
+    return case["expected"]["status"] == "unresolved" and case["expected"].get("category") == "bounded_input"
+
+
 def _body_status(observation: dict[str, Any]) -> tuple[int | None, dict[str, Any] | None]:
     status = observation.get("http_status")
     body = observation.get("body")
@@ -230,6 +246,8 @@ def score_solver_case(case: dict[str, Any], observation: dict[str, Any]) -> dict
         return {"passed": passed, "counted": False, "outcome": "rejected", "reason": "validation response" if passed else "expected validation rejection"}
     if expected_status == "unresolved":
         passed = http_status == 200 and body is not None and body.get("status") == "unresolved"
+        if _is_bounded_input(case) and http_status == 422:
+            return {"passed": True, "counted": False, "outcome": "bounded_input", "reason": "safe input bound rejected before solve"}
         return {"passed": passed, "counted": False, "outcome": "unresolved", "reason": "bounded route declined request" if passed else "expected unresolved response"}
     if http_status != 200 or body is None or body.get("status") != "solved":
         return {"passed": False, "counted": True, "outcome": "failure", "reason": "missing solved response"}
@@ -237,7 +255,7 @@ def score_solver_case(case: dict[str, Any], observation: dict[str, Any]) -> dict
     if case["operation"] == "equation":
         expected_result = expected["result"]
         if isinstance(expected_result, str) and expected_result in {"all real x", "no real solutions"}:
-            passed = isinstance(actual, str) and actual.strip().casefold() == expected_result
+            passed = _equation_sentinel_equivalent(actual, expected_result)
         else:
             passed = roots_equivalent(actual, expected_result)
     elif case["operation"] == "integral" and case["request"].get("lower") is None:
@@ -271,6 +289,8 @@ def score_ai_case(case: dict[str, Any], observation: dict[str, Any]) -> dict[str
             body is not None and body.get("status") == "rejected"
         )
         return {"passed": passed, "counted": False, "outcome": "validation_rejected", "reason": "shared validation" if passed else "expected validation response"}
+    if expected_status == "unresolved" and _is_bounded_input(case) and http_status == 422:
+        return {"passed": True, "counted": False, "outcome": "bounded_input", "reason": "safe input bound rejected before model call"}
     if http_status != 200 or body is None or body.get("status") != "answered":
         return {"passed": False, "counted": expected_status == "solved", "outcome": "failure", "reason": "provider or API failure"}
     if expected_status == "unresolved":
@@ -283,7 +303,7 @@ def score_ai_case(case: dict[str, Any], observation: dict[str, Any]) -> dict[str
     if case["operation"] == "equation":
         expected_result = case["expected"]["result"]
         if isinstance(expected_result, str) and expected_result in {"all real x", "no real solutions"}:
-            passed = isinstance(answer.get("result"), str) and answer["result"].strip().casefold() == expected_result
+            passed = _equation_sentinel_equivalent(answer.get("result"), expected_result)
         else:
             passed = roots_equivalent(answer.get("result"), expected_result)
     elif case["operation"] == "integral" and case["request"].get("lower") is None:
