@@ -382,11 +382,13 @@
 
   function renderSessionStats() {
     const completed = state.messages.filter((message) => message.response && message.response.status === 'solved').length;
+    const unresolved = state.messages.filter((message) => message.response && message.response.status === 'unresolved').length;
     const attempts = state.messages.flatMap((message) => Array.isArray(message.aiAttempts) ? message.aiAttempts : []);
     const unknownCalls = attempts.some((attempt) => !(attempt.metrics && Number.isFinite(attempt.metrics.ai_calls)));
     const knownCalls = attempts.reduce((total, attempt) => total + (attempt.metrics && Number.isFinite(attempt.metrics.ai_calls) ? attempt.metrics.ai_calls : 0), 0);
     const calls = unknownCalls ? 'model calls not reported' : `${knownCalls} model call${knownCalls === 1 ? '' : 's'}`;
-    setText(elements.sessionStats, `${completed} exact solve${completed === 1 ? '' : 's'} · ${calls}`);
+    const unresolvedLabel = unresolved ? ` · ${unresolved} unresolved` : '';
+    setText(elements.sessionStats, `${completed} exact solve${completed === 1 ? '' : 's'}${unresolvedLabel} · ${calls}`);
   }
 
   async function readResponse(response) {
