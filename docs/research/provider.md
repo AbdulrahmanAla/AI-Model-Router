@@ -38,4 +38,3 @@ The local test suite should use a fake HTTP transport that returns a fixed assis
 ## Limits of the evidence
 
 Provider usage counters prove reported token counts for provider calls. They do not measure FLOPs, electricity, or total model compute. The hackathon claim should compare the same user cases and output requirements, report exact-path model calls as zero, and report optional explanation calls separately. No claim about cross-provider latency or quality is supported until each configured provider is measured with the same harness.
-
