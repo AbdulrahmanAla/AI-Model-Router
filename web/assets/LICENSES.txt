@@ -113,3 +113,12 @@ INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
 LOSS OF USE, DATA, OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR
 OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
 PERFORMANCE OF THIS SOFTWARE.
+
+MathQuill and Symbola fonts
+---------------------------
+The visual equation editor uses MathQuill 0.10.1-a, distributed under the Mozilla Public License, Version 2.0. MathQuill depends on jQuery, which is distributed under the MIT License. The bundled Symbola fonts are distributed under the SIL Open Font License, Version 1.1.
+
+MathQuill: https://github.com/mathquill/mathquill
+Mozilla Public License: https://www.mozilla.org/MPL/2.0/
+ jQuery: https://jquery.org/license/
+SIL Open Font License: https://scripts.sil.org/OFL

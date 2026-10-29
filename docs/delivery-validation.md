@@ -52,7 +52,7 @@ Final solver measurements are recorded after the final integration gate.
 
 Provider contract tests use a fake external HTTP transport and make no paid model calls. They validate requests, grounding, usage accounting, and failure handling. They do not establish live model quality, provider compatibility, token savings, or model inference latency.
 
-No API key or external hosting configuration was supplied. Live provider comparison and external publication remain pending user-owned configuration. The local solver remains usable without them. The repository provides `.env.example`, a Dockerfile, and a manual HTTPS deployment guide. Docker is unavailable on this PC, so a container build has not been verified here.
+No API key or external hosting configuration was supplied. Live provider comparison and external publication remain pending user-owned configuration. The local solver remains usable without them. The repository provides local environment instructions, a Dockerfile, and a manual HTTPS deployment guide. Docker is unavailable on this PC, so a container build has not been verified here.
 
 No energy, FLOP, GPU-power, or total cloud-compute measurement is claimed.
 
@@ -97,3 +97,13 @@ Commit `ddfb026` adds a bounded `steps` list to every solver response that reach
 The website renders the list as an expandable **Show steps** section inside the answer card. Route metrics remain separate. AI explanations remain optional and are never used to generate these steps. The browser check submitted `x^3*sin(x)`, expanded **Show steps**, and displayed the product-rule route plus the numerical verification step. The API returned the same steps at `/api/solve`.
 
 ![Expanded deterministic solution steps](evidence/solution-steps.png)
+
+## Visual math editor validation
+
+The composer now uses a bundled MathQuill 0.10.1-a field for the expression, integral bounds, and limit target. The MathQuill stylesheet, jQuery dependency, JavaScript build, and Symbola fonts are served locally from `web/assets`, so the editor does not depend on a CDN during the demo.
+
+The live page was reloaded from the updated server and showed the MathQuill editable-field class on the expression control, the MathQuill stylesheet loaded, and the expected visual equation input area. The editor remains a presentation layer: the browser converts supported MathQuill LaTeX to the existing structured expression grammar before submitting `/api/solve`. The solver API and 40-case evaluation contract are unchanged.
+
+![MathQuill visual equation editor](evidence/mathquill-editor.png)
+
+MathQuill supports visual fractions, roots, exponents, function names, and symbols. Integral and derivative workflows continue to use the existing operation selector and bound fields. The editor does not claim support for new mathematical operations, implicit variables, or arbitrary LaTeX.

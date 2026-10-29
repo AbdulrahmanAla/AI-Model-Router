@@ -26,7 +26,7 @@ The local gate runs public API tests, JavaScript syntax checks, and real HTTP ch
 
 ## Connect an optional model provider
 
-Copy `.env.example` to `.env`. Set `AI_BASE_URL` to your provider's API base ending at its version prefix, `AI_MODEL` to an accessible model, and `AI_API_KEY` to your key. The adapter appends `/chat/completions`. Confirm your provider supports the documented non-streaming request and usage fields.
+Create an untracked `.env` file or set these variables in your shell or deployment secret store: `AI_BASE_URL` should point to your provider's API base ending at its version prefix, `AI_MODEL` should name an accessible model, and `AI_API_KEY` should contain your key. The adapter appends `/chat/completions`. Confirm your provider supports the documented non-streaming request and usage fields.
 
 ```powershell
 .\.venv\Scripts\python.exe -m uvicorn app.main:app --env-file .env --host 127.0.0.1 --port 8000
@@ -44,4 +44,10 @@ Report model calls and provider-reported tokens separately from latency. The pro
 
 Use the [manual deployment guide](docs/deploy.md). No GitHub Actions are required. Keep the demo private while a billable provider is connected because this prototype has no multi-user authentication or per-user quota system.
 
-The original visual exploration remains under `.scratch/ai-hackathon-environment/prototype/`. The working application is under `app/` and `web/`.
+The working application is under `app/` and `web/`. Local scratch work is ignored and is not part of the public source tree.
+
+## Visual equation editor
+
+The composer uses a bundled MathQuill editor for expressions, bounds, and limit targets. Type fractions, exponents, roots, trigonometric functions, and symbols visually. The browser converts the MathQuill LaTeX into the same bounded structured expression grammar used by the exact solver. The editor is a presentation layer only. It does not expand the solver's supported mathematics, and it never sends raw LaTeX to the API.
+
+MathQuill is included under the Mozilla Public License. See `web/assets/LICENSES.txt` for third-party notices.

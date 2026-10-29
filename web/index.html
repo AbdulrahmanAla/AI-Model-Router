@@ -6,6 +6,7 @@
   <meta name="description" content="AI Math Assistant computes supported calculus and algebra questions with a local exact solver.">
   <title>AI Math Assistant</title>
   <link rel="stylesheet" href="/web/styles.css">
+  <link rel="stylesheet" href="/web/assets/mathquill.css">
 </head>
 <body>
   <div class="app-shell">
@@ -56,13 +57,13 @@
           </div>
           <form id="solve-form" novalidate>
             <div class="input-grid">
-              <label class="field expression-field" for="expression"><span>Expression</span><textarea id="expression" rows="1" required spellcheck="false" placeholder="For example: x^3*sin(x)"></textarea></label>
+              <label class="field expression-field" for="expression"><span>Expression</span><span id="expression" class="math-field" role="textbox" aria-label="Expression" tabindex="0" data-placeholder="For example: x^3 sin(x)"></span></label>
               <div class="option-fields" id="integral-options" hidden>
-                <label class="field" for="lower"><span>Lower bound</span><input id="lower" type="text" inputmode="text" placeholder="0" spellcheck="false"></label>
-                <label class="field" for="upper"><span>Upper bound</span><input id="upper" type="text" inputmode="text" placeholder="1" spellcheck="false"></label>
+                <label class="field" for="lower"><span>Lower bound</span><span id="lower" class="math-field compact-math-field" role="textbox" aria-label="Lower bound" tabindex="0" data-placeholder="0"></span></label>
+                <label class="field" for="upper"><span>Upper bound</span><span id="upper" class="math-field compact-math-field" role="textbox" aria-label="Upper bound" tabindex="0" data-placeholder="1"></span></label>
               </div>
               <div class="option-fields" id="limit-options" hidden>
-                <label class="field" for="target"><span>As x approaches</span><input id="target" type="text" inputmode="text" placeholder="0" spellcheck="false"></label>
+                <label class="field" for="target"><span>As x approaches</span><span id="target" class="math-field compact-math-field" role="textbox" aria-label="As x approaches" tabindex="0" data-placeholder="0"></span></label>
                 <label class="field" for="direction"><span>Direction</span><select id="direction"><option value="both">Both sides</option><option value="+">From the right</option><option value="-">From the left</option></select></label>
               </div>
             </div>
@@ -86,6 +87,8 @@
     </div>
   </dialog>
   <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+  <script src="/web/assets/jquery.min.js"></script>
+  <script src="/web/assets/mathquill.min.js"></script>
   <script src="/web/app.js" defer></script>
 </body>
 </html>

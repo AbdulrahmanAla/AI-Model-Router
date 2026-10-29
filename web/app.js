@@ -3,6 +3,7 @@
 
   const $ = (selector) => document.querySelector(selector);
   const state = { messages: [], solving: false, health: null, chatFilter: '' };
+  const mathFields = {};
   const operationCopy = {
     derivative: { hint: 'Find d/dx of an expression', help: 'Use explicit multiplication, such as 2*x.' },
     integral: { hint: 'Find an antiderivative or a definite integral', help: 'Leave bounds blank for an antiderivative, or provide both.' },
@@ -17,6 +18,54 @@
     chatList: $('#chat-list'), chatSearchWrap: $('#chat-search-wrap'), chatSearch: $('#chat-search'), status: $('#service-status'), toast: $('#toast'),
     appShell: document.querySelector('.app-shell'), sidebar: $('#sidebar'), help: $('#help-dialog'), conversation: $('#conversation')
   };
+
+  function latexToExpression(latex) {
+    let value = String(latex || '').replace(/\\left|\\right|\\,|\\!/g, '');
+    const unwrap = (command, replacement) => {
+      const pattern = new RegExp(`\\\\${command}\\\\{([^{}]*)\\\\}`, 'g');
+      value = value.replace(pattern, (_, body) => `${replacement}(${body})`);
+    };
+    let previous = '';
+    while (value !== previous) {
+      previous = value;
+      value = value.replace(/\\frac\\{([^{}]*)\\}\\{([^{}]*)\\}/g, '($1)/($2)');
+      value = value.replace(/\\sqrt\\{([^{}]*)\\}/g, 'sqrt($1)');
+    }
+    value = value
+      .replace(/\\(sin|cos|tan|log|exp|sqrt|Abs|asin|acos|atan|sinh|cosh|tanh)/g, '$1')
+      .replace(/\\pi/g, 'pi').replace(/\\infty/g, 'oo').replace(/\\cdot/g, '*')
+      .replace(/[{}]/g, '')
+      .replace(/\\text\{([^{}]*)\}/g, '$1');
+    value = value.replace(/(\d|\))(?=[a-zA-Z(])/g, '$1*');
+    value = value.replace(/([xX\)])(?=\()/g, '$1*');
+    value = value.replace(/\*+(?=[a-zA-Z])/g, '*');
+    return value.trim();
+  }
+
+  function setupMathFields() {
+    if (!window.MathQuill) return;
+    const MQ = window.MathQuill.getInterface(2);
+    ['expression', 'lower', 'upper', 'target'].forEach((name) => {
+      const node = elements[name];
+      mathFields[name] = MQ.MathField(node, {
+        restrictMismatchedBrackets: true,
+        handlers: { edit: resizeExpression }
+      });
+    });
+  }
+
+  function fieldValue(name) {
+    return latexToExpression(mathFields[name] ? mathFields[name].latex() : '');
+  }
+
+  function clearField(name) {
+    if (mathFields[name]) mathFields[name].latex('');
+  }
+
+  function focusField(name) {
+    if (mathFields[name]) mathFields[name].focus();
+    else elements[name].focus();
+  }
 
   function setText(node, value) {
     node.textContent = value === null || value === undefined ? '' : String(value);
@@ -55,21 +104,24 @@
       limit: 'For example: sin(x)/x',
       equation: 'For example: x^2 - 4 = 0'
     };
-    elements.expression.placeholder = placeholders[operation];
+    elements.expression.dataset.placeholder = placeholders[operation];
     resizeExpression();
   }
 
   function resizeExpression() {
-    elements.expression.style.height = 'auto';
-    elements.expression.style.height = `${Math.min(elements.expression.scrollHeight, 120)}px`;
+    const node = elements.expression;
+    node.style.minHeight = node.scrollHeight ? `${Math.min(node.scrollHeight, 120)}px` : '';
   }
 
   function buildRequest() {
     const operation = elements.operation.value;
-    const request = { operation, expression: elements.expression.value.trim(), variable: 'x' };
-    request.lower = operation === 'integral' && elements.lower.value.trim() ? elements.lower.value.trim() : null;
-    request.upper = operation === 'integral' && elements.upper.value.trim() ? elements.upper.value.trim() : null;
-    request.target = operation === 'limit' && elements.target.value.trim() ? elements.target.value.trim() : null;
+    const request = { operation, expression: fieldValue('expression'), variable: 'x' };
+    const lower = fieldValue('lower');
+    const upper = fieldValue('upper');
+    const target = fieldValue('target');
+    request.lower = operation === 'integral' && lower ? lower : null;
+    request.upper = operation === 'integral' && upper ? upper : null;
+    request.target = operation === 'limit' && target ? target : null;
     request.direction = operation === 'limit' ? elements.direction.value : null;
     return request;
   }
@@ -346,7 +398,7 @@
     if (state.solving) return;
     const request = buildRequest();
     const validationError = validateRequest(request);
-    if (validationError) { showToast(validationError); elements.expression.focus(); return; }
+    if (validationError) { showToast(validationError); focusField('expression'); return; }
     state.solving = true;
     elements.send.disabled = true;
     const message = { request, display: displayRequest(request), loading: true };
@@ -370,19 +422,15 @@
     state.messages = [];
     state.chatFilter = '';
     elements.chatSearch.value = '';
-    elements.expression.value = '';
-    elements.lower.value = '';
-    elements.upper.value = '';
-    elements.target.value = '';
+    clearField('expression'); clearField('lower'); clearField('upper'); clearField('target');
     updateOperationFields();
     renderMessages();
-    elements.expression.focus();
+    focusField('expression');
   }
 
   function wireEvents() {
     elements.form.addEventListener('submit', submit);
     elements.operation.addEventListener('change', updateOperationFields);
-    elements.expression.addEventListener('input', resizeExpression);
     elements.expression.addEventListener('keydown', (event) => {
       if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); elements.form.requestSubmit(); }
     });
@@ -396,6 +444,7 @@
     elements.chatSearch.addEventListener('input', () => { state.chatFilter = elements.chatSearch.value; renderChatList(); });
   }
 
+  setupMathFields();
   wireEvents();
   updateOperationFields();
   checkHealth();
