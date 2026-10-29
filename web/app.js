@@ -233,6 +233,12 @@
       const loading = element('p', 'assistant-copy', 'Computing the exact result...');
       loading.setAttribute('aria-busy', 'true');
       body.append(loading);
+      const actions = element('div', 'message-actions');
+      const cancel = element('button', '', 'Cancel solve');
+      cancel.type = 'button';
+      cancel.addEventListener('click', () => cancelSolve(message));
+      actions.append(cancel);
+      body.append(actions);
       row.append(body);
       return row;
     }
@@ -355,8 +361,8 @@
     return body;
   }
 
-  async function fetchWithTimeout(url, options, timeoutMs) {
-    const controller = new AbortController();
+  async function fetchWithTimeout(url, options, timeoutMs, externalController) {
+    const controller = externalController || new AbortController();
     const timer = window.setTimeout(() => controller.abort(), timeoutMs);
     try {
       return await fetch(url, { ...options, signal: controller.signal });
@@ -373,14 +379,16 @@
   }
 
   async function solve(request, message) {
+    message.cancelled = false;
+    message.controller = new AbortController();
     try {
-      const response = await readResponse(await fetchWithTimeout('/api/solve', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(request) }, 20000));
+      const response = await readResponse(await fetchWithTimeout('/api/solve', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(request) }, 20000, message.controller));
       message.loading = false;
       message.response = response;
       setServiceStatus('ready', 'Solver ready');
     } catch (error) {
       message.loading = false;
-      message.error = error.message || 'The solver is unavailable.';
+      message.error = message.cancelled ? 'Solve cancelled. You can retry this question.' : (error.message || 'The solver is unavailable.');
       if (error.status === 422) setServiceStatus('ready', 'Solver ready');
       else setServiceStatus('error', 'Solver unavailable');
     } finally {
@@ -389,6 +397,17 @@
       elements.send.disabled = false;
       renderMessages();
     }
+  }
+
+  function cancelSolve(message) {
+    if (!message.loading) return;
+    message.cancelled = true;
+    if (message.controller) message.controller.abort();
+    message.loading = false;
+    message.error = 'Solve cancelled. You can retry this question.';
+    state.solving = false;
+    elements.send.disabled = false;
+    renderMessages();
   }
 
   function retrySolve(message) {
@@ -450,6 +469,7 @@
   }
 
   function resetChat() {
+    state.messages.forEach((message) => { if (message.controller) message.controller.abort(); });
     state.solveGeneration += 1;
     state.solving = false;
     elements.send.disabled = false;
