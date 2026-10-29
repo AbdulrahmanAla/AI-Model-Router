@@ -437,13 +437,15 @@
   }
 
   async function checkHealth() {
+    window.clearTimeout(checkHealth.timer);
     try {
-      const response = await readResponse(await fetch('/api/health'));
+      const response = await readResponse(await fetchWithTimeout('/api/health', {}, 5000));
       state.health = response;
       setServiceStatus('ready', response.ai_configured ? 'Solver ready · AI configured' : 'Solver ready');
     } catch (error) {
       state.health = null;
       setServiceStatus('error', 'Start the local server');
+      checkHealth.timer = window.setTimeout(checkHealth, 5000);
     }
   }
 
