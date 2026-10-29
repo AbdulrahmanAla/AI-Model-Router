@@ -24,6 +24,7 @@ The actual website at `http://127.0.0.1:8000` was exercised through the in-app b
 - The current UI also exposes the exact-first rationale, a visible general-model call count, inline validation for incomplete bounds or targets, copy actions for the result and full solution, and cancel/retry controls for slow solver or optional AI requests.
 - A repeated-question browser journey keeps duplicate sidebar entries addressable, and a cancelled solve returns to a ready service state with the original question available for retry.
 - The top-bar session scorecard reports solved exact routes and provider calls, excluding unresolved requests from the solved count. Syntax-help examples can be clicked to populate the composer, including a limit target.
+- Escape cancels an active solver or optional AI request while preserving the retry path; dialog Escape behavior remains unchanged.
 
 The wide and narrow viewport controls were set to 1366 by 900 and 390 by 844 respectively. Browser zoom and screenshot pixel scaling can make captured pixel dimensions differ from those requested values.
 
