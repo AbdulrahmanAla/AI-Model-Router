@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 
 import httpx
@@ -30,8 +31,16 @@ def configure_provider(monkeypatch, handler):
     app.state.ai_transport = httpx.MockTransport(handler)
 
 
-def response(content: str, usage: dict | None = None, status_code: int = 200) -> httpx.Response:
-    body = {"choices": [{"message": {"content": content}}]}
+def response(
+    content: str,
+    usage: dict | None = None,
+    status_code: int = 200,
+    finish_reason: str | None = None,
+) -> httpx.Response:
+    choice = {"message": {"content": content}}
+    if finish_reason is not None:
+        choice["finish_reason"] = finish_reason
+    body = {"choices": [choice]}
     if usage is not None:
         body["usage"] = usage
     return httpx.Response(status_code, json=body)
@@ -188,4 +197,48 @@ def test_incomplete_provider_choice_is_rejected(monkeypatch) -> None:
     )
 
     assert result.status_code == 502
+    assert result.json()["metrics"]["ai_calls"] == 1
+
+
+def test_truncated_provider_choice_is_rejected(monkeypatch) -> None:
+    configure_provider(monkeypatch, lambda request: response('{"status":"solved"', finish_reason="length"))
+    result = client.post(
+        "/api/ai",
+        json={"action": "baseline", "request": {"operation": "derivative", "expression": "x^2"}},
+    )
+
+    assert result.status_code == 502
+    assert result.json()["metrics"]["ai_calls"] == 1
+
+
+def test_grammar_validation_has_a_worker_deadline(monkeypatch) -> None:
+    from app import ai
+
+    configure_provider(monkeypatch, lambda request: response('{"status":"solved","result":"2*x"}'))
+    monkeypatch.setattr(ai, "GRAMMAR_TIMEOUT_MS", 1)
+    result = client.post(
+        "/api/ai",
+        json={"action": "baseline", "request": {"operation": "derivative", "expression": "x^2"}},
+    )
+
+    assert result.status_code == 422
+
+
+def test_provider_has_an_outer_wall_clock_deadline(monkeypatch) -> None:
+    class SlowTransport(httpx.AsyncBaseTransport):
+        async def handle_async_request(self, request: httpx.Request) -> httpx.Response:
+            await asyncio.sleep(1)
+            return response('{"status":"solved","result":"2*x"}')
+
+    monkeypatch.setenv("AI_BASE_URL", "https://provider.example/v1")
+    monkeypatch.setenv("AI_API_KEY", "test-secret")
+    monkeypatch.setenv("AI_MODEL", "test-model")
+    monkeypatch.setenv("AI_TIMEOUT_SECONDS", "0.1")
+    app.state.ai_transport = SlowTransport()
+    result = client.post(
+        "/api/ai",
+        json={"action": "baseline", "request": {"operation": "derivative", "expression": "x^2"}},
+    )
+
+    assert result.status_code == 504
     assert result.json()["metrics"]["ai_calls"] == 1

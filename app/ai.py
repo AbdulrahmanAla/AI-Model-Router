@@ -5,7 +5,9 @@ from __future__ import annotations
 import ast
 import asyncio
 import json
+import multiprocessing as mp
 import os
+import queue
 import threading
 import time
 from dataclasses import dataclass
@@ -14,10 +16,18 @@ from typing import Any
 import httpx
 import sympy as sp
 
-from .solver import GrammarError, _has_variable_denominator, parse_constant, parse_expression
+from .solver import (
+    GrammarError,
+    SOLVER_TIMEOUT_MS,
+    _has_variable_denominator,
+    parse_constant,
+    parse_expression,
+)
 
 
 _AI_CONCURRENCY = threading.BoundedSemaphore(2)
+_GRAMMAR_CONCURRENCY = threading.BoundedSemaphore(2)
+GRAMMAR_TIMEOUT_MS = int(os.getenv("AI_GRAMMAR_TIMEOUT_MS", str(SOLVER_TIMEOUT_MS)))
 _DEFAULT_TIMEOUT_SECONDS = 20.0
 _DEFAULT_MAX_TOKENS = 700
 _ALLOWED_ACTIONS = {"explain", "fallback", "baseline"}
@@ -182,6 +192,43 @@ def _validate_grammar(payload: dict[str, Any]) -> None:
         parse_constant(payload["target"])
 
 
+def _grammar_worker(payload: dict[str, Any], result_queue: Any) -> None:
+    try:
+        _validate_grammar(payload)
+        result_queue.put({"ok": True})
+    except GrammarError as exc:
+        result_queue.put({"ok": False, "message": str(exc)})
+    except Exception:
+        result_queue.put({"ok": False, "message": "The structured input could not be validated safely."})
+
+
+def _validate_grammar_bounded(payload: dict[str, Any]) -> None:
+    """Run grammar parsing and SymPy construction outside the request loop."""
+    if not _GRAMMAR_CONCURRENCY.acquire(blocking=False):
+        raise GrammarError("Structured input validation is busy. Try again shortly.")
+    result_queue = None
+    try:
+        context = mp.get_context("spawn")
+        result_queue = context.Queue(maxsize=1)
+        process = context.Process(target=_grammar_worker, args=(payload, result_queue), daemon=True)
+        process.start()
+        process.join(GRAMMAR_TIMEOUT_MS / 1000)
+        if process.is_alive():
+            process.terminate()
+            process.join(0.2)
+            raise GrammarError("Structured input validation reached its time limit.")
+        try:
+            result = result_queue.get(timeout=0.25)
+        except queue.Empty as exc:
+            raise GrammarError("Structured input validation did not finish safely.") from exc
+        if not result.get("ok"):
+            raise GrammarError(result.get("message", "The structured input is outside the supported grammar."))
+    finally:
+        if result_queue is not None:
+            result_queue.close()
+        _GRAMMAR_CONCURRENCY.release()
+
+
 def _messages(action: str, payload: dict[str, Any], exact: dict[str, Any] | None) -> list[dict[str, str]]:
     request_text = json.dumps(payload, sort_keys=True, separators=(",", ":"))
     if action == "explain":
@@ -255,7 +302,10 @@ def _response_content(body: Any, action: str, operation: str) -> str:
     choices = body.get("choices")
     if not isinstance(choices, list) or not choices or not isinstance(choices[0], dict):
         raise ValueError("response choices are incomplete")
-    message = choices[0].get("message")
+    choice = choices[0]
+    if choice.get("finish_reason") == "length":
+        raise ValueError("response was truncated")
+    message = choice.get("message")
     if not isinstance(message, dict) or not isinstance(message.get("content"), str):
         raise ValueError("response text is incomplete")
     content = message["content"].strip()
@@ -309,19 +359,23 @@ async def _call_provider(
 
     provider_started = time.perf_counter()
     attempted = False
-    try:
-        transport = getattr(app.state, "ai_transport", None)
-        request_body = {
-            "model": config.model,
-            "messages": _messages(action, payload, exact),
-            "max_tokens": config.max_tokens,
-            "stream": False,
-        }
-        headers = {"Authorization": f"Bearer {config.api_key}", "Content-Type": "application/json"}
-        attempted = True
+    transport = getattr(app.state, "ai_transport", None)
+    request_body = {
+        "model": config.model,
+        "messages": _messages(action, payload, exact),
+        "max_tokens": config.max_tokens,
+        "stream": False,
+    }
+    headers = {"Authorization": f"Bearer {config.api_key}", "Content-Type": "application/json"}
+
+    async def send_request() -> httpx.Response:
         async with httpx.AsyncClient(transport=transport, timeout=config.timeout_seconds) as client:
-            response = await client.post(_chat_url(config.base_url), headers=headers, json=request_body)
-    except httpx.TimeoutException as exc:
+            return await client.post(_chat_url(config.base_url), headers=headers, json=request_body)
+
+    try:
+        attempted = True
+        response = await asyncio.wait_for(send_request(), timeout=config.timeout_seconds)
+    except (asyncio.TimeoutError, httpx.TimeoutException) as exc:
         raise _error(
             status_code=504,
             code="ai_unavailable",
@@ -403,7 +457,7 @@ async def handle_ai(app: Any, action: str, request: Any, validated_payload: dict
     """Validate, optionally recompute, and make one provider request."""
     if action not in _ALLOWED_ACTIONS:
         raise GrammarError("That AI action is not supported.")
-    _validate_grammar(validated_payload)
+    await asyncio.to_thread(_validate_grammar_bounded, validated_payload)
     started = time.perf_counter()
     exact: dict[str, Any] | None = None
     solver_ms: float | None = None
