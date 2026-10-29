@@ -200,6 +200,7 @@ def test_limit_retains_valid_endpoints_holes_and_unbounded_real_domains() -> Non
         ("sqrt(x-10)^2", "10", "+", "0"),
         ("x/x", "0", "both", "1"),
         ("sqrt(x)^2", "oo", "both", "oo"),
+        ("x^2", "-oo", "both", "oo"),
     ]:
         body = client.post("/api/solve", json={"operation": "limit", "expression": expression,
             "target": target, "direction": direction}).json()
