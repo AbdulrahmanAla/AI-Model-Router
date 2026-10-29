@@ -26,6 +26,7 @@ The actual website at `http://127.0.0.1:8000` was exercised through the in-app b
 - The top-bar session scorecard reports solved exact routes and provider calls, excluding unresolved requests from the solved count. Syntax-help examples can be clicked to populate the composer, including a limit target.
 - When an exact route stops safely, the scorecard reports the unresolved count separately instead of presenting it as a solve.
 - Escape cancels an active solver or optional AI request while preserving the retry path; dialog Escape behavior remains unchanged.
+- The composer hint documents Enter to solve, Shift+Enter for a new line, and Escape to cancel an active request.
 
 The wide and narrow viewport controls were set to 1366 by 900 and 390 by 844 respectively. Browser zoom and screenshot pixel scaling can make captured pixel dimensions differ from those requested values.
 
