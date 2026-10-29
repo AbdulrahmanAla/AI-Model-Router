@@ -168,6 +168,60 @@ def test_invalid_equation_is_rejected_before_provider_call(monkeypatch) -> None:
     assert calls == []
 
 
+def test_common_function_equation_reaches_ai_fallback(monkeypatch) -> None:
+    calls = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        calls.append(request)
+        return response(json.dumps({"status": "unresolved", "result": None}))
+
+    configure_provider(monkeypatch, handler)
+    result = client.post(
+        "/api/ai",
+        json={"action": "fallback", "request": {"operation": "equation", "expression": "sin(x)=0"}},
+    )
+
+    assert result.status_code == 200
+    assert len(calls) == 1
+    assert json.loads(result.json()["text"]) == {"status": "unresolved", "result": None}
+
+
+def test_fallback_can_return_a_symbolic_solution_family(monkeypatch) -> None:
+    configure_provider(monkeypatch, lambda request: response(json.dumps({"status": "solved", "result": "x = n*pi, n integer"})))
+    result = client.post(
+        "/api/ai",
+        json={"action": "fallback", "request": {"operation": "equation", "expression": "sin(x)=0"}},
+    )
+    assert result.status_code == 200
+    assert json.loads(result.json()["text"])["result"] == "x = n*pi, n integer"
+
+
+def test_ai_accepts_spaced_equation(monkeypatch) -> None:
+    configure_provider(monkeypatch, lambda request: response(json.dumps({"status": "solved", "result": ["-1", "1"]})))
+    result = client.post(
+        "/api/ai",
+        json={
+            "action": "baseline",
+            "request": {"operation": "equation", "expression": "x^2 = 1"},
+        },
+    )
+    assert result.status_code == 200
+    assert json.loads(result.json()["text"])["result"] == ["-1", "1"]
+
+
+def test_ai_accepts_definite_integral_bounds(monkeypatch) -> None:
+    configure_provider(monkeypatch, lambda request: response(json.dumps({"status": "solved", "result": "1/2"})))
+    result = client.post(
+        "/api/ai",
+        json={
+            "action": "baseline",
+            "request": {"operation": "integral", "expression": "x", "lower": "0", "upper": "1"},
+        },
+    )
+    assert result.status_code == 200
+    assert json.loads(result.json()["text"])["result"] == "1/2"
+
+
 def test_explanation_declines_unresolved_request_without_provider_call(monkeypatch) -> None:
     calls = []
 
@@ -222,6 +276,20 @@ def test_grammar_validation_has_a_worker_deadline(monkeypatch) -> None:
     )
 
     assert result.status_code == 422
+
+
+def test_grammar_validation_busy_is_503_without_a_provider_call(monkeypatch) -> None:
+    from app import ai
+
+    configure_provider(monkeypatch, lambda request: response('{"status":"solved","result":"2*x"}'))
+    monkeypatch.setattr(ai, "_GRAMMAR_CONCURRENCY", ai.threading.BoundedSemaphore(0))
+    result = client.post(
+        "/api/ai",
+        json={"action": "baseline", "request": {"operation": "derivative", "expression": "x^2"}},
+    )
+
+    assert result.status_code == 503
+    assert "busy" in result.json()["detail"]
 
 
 def test_provider_has_an_outer_wall_clock_deadline(monkeypatch) -> None:

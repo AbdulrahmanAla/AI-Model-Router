@@ -18,7 +18,7 @@ When `--live-ai` is explicitly supplied, the runner calls `/api/ai` with `action
 {"status":"solved","result":"2*x"}
 ```
 
-`status` is `solved`, `unresolved`, or `rejected`. A solved derivative, integral, or limit uses the same typed formula notation as the fixture. A solved equation uses a JSON array of sorted real root strings. Unresolved and rejected answers use `"result": null`. The runner scores an AI answer only when it is valid JSON with the expected status and result, then applies the same allowlisted result comparison as the exact route. A non-empty explanation is never treated as a correct answer.
+`status` is `solved`, `unresolved`, or `rejected`. A solved derivative, integral, or limit uses the same typed formula notation as the fixture, with no arbitrary integration constant `C`. A solved polynomial equation uses a JSON array of sorted real root strings; the identity and inconsistent sentinels are `all real x` and `no real solutions`. Unresolved and rejected answers use `"result": null`. The runner scores an AI answer only when it is valid JSON with the expected status and result, then applies the same allowlisted result comparison as the exact route. A non-empty explanation is never treated as a correct answer. Non-polynomial symbolic equation families are available through the explicit fallback action and remain unverified.
 
 Requests rejected by shared validation are excluded from the AI solved-answer denominator. The baseline still records that the request was rejected when the server returns a validation response. Valid deferred or out-of-scope cases are recorded for manual review and are excluded from the solved-answer denominator. Transport errors, missing configuration, malformed JSON, and provider failures are recorded as failures and do not count as AI refusals.
 
@@ -44,7 +44,9 @@ Run an explicit live comparison only when a provider key is configured:
 python -m benchmarks.run_benchmark --base-url http://127.0.0.1:8000 --live-ai --ai-actions baseline,explain,fallback --output benchmark-results-live.json
 ```
 
-The report includes each raw response, HTTP status, case score, elapsed wall-clock time, server solver time, route model calls, and prompt, completion, and total tokens. Missing provider usage remains `null` and is counted as unknown. The summary reports median and range for observed timings, solver correctness by expected outcome, rejected and unresolved counts, and provider failures. It does not infer FLOPs, energy, or total compute.
+The report includes each raw response, HTTP status, case score, elapsed wall-clock time, server solver time, route model calls, and prompt, completion, and total tokens. Missing provider usage remains `null` and is counted as unknown. The summary reports median and range for observed timings, supported-answer accuracy, boundary counts, an explicit failed-outcome count across every case, and known call/token totals. A total is `null` when any value in that series is unknown; the known subtotal remains visible. It does not infer FLOPs, energy, or total compute.
+
+The CLI defaults to a 60-second client timeout so it covers the configured provider and bounded validation deadlines. If those server limits are increased, pass a timeout longer than their total expected path.
 
 ## Initial run corrections
 

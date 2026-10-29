@@ -15,7 +15,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ConfigDict, Field
 
-from .ai import AIServiceError, handle_ai
+from .ai import AIServiceError, AIValidationBusy, handle_ai
 from .solver import GrammarError, SolveTimeout, SolveUnresolved, SolverBusy, run_bounded
 
 
@@ -41,11 +41,26 @@ class AIRequest(BaseModel):
 app = FastAPI(title="AI Math Assistant", version="0.1.0")
 
 
+def _validation_metrics() -> dict[str, object]:
+    """Return a fresh zero-call metric payload for rejected requests."""
+    return {
+        "route": "validation",
+        "ai_calls": 0,
+        "model_calls": 0,
+        "solver_ms": None,
+        "elapsed_ms": None,
+        "model": None,
+        "input_tokens": None,
+        "output_tokens": None,
+        "total_tokens": None,
+    }
+
+
 @app.exception_handler(RequestValidationError)
 async def validation_error_handler(request: Request, exc: RequestValidationError) -> JSONResponse:
     content: dict[str, object] = {"error": "invalid_request", "detail": json.loads(json.dumps(exc.errors(), default=str))}
     if request.url.path == "/api/solve":
-        content["metrics"] = {"route": "validation", "ai_calls": 0, "model_calls": 0, "solver_ms": None, "elapsed_ms": None, "model": None, "input_tokens": None, "output_tokens": None, "total_tokens": None}
+        content["metrics"] = _validation_metrics()
     return JSONResponse(status_code=422, content=content)
 
 
@@ -54,7 +69,7 @@ async def http_exception_handler(request: Request, exc: HTTPException) -> JSONRe
     if request.url.path != "/api/solve" or exc.status_code not in {400, 422}:
         return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail}, headers=exc.headers)
     content = dict(exc.detail) if isinstance(exc.detail, dict) else {"detail": exc.detail}
-    content.setdefault("metrics", {"route": "validation", "ai_calls": 0, "model_calls": 0, "solver_ms": None, "elapsed_ms": None, "model": None, "input_tokens": None, "output_tokens": None, "total_tokens": None})
+    content.setdefault("metrics", _validation_metrics())
     return JSONResponse(status_code=exc.status_code, content=content, headers=exc.headers)
 
 
@@ -68,7 +83,7 @@ async def limit_request_body(request: Request, call_next):
     if too_large:
         content: dict[str, object] = {"error": "request_too_large", "detail": "Request body is limited to 16 KiB."}
         if request.url.path == "/api/solve":
-            content["metrics"] = {"route": "validation", "ai_calls": 0, "model_calls": 0, "solver_ms": None, "elapsed_ms": None, "model": None, "input_tokens": None, "output_tokens": None, "total_tokens": None}
+            content["metrics"] = _validation_metrics()
         return JSONResponse(status_code=413, content=content)
     if request.method in {"POST", "PUT", "PATCH"}:
         body = bytearray()
@@ -76,7 +91,7 @@ async def limit_request_body(request: Request, call_next):
             if len(body) + len(chunk) > 16 * 1024:
                 content = {"error": "request_too_large", "detail": "Request body is limited to 16 KiB."}
                 if request.url.path == "/api/solve":
-                    content["metrics"] = {"route": "validation", "ai_calls": 0, "model_calls": 0, "solver_ms": None, "elapsed_ms": None, "model": None, "input_tokens": None, "output_tokens": None, "total_tokens": None}
+                    content["metrics"] = _validation_metrics()
                 return JSONResponse(status_code=413, content=content)
             body.extend(chunk)
         request._body = bytes(body)
@@ -151,6 +166,8 @@ async def ai(request: AIRequest, http_request: Request) -> dict[str, object] | J
     validated_payload = validate_solve_request(request.request)
     try:
         return await handle_ai(http_request.app, request.action, request.request, validated_payload)
+    except AIValidationBusy as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
     except GrammarError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     except AIServiceError as exc:
