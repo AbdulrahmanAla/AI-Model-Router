@@ -1,16 +1,16 @@
 # Design QA
 
-Source visual truth: `evidence/humain-reference.jpg` captured from the user's HUMAIN Chat page at 2560 x 1279.
+Source visual truth: `evidence/chat-reference.jpg` captured from the user's chat reference page at 2560 x 1279.
 
 Additional reference: `evidence/chatgpt-reference.jpg` captured from the ChatGPT home layout at 1280 x 720.
 
-Implementation screenshot: `evidence/refined-humain-math-assistant.jpg` captured from the local prototype at 2017 x 1480.
+Implementation screenshot: `evidence/refined-ai-math-assistant.jpg` captured from the local prototype at 2017 x 1480.
 
-State: HUMAIN-branded dark chat shell with one student derivative request, a verified result, optional explanation controls, and a bottom composer.
+State: AI Math Assistant dark chat shell with one student derivative request, a verified result, optional explanation controls, and a bottom composer.
 
 ## Comparison
 
-The implementation uses the same major structure as HUMAIN Chat: a narrow left sidebar, a dark near-black surface, a centered conversation, small rounded navigation controls, a teal accent, and a wide rounded composer fixed near the bottom. The captured HUMAIN wordmark, Inter font files, and Lucide icons are local assets.
+The implementation uses the same major structure as a modern AI chat tool: a narrow left sidebar, a dark near-black surface, a centered conversation, small rounded navigation controls, a teal accent, and a wide rounded composer fixed near the bottom. Inter font files and Lucide icons are local assets.
 
 The math result appears inside the assistant response. Verification, route, and metric details are quiet controls within that response rather than a separate dashboard. This keeps the prototype close to the source interaction while preserving the challenge-specific evidence.
 
@@ -18,9 +18,9 @@ The math result appears inside the assistant response. Verification, route, and 
 
 - Fonts and typography: Inter is loaded locally. Text uses small, restrained sizes and a medium-weight centered heading similar to the reference.
 - Spacing and layout rhythm: The sidebar, centered content column, top bar, composer width, and generous empty space follow the reference structure. The implementation has a taller viewport, so the math conversation sits above a larger composer area.
-- Colors and tokens: The prototype uses a near-black page, dark sidebar, muted white text, subtle borders, and HUMAIN teal for the primary action and status accents.
-- Image quality and asset fidelity: The HUMAIN Chat wordmark is captured from the reference page and reused as a local SVG. Navigation icons come from the local Lucide package.
-- Copy and content: The prototype uses HUMAIN Math Assistant copy and exposes the exact math route without presenting a generic dashboard.
+- Colors and tokens: The prototype uses a near-black page, dark sidebar, muted white text, subtle borders, and teal for the primary action and status accents.
+- Image quality and asset fidelity: Navigation icons come from the local Lucide package.
+- Copy and content: The prototype uses AI Math Assistant copy and exposes the exact math route without presenting a generic dashboard.
 
 ## Findings
 

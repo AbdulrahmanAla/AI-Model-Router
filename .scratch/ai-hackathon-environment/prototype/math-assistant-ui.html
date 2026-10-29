@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>HUMAIN Math Assistant</title>
+  <title>AI Math Assistant</title>
   <style>
     @font-face { font-family: Inter; src: url('assets/fonts/inter-latin-400-normal.woff2') format('woff2'); font-weight: 400; }
     @font-face { font-family: Inter; src: url('assets/fonts/inter-latin-500-normal.woff2') format('woff2'); font-weight: 500; }
@@ -15,7 +15,8 @@
     .app { display:flex; min-height:100vh; }
     .sidebar { width:260px; flex:0 0 260px; padding:20px 12px 14px; display:flex; flex-direction:column; border-right:1px solid var(--line); background:var(--sidebar); }
     .brand-row { height:36px; display:flex; align-items:center; justify-content:space-between; padding:0 10px; margin-bottom:48px; }
-    .brand-row img { width:165px; height:16px; object-fit:contain; object-position:left center; }
+    .wordmark { color:#fcfcfc; font-family:Inter,system-ui,sans-serif; font-size:16px; font-weight:600; letter-spacing:-.035em; white-space:nowrap; }
+    .wordmark span { color:var(--teal); font-weight:500; }
     .icon-button { width:32px; height:32px; display:grid; place-items:center; border:0; border-radius:50%; background:transparent; }
     .icon-button:hover,.nav-button:hover,.chat-row:hover { background:var(--surface-hover); }
     .icon-button img,.nav-button img { width:18px; height:18px; opacity:.8; filter:invert(1); }
@@ -60,7 +61,7 @@
 <body>
   <div class="app">
     <aside class="sidebar">
-      <div class="brand-row"><img src="assets/humain-chat.svg" alt="HUMAIN Chat" /><button class="icon-button" aria-label="Collapse sidebar"><img src="assets/icons/panel-left-close.svg" alt="" /></button></div>
+      <div class="brand-row"><div class="wordmark">AI <span>Math Assistant</span></div><button class="icon-button" aria-label="Collapse sidebar"><img src="assets/icons/panel-left-close.svg" alt="" /></button></div>
       <nav class="nav" aria-label="Primary"><button class="nav-button active"><img src="assets/icons/plus.svg" alt="" /><span>New</span></button><button class="nav-button"><img src="assets/icons/sparkles.svg" alt="" /><span>Skills</span></button><button class="nav-button"><img src="assets/icons/folder-closed.svg" alt="" /><span>Projects</span></button></nav>
       <div class="section-label"><span>Chats</span><button class="icon-button search" aria-label="Search chats"><img src="assets/icons/search.svg" alt="" /></button></div>
       <div class="chat-list"><div class="chat-row">Math assistant prototype</div><div class="chat-row">Calculus practice</div><div class="chat-row">Matrix review</div></div>
@@ -69,12 +70,12 @@
     <main class="main">
       <header class="topbar"><span class="topbar-title">Math Assistant</span><button class="model-button"><span class="model-dot"></span> Exact path <span class="muted">⌄</span></button></header>
       <section class="conversation" aria-live="polite">
-        <div class="welcome"><h1>Where should we begin?</h1><p>Ask a structured math question. HUMAIN checks the result first, then brings in AI only when you ask for an explanation.</p></div>
+        <div class="welcome"><h1>Where should we begin?</h1><p>Ask a structured math question. AI Math Assistant checks the result first, then brings in AI only when you ask for an explanation.</p></div>
         <div class="message user"><div class="user-bubble">Differentiate <span class="math">x³ sin(x)</span></div></div>
         <div class="message assistant-row"><div class="assistant-mark">∑</div><div class="assistant-copy"><p>I solved this with the exact math path and checked the result by differentiating it back.</p><div class="answer"><div class="answer-label"><span class="verified">✓</span> Verified result <span class="route-chip">exact path</span></div><div class="formula">3x² sin(x) + x³ cos(x)</div><div class="route"><span class="route-chip"><strong>AI calls</strong> 0</span><span class="route-chip"><strong>Solver</strong> 2.1 ms</span><span class="route-chip"><strong>Check</strong> passed</span></div></div><div class="message-actions"><button id="explain">Explain this result</button><button id="details">Show route details</button></div><div class="explanation" id="explanation">Use the product rule: differentiate <span class="math">x³</span> and <span class="math">sin(x)</span> separately, then add the two products. AI explanation is optional and starts from the verified result.</div></div></div>
         <div class="suggestions"><button class="suggestion">Find a limit</button><button class="suggestion">Solve an equation</button><button class="suggestion">Integrate an expression</button></div>
       </section>
-      <div class="composer-wrap"><form class="composer" onsubmit="return false"><div class="composer-box"><textarea id="prompt" aria-label="Math question" placeholder="Ask a math question..."></textarea><button class="composer-tool" aria-label="Add a file"><img src="assets/icons/plus.svg" alt="" /></button><button class="send-button" aria-label="Send"><img src="assets/icons/arrow-up.svg" alt="" /></button></div><div class="composer-footer"><span>Exact math is computed locally when supported.</span><span>HUMAIN Math Assistant</span></div></form></div>
+      <div class="composer-wrap"><form class="composer" onsubmit="return false"><div class="composer-box"><textarea id="prompt" aria-label="Math question" placeholder="Ask a math question..."></textarea><button class="composer-tool" aria-label="Add a file"><img src="assets/icons/plus.svg" alt="" /></button><button class="send-button" aria-label="Send"><img src="assets/icons/arrow-up.svg" alt="" /></button></div><div class="composer-footer"><span>Exact math is computed locally when supported.</span><span>AI Math Assistant</span></div></form></div>
     </main>
   </div>
   <script>
