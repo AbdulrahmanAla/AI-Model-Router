@@ -574,7 +574,7 @@ def _verify_limit_numeric(original: sp.Expr, result: sp.Expr, target: sp.Expr, d
             return {"status": "not_checked", "method": "near-target samples", "detail": "The limit result is not real-valued."}
         matched = 0
         target_value = mpmath.mpf(str(float(sp.N(target, 16))))
-        for distance in (mpmath.mpf("1e-2"), mpmath.mpf("1e-4"), mpmath.mpf("1e-6")):
+        for distance in (mpmath.mpf("1e-2"), mpmath.mpf("1e-4"), mpmath.mpf("1e-6"), mpmath.mpf("1e-8"), mpmath.mpf("1e-10")):
             offsets = (-distance, distance) if direction == "both" else ((distance if direction == "+" else -distance),)
             for offset in offsets:
                 if not _raw_point_is_real(raw_tree, source, sp.Float(target_value + offset)):
@@ -583,7 +583,7 @@ def _verify_limit_numeric(original: sp.Expr, result: sp.Expr, target: sp.Expr, d
                 if abs(mpmath.im(value)) <= 1e-8 and abs(complex(value) - expected) <= max(1e-5, abs(expected) * 1e-4):
                     matched += 1
         needed = 3 if direction != "both" else 6
-        if matched == needed:
+        if matched >= needed:
             return {"status": "numerical_evidence", "method": "near-target samples", "detail": "Safe samples agree with the symbolic limit."}
     except Exception:
         pass

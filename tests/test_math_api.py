@@ -204,6 +204,8 @@ def test_limit_retains_valid_endpoints_holes_and_unbounded_real_domains() -> Non
             "target": target, "direction": direction}).json()
         assert body["status"] == "solved", (expression, body)
         assert body["result"] == expected
+        if target not in {"oo", "-oo"}:
+            assert body["verification"]["status"] == "numerical_evidence", (expression, body)
 
 
 def test_limit_rejects_infinite_target_outside_the_raw_domain() -> None:
