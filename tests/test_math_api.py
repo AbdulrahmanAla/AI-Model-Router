@@ -29,6 +29,33 @@ def test_derivative_uses_exact_route_and_independent_numeric_evidence() -> None:
     assert body["verification"]["status"] == "numerical_evidence"
     assert body["metrics"]["ai_calls"] == 0
     assert body["metrics"]["solver_ms"] is not None
+    assert body["steps"]
+    assert any("derivative" in step.lower() for step in body["steps"])
+
+
+def test_each_supported_operation_returns_bounded_deterministic_steps() -> None:
+    requests = [
+        {"operation": "derivative", "expression": "x^3"},
+        {"operation": "integral", "expression": "x", "lower": "0", "upper": "1"},
+        {"operation": "limit", "expression": "sin(x)/x", "target": "0"},
+        {"operation": "equation", "expression": "x^2 = 1"},
+    ]
+    for request in requests:
+        response = client.post("/api/solve", json=request)
+        body = response.json()
+        assert response.status_code == 200
+        assert body["status"] == "solved"
+        assert isinstance(body["steps"], list)
+        assert 1 <= len(body["steps"]) <= 8
+        assert all(isinstance(step, str) and step and len(step) <= 500 for step in body["steps"])
+
+
+def test_unresolved_response_explains_where_exact_route_stopped() -> None:
+    response = client.post("/api/solve", json={"operation": "limit", "expression": "1/x", "target": "0"})
+    body = response.json()
+    assert response.status_code == 200
+    assert body["status"] == "unresolved"
+    assert body["steps"][-1].startswith("Stop before returning an exact answer:")
 
 
 def test_derivative_verification_does_not_sample_outside_raw_domain() -> None:

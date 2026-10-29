@@ -165,6 +165,16 @@
     details.append(grid);
   }
 
+  function renderSteps(response, card) {
+    if (!Array.isArray(response.steps) || !response.steps.length) return;
+    const details = element('details', 'solution-steps');
+    details.append(element('summary', '', 'Show steps'));
+    const list = element('ol', 'step-list');
+    response.steps.forEach((step) => list.append(element('li', '', step)));
+    details.append(list);
+    card.append(details);
+  }
+
   function renderAiResponse(message, body) {
     if (!message.ai) return;
     const response = message.ai;
@@ -210,6 +220,7 @@
       response.notes.forEach((note) => notes.append(element('li', '', note)));
       card.append(notes);
     }
+    renderSteps(response, card);
     const details = element('details', 'route-details');
     details.append(element('summary', '', 'Show route details'));
     renderMetrics(message, details);

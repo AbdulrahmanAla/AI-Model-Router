@@ -89,3 +89,11 @@ Median HTTP latency over all outcomes was 585.12 ms, with observation range 515.
 The reviewed integration was directly merged into `main`, pushed, and made the GitHub default branch. All in-scope GitHub issues, including the Wayfinder map, are closed with evidence links. No PR or GitHub Actions run was created.
 
 Managed-worktree cleanup was attempted through the Codex archive tool. The app refused to archive the solver, website, and evaluation worktrees because active tasks still reference them, and refused the review worktree as a primary checkout. These recoverable local checkouts were retained. No checkout was deleted manually. The final local server remains on port 8000; synthetic-provider services are stopped.
+
+## Deterministic solution steps
+
+Commit `ddfb026` adds a bounded `steps` list to every solver response that reaches the public solve contract. Solved requests describe the actual route for derivatives, indefinite and definite integrals, limits, and polynomial equations. Unresolved requests include a stopping step that names why the exact route stopped. Each list is limited to eight entries of 500 characters or fewer.
+
+The website renders the list as an expandable **Show steps** section inside the answer card. Route metrics remain separate. AI explanations remain optional and are never used to generate these steps. The browser check submitted `x^3*sin(x)`, expanded **Show steps**, and displayed the product-rule route plus the numerical verification step. The API returned the same steps at `/api/solve`.
+
+![Expanded deterministic solution steps](evidence/solution-steps.png)
