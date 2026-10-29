@@ -314,6 +314,32 @@ def _check_raw_function_domains(tree: ast.AST, lower: sp.Expr, upper: sp.Expr) -
             raise RuntimeError("The tangent is undefined inside the interval.")
 
 
+def _check_raw_denominator_domains(tree: ast.AST, lower: sp.Expr, upper: sp.Expr) -> None:
+    """Reject a denominator hole that simplification could otherwise erase."""
+    denominators: list[sp.Expr] = []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.BinOp) and isinstance(node.op, ast.Div) and _contains_variable(node.right):
+            denominators.append(_compile(node.right, allow_oo=False))
+        elif isinstance(node, ast.BinOp) and isinstance(node.op, ast.Pow) and _contains_variable(node.left):
+            exponent = _compile(node.right, allow_oo=False)
+            if exponent.is_negative:
+                denominators.append(_compile(node.left, allow_oo=False))
+    for denominator in denominators:
+        try:
+            roots = sp.solve(denominator, _X)
+        except Exception as exc:
+            raise RuntimeError("The denominator domain is unresolved across the interval.") from exc
+        for root in roots:
+            if root.is_real is not True:
+                continue
+            inside_lower = lower.is_finite is not True or bool(root > lower)
+            inside_upper = upper.is_finite is not True or bool(root < upper)
+            at_lower = lower.is_finite is True and bool(root == lower)
+            at_upper = upper.is_finite is True and bool(root == upper)
+            if (inside_lower and inside_upper) or at_lower or at_upper:
+                raise RuntimeError("The interval contains a denominator hole.")
+
+
 def _verify_limit_numeric(original: sp.Expr, result: sp.Expr, target: sp.Expr, direction: str) -> dict[str, str]:
     if target.is_finite is not True or result in (sp.oo, -sp.oo, sp.zoo, sp.nan) or result.has(sp.Limit, sp.AccumBounds):
         return {"status": "not_checked", "method": "near-target samples", "detail": "A finite real sample check was not available."}
@@ -417,6 +443,7 @@ def _compute(payload: dict[str, Any]) -> dict[str, Any]:
         if lower.is_finite is True and upper.is_finite is True and bool(lower > upper):
             raise RuntimeError("Integral bounds must be ordered from lower to upper.")
         _check_raw_function_domains(parsed.tree, lower, upper)
+        _check_raw_denominator_domains(parsed.tree, lower, upper)
         if lower == upper:
             result_expr = sp.Integer(0)
         else:

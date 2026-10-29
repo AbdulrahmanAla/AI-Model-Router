@@ -102,6 +102,13 @@ def test_definite_integral_preserves_unsimplified_square_root_domain() -> None:
     assert body["verification"]["status"] == "not_checked"
 
 
+def test_definite_integral_preserves_a_cancelled_denominator_hole() -> None:
+    response = client.post("/api/solve", json={"operation": "integral", "expression": "x/x", "lower": "-1", "upper": "1"})
+    body = response.json()
+    assert response.status_code == 200
+    assert body["status"] == "unresolved"
+
+
 def test_request_shape_errors_are_422() -> None:
     response = client.post("/api/solve", json={"operation": "integral", "expression": "x", "lower": "0"})
     assert response.status_code == 422
