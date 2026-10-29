@@ -189,8 +189,9 @@
         helper.style.opacity = '0';
         document.body.append(helper);
         helper.select();
-        document.execCommand('copy');
+        const copied = document.execCommand('copy');
         helper.remove();
+        if (!copied) throw new Error('Clipboard copy was rejected.');
       }
       showToast(successMessage);
     } catch (error) {
