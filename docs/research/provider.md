@@ -2,7 +2,7 @@
 
 ## Recommendation
 
-Use a small server-side HTTP adapter for an OpenAI-compatible Chat Completions endpoint. Keep the exact SymPy path independent of the adapter, so the app runs and demonstrates the efficiency claim with no model key. Enable the provider only when `AI_PROVIDER_BASE_URL`, `AI_PROVIDER_API_KEY`, and `AI_PROVIDER_MODEL` are configured. Do not send a browser request directly to a model provider.
+Use a small server-side HTTP adapter for an OpenAI-compatible Chat Completions endpoint. Keep the exact SymPy path independent of the adapter, so the app runs and demonstrates the efficiency claim with no model key. Enable the provider only when `AI_BASE_URL`, `AI_API_KEY`, and `AI_MODEL` are configured. Do not send a browser request directly to a model provider.
 
 The adapter sends a non-streaming `POST {base_url}/chat/completions` with `Content-Type: application/json`, an `Authorization: Bearer ...` header, a model name, and a short `messages` array. The OpenAI reference defines `messages` as the conversation input and shows this endpoint shape in its curl example: [Create chat completion](https://developers.openai.com/api/reference/resources/chat/subresources/completions/methods/create#request-body).
 
@@ -38,3 +38,4 @@ The local test suite should use a fake HTTP transport that returns a fixed assis
 ## Limits of the evidence
 
 Provider usage counters prove reported token counts for provider calls. They do not measure FLOPs, electricity, or total model compute. The hackathon claim should compare the same user cases and output requirements, report exact-path model calls as zero, and report optional explanation calls separately. No claim about cross-provider latency or quality is supported until each configured provider is measured with the same harness.
+
