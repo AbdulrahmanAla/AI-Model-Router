@@ -81,8 +81,6 @@ def validate_solve_request(request: SolveRequest) -> dict[str, object]:
             raise HTTPException(status_code=422, detail="A limit target is required.")
         if request.lower is not None or request.upper is not None:
             raise HTTPException(status_code=422, detail="Limits do not accept integral bounds.")
-        if request.direction is None:
-            payload["direction"] = "both"
     elif operation == "derivative":
         if any(value is not None for value in (request.lower, request.upper, request.target, request.direction)):
             raise HTTPException(status_code=422, detail="Derivatives accept only an expression and variable.")
