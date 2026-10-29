@@ -1,0 +1,638 @@
+[
+  {
+    "id": "derivative-01",
+    "operation": "derivative",
+    "request": {
+      "operation": "derivative",
+      "expression": "x^2",
+      "variable": "x"
+    },
+    "expected": {
+      "status": "solved",
+      "result": "2*x",
+      "category": "supported"
+    },
+    "rationale": "Power rule with an integer exponent."
+  },
+  {
+    "id": "derivative-02",
+    "operation": "derivative",
+    "request": {
+      "operation": "derivative",
+      "expression": "x^3*sin(x)",
+      "variable": "x"
+    },
+    "expected": {
+      "status": "solved",
+      "result": "3*x**2*sin(x) + x**3*cos(x)",
+      "category": "supported"
+    },
+    "rationale": "Product rule with a polynomial and sine."
+  },
+  {
+    "id": "derivative-03",
+    "operation": "derivative",
+    "request": {
+      "operation": "derivative",
+      "expression": "exp(x)",
+      "variable": "x"
+    },
+    "expected": {
+      "status": "solved",
+      "result": "exp(x)",
+      "category": "supported"
+    },
+    "rationale": "Derivative of the exponential function."
+  },
+  {
+    "id": "derivative-04",
+    "operation": "derivative",
+    "request": {
+      "operation": "derivative",
+      "expression": "log(x)",
+      "variable": "x"
+    },
+    "expected": {
+      "status": "solved",
+      "result": "1/x",
+      "category": "supported"
+    },
+    "rationale": "Derivative of the real logarithm on its domain."
+  },
+  {
+    "id": "derivative-05",
+    "operation": "derivative",
+    "request": {
+      "operation": "derivative",
+      "expression": "sqrt(x)",
+      "variable": "x"
+    },
+    "expected": {
+      "status": "solved",
+      "result": "1/(2*sqrt(x))",
+      "category": "domain_sensitive"
+    },
+    "rationale": "Power rule for a square root, with a domain restriction at zero."
+  },
+  {
+    "id": "derivative-06",
+    "operation": "derivative",
+    "request": {
+      "operation": "derivative",
+      "expression": "sin(x)/x",
+      "variable": "x"
+    },
+    "expected": {
+      "status": "solved",
+      "result": "(x*cos(x)-sin(x))/x**2",
+      "category": "domain_sensitive"
+    },
+    "rationale": "Quotient rule away from x = 0."
+  },
+  {
+    "id": "derivative-07",
+    "operation": "derivative",
+    "request": {
+      "operation": "derivative",
+      "expression": "tan(x)",
+      "variable": "x"
+    },
+    "expected": {
+      "status": "solved",
+      "result": "1 + tan(x)**2",
+      "category": "supported"
+    },
+    "rationale": "Derivative of tangent using an equivalent identity."
+  },
+  {
+    "id": "derivative-08",
+    "operation": "derivative",
+    "request": {
+      "operation": "derivative",
+      "expression": "3*x^4-2*x+7",
+      "variable": "x"
+    },
+    "expected": {
+      "status": "solved",
+      "result": "12*x**3 - 2",
+      "category": "supported"
+    },
+    "rationale": "Polynomial derivative with constant and linear terms."
+  },
+  {
+    "id": "derivative-09",
+    "operation": "derivative",
+    "request": {
+      "operation": "derivative",
+      "expression": "x^1000001",
+      "variable": "x"
+    },
+    "expected": {
+      "status": "unresolved",
+      "result": null,
+      "category": "bounded_input"
+    },
+    "rationale": "Valid arithmetic syntax outside the bounded exponent limit."
+  },
+  {
+    "id": "derivative-10",
+    "operation": "derivative",
+    "request": {
+      "operation": "derivative",
+      "expression": "foo(x)",
+      "variable": "x"
+    },
+    "expected": {
+      "status": "rejected",
+      "result": null,
+      "category": "grammar_rejection"
+    },
+    "rationale": "Unknown functions are outside the allowlist."
+  },
+  {
+    "id": "integral-01",
+    "operation": "integral",
+    "request": {
+      "operation": "integral",
+      "expression": "x^2",
+      "variable": "x"
+    },
+    "expected": {
+      "status": "solved",
+      "result": "x**3/3",
+      "category": "supported"
+    },
+    "rationale": "Basic polynomial antiderivative."
+  },
+  {
+    "id": "integral-02",
+    "operation": "integral",
+    "request": {
+      "operation": "integral",
+      "expression": "exp(x)",
+      "variable": "x"
+    },
+    "expected": {
+      "status": "solved",
+      "result": "exp(x)",
+      "category": "supported"
+    },
+    "rationale": "Exponential antiderivative."
+  },
+  {
+    "id": "integral-03",
+    "operation": "integral",
+    "request": {
+      "operation": "integral",
+      "expression": "sin(x)",
+      "variable": "x"
+    },
+    "expected": {
+      "status": "solved",
+      "result": "-cos(x)",
+      "category": "supported"
+    },
+    "rationale": "Sine antiderivative."
+  },
+  {
+    "id": "integral-04",
+    "operation": "integral",
+    "request": {
+      "operation": "integral",
+      "expression": "x*cos(x)",
+      "variable": "x"
+    },
+    "expected": {
+      "status": "solved",
+      "result": "x*sin(x) + cos(x)",
+      "category": "supported"
+    },
+    "rationale": "Integration by parts for a polynomial times cosine."
+  },
+  {
+    "id": "integral-05",
+    "operation": "integral",
+    "request": {
+      "operation": "integral",
+      "expression": "(2*x+1)^3",
+      "variable": "x"
+    },
+    "expected": {
+      "status": "solved",
+      "result": "(2*x + 1)**4/8",
+      "category": "supported"
+    },
+    "rationale": "Substitution for a cubic power of a linear expression."
+  },
+  {
+    "id": "integral-06",
+    "operation": "integral",
+    "request": {
+      "operation": "integral",
+      "expression": "sqrt(x)",
+      "variable": "x"
+    },
+    "expected": {
+      "status": "solved",
+      "result": "2*x**(3/2)/3",
+      "category": "domain_sensitive"
+    },
+    "rationale": "Square-root antiderivative on the real domain."
+  },
+  {
+    "id": "integral-07",
+    "operation": "integral",
+    "request": {
+      "operation": "integral",
+      "expression": "exp(-x^2)",
+      "variable": "x"
+    },
+    "expected": {
+      "status": "solved",
+      "result": "sqrt(pi)*erf(x)/2",
+      "category": "supported"
+    },
+    "rationale": "Special-function primitive for a Gaussian, retained to test a supported input with a less elementary result."
+  },
+  {
+    "id": "integral-08",
+    "operation": "integral",
+    "request": {
+      "operation": "integral",
+      "expression": "x^2",
+      "variable": "x",
+      "lower": "0",
+      "upper": "1"
+    },
+    "expected": {
+      "status": "solved",
+      "result": "1/3",
+      "category": "supported"
+    },
+    "rationale": "Definite polynomial integral over a finite interval."
+  },
+  {
+    "id": "integral-09",
+    "operation": "integral",
+    "request": {
+      "operation": "integral",
+      "expression": "1/x",
+      "variable": "x",
+      "lower": "-1",
+      "upper": "1"
+    },
+    "expected": {
+      "status": "unresolved",
+      "result": null,
+      "category": "domain_failure"
+    },
+    "rationale": "The interval crosses an interior singularity."
+  },
+  {
+    "id": "integral-10",
+    "operation": "integral",
+    "request": {
+      "operation": "integral",
+      "expression": "foo(x)",
+      "variable": "x"
+    },
+    "expected": {
+      "status": "rejected",
+      "result": null,
+      "category": "grammar_rejection"
+    },
+    "rationale": "Unknown functions are outside the allowlist."
+  },
+  {
+    "id": "limit-01",
+    "operation": "limit",
+    "request": {
+      "operation": "limit",
+      "expression": "(x^2-1)/(x-1)",
+      "variable": "x",
+      "target": "1",
+      "direction": "both"
+    },
+    "expected": {
+      "status": "solved",
+      "result": "2",
+      "category": "supported"
+    },
+    "rationale": "Removable polynomial quotient limit."
+  },
+  {
+    "id": "limit-02",
+    "operation": "limit",
+    "request": {
+      "operation": "limit",
+      "expression": "sin(x)/x",
+      "variable": "x",
+      "target": "0",
+      "direction": "both"
+    },
+    "expected": {
+      "status": "solved",
+      "result": "1",
+      "category": "supported"
+    },
+    "rationale": "The standard sine quotient limit."
+  },
+  {
+    "id": "limit-03",
+    "operation": "limit",
+    "request": {
+      "operation": "limit",
+      "expression": "(1-cos(x))/x^2",
+      "variable": "x",
+      "target": "0",
+      "direction": "both"
+    },
+    "expected": {
+      "status": "solved",
+      "result": "1/2",
+      "category": "supported"
+    },
+    "rationale": "Second-order cosine limit."
+  },
+  {
+    "id": "limit-04",
+    "operation": "limit",
+    "request": {
+      "operation": "limit",
+      "expression": "(x^2+3*x)/x",
+      "variable": "x",
+      "target": "0",
+      "direction": "both"
+    },
+    "expected": {
+      "status": "solved",
+      "result": "3",
+      "category": "supported"
+    },
+    "rationale": "Polynomial quotient with a removable factor."
+  },
+  {
+    "id": "limit-05",
+    "operation": "limit",
+    "request": {
+      "operation": "limit",
+      "expression": "exp(x)",
+      "variable": "x",
+      "target": "0",
+      "direction": "both"
+    },
+    "expected": {
+      "status": "solved",
+      "result": "1",
+      "category": "supported"
+    },
+    "rationale": "Continuity of the exponential function."
+  },
+  {
+    "id": "limit-06",
+    "operation": "limit",
+    "request": {
+      "operation": "limit",
+      "expression": "1/x",
+      "variable": "x",
+      "target": "0",
+      "direction": "both"
+    },
+    "expected": {
+      "status": "unresolved",
+      "result": null,
+      "category": "two_sided_failure"
+    },
+    "rationale": "The two one-sided limits disagree as finite real values."
+  },
+  {
+    "id": "limit-07",
+    "operation": "limit",
+    "request": {
+      "operation": "limit",
+      "expression": "sin(1/x)",
+      "variable": "x",
+      "target": "0",
+      "direction": "both"
+    },
+    "expected": {
+      "status": "unresolved",
+      "result": null,
+      "category": "oscillation"
+    },
+    "rationale": "The expression oscillates near zero."
+  },
+  {
+    "id": "limit-08",
+    "operation": "limit",
+    "request": {
+      "operation": "limit",
+      "expression": "sqrt(x)",
+      "variable": "x",
+      "target": "0",
+      "direction": "+"
+    },
+    "expected": {
+      "status": "solved",
+      "result": "0",
+      "category": "domain_sensitive"
+    },
+    "rationale": "Right-hand limit at the endpoint of the real square-root domain."
+  },
+  {
+    "id": "limit-09",
+    "operation": "limit",
+    "request": {
+      "operation": "limit",
+      "expression": "1/x",
+      "variable": "x",
+      "target": "0",
+      "direction": "+"
+    },
+    "expected": {
+      "status": "solved",
+      "result": "oo",
+      "category": "infinite_limit"
+    },
+    "rationale": "Right-hand infinite limit."
+  },
+  {
+    "id": "limit-10",
+    "operation": "limit",
+    "request": {
+      "operation": "limit",
+      "expression": "x^^2",
+      "variable": "x",
+      "target": "0",
+      "direction": "both"
+    },
+    "expected": {
+      "status": "rejected",
+      "result": null,
+      "category": "grammar_rejection"
+    },
+    "rationale": "Malformed exponent syntax."
+  },
+  {
+    "id": "equation-01",
+    "operation": "equation",
+    "request": {
+      "operation": "equation",
+      "expression": "x^2-4=0",
+      "variable": "x"
+    },
+    "expected": {
+      "status": "solved",
+      "result": [
+        "-2",
+        "2"
+      ],
+      "category": "supported"
+    },
+    "rationale": "Quadratic with two real roots."
+  },
+  {
+    "id": "equation-02",
+    "operation": "equation",
+    "request": {
+      "operation": "equation",
+      "expression": "x-3=0",
+      "variable": "x"
+    },
+    "expected": {
+      "status": "solved",
+      "result": [
+        "3"
+      ],
+      "category": "supported"
+    },
+    "rationale": "Linear equation."
+  },
+  {
+    "id": "equation-03",
+    "operation": "equation",
+    "request": {
+      "operation": "equation",
+      "expression": "x^2+1=0",
+      "variable": "x"
+    },
+    "expected": {
+      "status": "solved",
+      "result": "no real solutions",
+      "category": "inconsistent"
+    },
+    "rationale": "An inconsistent real polynomial equation has no real solutions."
+  },
+  {
+    "id": "equation-04",
+    "operation": "equation",
+    "request": {
+      "operation": "equation",
+      "expression": "x^3-1=0",
+      "variable": "x"
+    },
+    "expected": {
+      "status": "solved",
+      "result": [
+        "1"
+      ],
+      "category": "supported"
+    },
+    "rationale": "Cubic with one real root."
+  },
+  {
+    "id": "equation-05",
+    "operation": "equation",
+    "request": {
+      "operation": "equation",
+      "expression": "x^4-16=0",
+      "variable": "x"
+    },
+    "expected": {
+      "status": "solved",
+      "result": [
+        "-2",
+        "2"
+      ],
+      "category": "supported"
+    },
+    "rationale": "Quartic with two real roots."
+  },
+  {
+    "id": "equation-06",
+    "operation": "equation",
+    "request": {
+      "operation": "equation",
+      "expression": "2*x+4=0",
+      "variable": "x"
+    },
+    "expected": {
+      "status": "solved",
+      "result": [
+        "-2"
+      ],
+      "category": "supported"
+    },
+    "rationale": "Linear equation with a negative root."
+  },
+  {
+    "id": "equation-07",
+    "operation": "equation",
+    "request": {
+      "operation": "equation",
+      "expression": "0=0",
+      "variable": "x"
+    },
+    "expected": {
+      "status": "solved",
+      "result": "all real x",
+      "category": "identity"
+    },
+    "rationale": "An identity has every real number as a solution."
+  },
+  {
+    "id": "equation-08",
+    "operation": "equation",
+    "request": {
+      "operation": "equation",
+      "expression": "x^5-1=0",
+      "variable": "x"
+    },
+    "expected": {
+      "status": "unresolved",
+      "result": null,
+      "category": "unsupported_degree"
+    },
+    "rationale": "A valid polynomial outside the degree-four MVP boundary."
+  },
+  {
+    "id": "equation-09",
+    "operation": "equation",
+    "request": {
+      "operation": "equation",
+      "expression": "x/(x-1)=0",
+      "variable": "x"
+    },
+    "expected": {
+      "status": "rejected",
+      "result": null,
+      "category": "grammar_rejection"
+    },
+    "rationale": "Variable denominators are outside the polynomial equation grammar."
+  },
+  {
+    "id": "equation-10",
+    "operation": "equation",
+    "request": {
+      "operation": "equation",
+      "expression": "x+y=0",
+      "variable": "x"
+    },
+    "expected": {
+      "status": "rejected",
+      "result": null,
+      "category": "grammar_rejection"
+    },
+    "rationale": "The MVP permits one real variable named x."
+  }
+]

@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="AI Math Assistant computes supported calculus and algebra questions with a local exact solver.">
+  <title>AI Math Assistant</title>
+  <link rel="stylesheet" href="/web/styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar" aria-label="Sidebar">
+      <div class="brand-row">
+        <a class="brand" href="/" aria-label="AI Math Assistant home"><span>AI</span> Math Assistant</a>
+        <button class="icon-button" id="close-sidebar" type="button" aria-label="Close sidebar" title="Close sidebar">×</button>
+      </div>
+      <button class="new-chat" id="new-chat" type="button"><span class="new-icon" aria-hidden="true">+</span><span>New chat</span></button>
+      <nav class="sidebar-nav" aria-label="Assistant tools">
+        <button class="nav-item" id="syntax-help" type="button"><span class="nav-icon" aria-hidden="true">?</span><span>Syntax help</span></button>
+      </nav>
+      <div class="chat-section">
+        <div class="section-heading"><span>Chats</span><button class="tiny-button" id="search-toggle" type="button" aria-label="Search chats" title="Search chats">⌕</button></div>
+        <label class="chat-search" id="chat-search-wrap" hidden><span class="sr-only">Search chats</span><input id="chat-search" type="search" placeholder="Search this session" autocomplete="off"></label>
+        <div class="chat-list" id="chat-list"><p class="empty-chats">Your solved questions will appear here.</p></div>
+      </div>
+      <div class="sidebar-note">Exact calculations run locally when supported.</div>
+    </aside>
+
+    <main class="main-content">
+      <header class="topbar">
+        <button class="icon-button mobile-menu" id="open-sidebar" type="button" aria-label="Open sidebar" title="Open sidebar">☰</button>
+        <div class="topbar-title">Math workspace</div>
+        <div class="status-pill" id="service-status"><span class="status-dot" aria-hidden="true"></span><span>Checking solver</span></div>
+      </header>
+
+      <section class="conversation" aria-live="polite" aria-atomic="false" id="conversation">
+        <div class="welcome" id="welcome">
+          <div class="welcome-mark" aria-hidden="true">∑</div>
+          <h1>Where should we begin?</h1>
+          <p>Ask a structured calculus or algebra question. AI Math Assistant computes the result first and shows its check before you ask for an explanation.</p>
+        </div>
+        <div class="messages" id="messages"></div>
+      </section>
+
+      <section class="composer-area" aria-label="Math question composer">
+        <div class="composer-shell">
+          <div class="operation-row">
+            <label class="operation-label" for="operation">Operation</label>
+            <select id="operation" aria-label="Operation">
+              <option value="derivative">Derivative</option>
+              <option value="integral">Integral</option>
+              <option value="limit">Limit</option>
+              <option value="equation">Equation</option>
+            </select>
+            <span class="operation-hint" id="operation-hint">Find d/dx of an expression</span>
+          </div>
+          <form id="solve-form" novalidate>
+            <div class="input-grid">
+              <label class="field expression-field" for="expression"><span>Expression</span><textarea id="expression" rows="1" required spellcheck="false" placeholder="For example: x^3*sin(x)"></textarea></label>
+              <div class="option-fields" id="integral-options" hidden>
+                <label class="field" for="lower"><span>Lower bound</span><input id="lower" type="text" inputmode="text" placeholder="0" spellcheck="false"></label>
+                <label class="field" for="upper"><span>Upper bound</span><input id="upper" type="text" inputmode="text" placeholder="1" spellcheck="false"></label>
+              </div>
+              <div class="option-fields" id="limit-options" hidden>
+                <label class="field" for="target"><span>As x approaches</span><input id="target" type="text" inputmode="text" placeholder="0" spellcheck="false"></label>
+                <label class="field" for="direction"><span>Direction</span><select id="direction"><option value="both">Both sides</option><option value="+">From the right</option><option value="-">From the left</option></select></label>
+              </div>
+            </div>
+            <div class="composer-bottom">
+              <span class="input-help" id="input-help">Use explicit multiplication, such as 2*x.</span>
+              <button class="send-button" id="send-button" type="submit"><span class="send-label">Solve</span><span class="send-arrow" aria-hidden="true">↑</span></button>
+            </div>
+          </form>
+        </div>
+        <p class="composer-disclaimer">Supported real-valued expressions use one variable, x. <button id="open-help-inline" type="button">See syntax help</button></p>
+      </section>
+    </main>
+  </div>
+
+  <dialog class="help-dialog" id="help-dialog" aria-labelledby="help-title">
+    <div class="dialog-header"><h2 id="help-title">Supported syntax</h2><button class="icon-button" id="close-help" type="button" aria-label="Close syntax help">×</button></div>
+    <div class="dialog-body">
+      <p>Enter a real-valued expression that uses the variable <code>x</code>. Write multiplication explicitly.</p>
+      <dl class="syntax-list"><div><dt>Operators</dt><dd><code>+ - * / ^ **</code>, parentheses, and unary signs</dd></div><div><dt>Constants</dt><dd><code>pi</code>, <code>E</code>, <code>oo</code>, and <code>-oo</code></dd></div><div><dt>Functions</dt><dd><code>sin</code>, <code>cos</code>, <code>tan</code>, <code>exp</code>, <code>log</code>, <code>sqrt</code>, <code>Abs</code>, <code>asin</code>, <code>acos</code>, <code>atan</code>, <code>sinh</code>, <code>cosh</code>, and <code>tanh</code></dd></div></dl>
+      <p class="muted-copy">Natural-language questions, matrices, plots, and multiple variables are outside this first version.</p>
+    </div>
+  </dialog>
+  <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+  <script src="/web/app.js" defer></script>
+</body>
+</html>
