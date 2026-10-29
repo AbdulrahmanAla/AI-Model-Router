@@ -238,6 +238,12 @@
     }
     if (message.error) {
       body.append(element('p', 'assistant-copy', message.error));
+      const actions = element('div', 'message-actions');
+      const retry = element('button', '', 'Retry solve');
+      retry.type = 'button';
+      retry.addEventListener('click', () => retrySolve(message));
+      actions.append(retry);
+      body.append(actions);
       row.append(body);
       return row;
     }
@@ -359,6 +365,16 @@
       elements.send.disabled = false;
       renderMessages();
     }
+  }
+
+  function retrySolve(message) {
+    if (state.solving || !message.request) return;
+    state.solving = true;
+    elements.send.disabled = true;
+    message.error = null;
+    message.loading = true;
+    renderMessages();
+    solve(message.request, message);
   }
 
   async function requestAi(message, action) {
