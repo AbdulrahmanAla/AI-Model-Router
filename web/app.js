@@ -34,6 +34,7 @@
   function showToast(message) {
     setText(elements.toast, message);
     elements.toast.hidden = false;
+    delete elements.toast.dataset.formError;
     window.clearTimeout(showToast.timer);
     showToast.timer = window.setTimeout(() => { elements.toast.hidden = true; }, 3500);
   }
@@ -86,6 +87,10 @@
     elements.formError.hidden = true;
     setText(elements.formError, '');
     [elements.expression, elements.lower, elements.upper, elements.target].forEach((field) => field.removeAttribute('aria-invalid'));
+    if (elements.toast.dataset.formError === 'true') {
+      elements.toast.hidden = true;
+      delete elements.toast.dataset.formError;
+    }
   }
 
   function showFormError(message, fields = [elements.expression]) {
@@ -500,6 +505,7 @@
       const fields = request.operation === 'integral' ? [elements.lower, elements.upper] : request.operation === 'limit' ? [elements.target] : [elements.expression];
       showFormError(validationError, fields);
       showToast(validationError);
+      elements.toast.dataset.formError = 'true';
       (fields[0] || elements.expression).focus();
       return;
     }
