@@ -198,6 +198,20 @@ def test_definite_integral_preserves_a_cancelled_denominator_hole() -> None:
     assert body["status"] == "unresolved"
 
 
+def test_definite_integral_checks_periodic_cancelled_denominator_zeros() -> None:
+    response = client.post(
+        "/api/solve",
+        json={
+            "operation": "integral",
+            "expression": "sin(x)/sin(x)",
+            "lower": "2*pi",
+            "upper": "4*pi",
+        },
+    )
+    assert response.status_code == 200
+    assert response.json()["status"] == "unresolved"
+
+
 def test_request_shape_errors_are_422() -> None:
     response = client.post("/api/solve", json={"operation": "integral", "expression": "x", "lower": "0"})
     assert response.status_code == 422

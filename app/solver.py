@@ -494,16 +494,14 @@ def _check_raw_denominator_domains(tree: ast.AST, lower: sp.Expr, upper: sp.Expr
                 denominators.append(_compile(node.left, allow_oo=False, source=source))
     for denominator in denominators:
         try:
-            roots = sp.solve(denominator, _X)
+            roots = sp.solveset(denominator, _X, domain=_open_interval(lower, upper))
         except Exception as exc:
             raise RuntimeError("The denominator domain is unresolved across the interval.") from exc
-        for root in roots:
-            if root.is_real is not True:
-                continue
-            inside_lower = lower.is_finite is not True or bool(root > lower)
-            inside_upper = upper.is_finite is not True or bool(root < upper)
-            if inside_lower and inside_upper:
-                raise RuntimeError("The interval contains a denominator hole.")
+        if roots == sp.EmptySet or roots.is_empty is True:
+            continue
+        if isinstance(roots, sp.FiniteSet):
+            raise RuntimeError("The interval contains a denominator hole.")
+        raise RuntimeError("The denominator domain is unresolved across the interval.")
 
 
 def _verify_limit_numeric(original: sp.Expr, result: sp.Expr, target: sp.Expr, direction: str) -> dict[str, str]:
