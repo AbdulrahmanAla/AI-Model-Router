@@ -175,6 +175,43 @@
     card.append(details);
   }
 
+  async function copyText(value, successMessage) {
+    if (!value) return;
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(value);
+      } else {
+        const helper = document.createElement('textarea');
+        helper.value = value;
+        helper.setAttribute('readonly', '');
+        helper.style.position = 'fixed';
+        helper.style.opacity = '0';
+        document.body.append(helper);
+        helper.select();
+        document.execCommand('copy');
+        helper.remove();
+      }
+      showToast(successMessage);
+    } catch (error) {
+      showToast('Copy is unavailable in this browser.');
+    }
+  }
+
+  function addCopyActions(response, card) {
+    if (response.result !== null && response.result !== undefined) {
+      const copyResult = element('button', '', 'Copy exact result');
+      copyResult.type = 'button';
+      copyResult.addEventListener('click', () => copyText(response.result, 'Exact result copied.'));
+      card.append(copyResult);
+    }
+    if (Array.isArray(response.steps) && response.steps.length) {
+      const copySteps = element('button', '', 'Copy steps');
+      copySteps.type = 'button';
+      copySteps.addEventListener('click', () => copyText(response.steps.map((step, index) => `${index + 1}. ${step}`).join('\n'), 'Solution steps copied.'));
+      card.append(copySteps);
+    }
+  }
+
   function renderAiResponse(message, body) {
     if (!message.ai) return;
     const response = message.ai;
@@ -221,6 +258,9 @@
       card.append(notes);
     }
     renderSteps(response, card);
+    const copyActions = element('div', 'card-actions');
+    addCopyActions(response, copyActions);
+    if (copyActions.childElementCount) card.append(copyActions);
     const details = element('details', 'route-details');
     details.append(element('summary', '', 'Show route details'));
     renderMetrics(message, details);
@@ -394,6 +434,17 @@
     $('#open-sidebar').addEventListener('click', () => { elements.appShell.classList.remove('sidebar-collapsed'); elements.sidebar.classList.add('open'); });
     $('#search-toggle').addEventListener('click', () => { elements.chatSearchWrap.hidden = !elements.chatSearchWrap.hidden; if (!elements.chatSearchWrap.hidden) elements.chatSearch.focus(); });
     elements.chatSearch.addEventListener('input', () => { state.chatFilter = elements.chatSearch.value; renderChatList(); });
+    document.querySelectorAll('.starter-prompt').forEach((button) => {
+      button.addEventListener('click', () => {
+        elements.operation.value = button.dataset.operation;
+        elements.expression.value = button.dataset.expression || '';
+        elements.lower.value = '';
+        elements.upper.value = '';
+        elements.target.value = button.dataset.target || '';
+        updateOperationFields();
+        elements.expression.focus();
+      });
+    });
   }
 
   wireEvents();
