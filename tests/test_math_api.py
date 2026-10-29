@@ -198,11 +198,23 @@ def test_limit_retains_valid_endpoints_holes_and_unbounded_real_domains() -> Non
         ("sqrt(x)^2", "0", "+", "0"),
         ("sqrt(x-10)^2", "10", "+", "0"),
         ("x/x", "0", "both", "1"),
+        ("sqrt(x)^2", "oo", "both", "oo"),
     ]:
         body = client.post("/api/solve", json={"operation": "limit", "expression": expression,
             "target": target, "direction": direction}).json()
         assert body["status"] == "solved", (expression, body)
         assert body["result"] == expected
+
+
+def test_limit_rejects_infinite_target_outside_the_raw_domain() -> None:
+    response = client.post(
+        "/api/solve",
+        json={"operation": "limit", "expression": "sqrt(x)^2", "target": "-oo"},
+    )
+    body = response.json()
+    assert response.status_code == 200
+    assert body["status"] == "unresolved"
+    assert body["result"] is None
 
 
 def test_rejects_unsafe_python_and_implicit_multiplication() -> None:

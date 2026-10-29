@@ -225,7 +225,8 @@ def parse_expression(source: str, *, allow_oo: bool = False) -> ParsedExpression
     _validate_constant_function_values(tree, normalised)
     if expression.free_symbols - {_X}:
         raise GrammarError("Only the real variable x is supported.")
-    if expression in (sp.zoo, sp.nan) or expression.is_real is False:
+    is_allowed_infinite_constant = allow_oo and expression in (sp.oo, -sp.oo)
+    if expression in (sp.zoo, sp.nan) or (expression.is_real is False and not is_allowed_infinite_constant):
         raise GrammarError("Only defined real-valued expressions are supported.")
     return ParsedExpression(expression=expression, tree=tree, source=normalised)
 
