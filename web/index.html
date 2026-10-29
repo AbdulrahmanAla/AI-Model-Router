@@ -17,6 +17,7 @@
       <button class="new-chat" id="new-chat" type="button"><span class="new-icon" aria-hidden="true">+</span><span>New chat</span></button>
       <nav class="sidebar-nav" aria-label="Assistant tools">
         <button class="nav-item" id="syntax-help" type="button"><span class="nav-icon" aria-hidden="true">?</span><span>Syntax help</span></button>
+        <button class="nav-item" id="route-help" type="button"><span class="nav-icon" aria-hidden="true">↯</span><span>Why this route?</span></button>
       </nav>
       <div class="chat-section">
         <div class="section-heading"><span>Chats</span><button class="tiny-button" id="search-toggle" type="button" aria-label="Search chats" title="Search chats">⌕</button></div>
@@ -89,6 +90,18 @@
       <p>Enter a real-valued expression that uses the variable <code>x</code>. Write multiplication explicitly.</p>
       <dl class="syntax-list"><div><dt>Operators</dt><dd><code>+ - * / ^ **</code>, parentheses, and unary signs</dd></div><div><dt>Constants</dt><dd><code>pi</code>, <code>E</code>, <code>oo</code>, and <code>-oo</code></dd></div><div><dt>Functions</dt><dd><code>sin</code>, <code>cos</code>, <code>tan</code>, <code>exp</code>, <code>log</code>, <code>sqrt</code>, <code>Abs</code>, <code>asin</code>, <code>acos</code>, <code>atan</code>, <code>sinh</code>, <code>cosh</code>, and <code>tanh</code></dd></div></dl>
       <p class="muted-copy">Natural-language questions, matrices, plots, and multiple variables are outside this first version.</p>
+    </div>
+  </dialog>
+  <dialog class="help-dialog route-dialog" id="route-dialog" aria-labelledby="route-title">
+    <div class="dialog-header"><h2 id="route-title">Why this route?</h2><button class="icon-button" id="close-route" type="button" aria-label="Close route explanation">×</button></div>
+    <div class="dialog-body">
+      <p><strong>AI Math Assistant starts with an exact local solver.</strong> Supported formulas are parsed with a bounded grammar, solved symbolically, and checked before any optional model request.</p>
+      <div class="route-explanation-grid">
+        <div><span class="route-explanation-mark">1</span><p><strong>Compute locally</strong><br>Derivatives, integrals, limits, and polynomial roots use the deterministic route.</p></div>
+        <div><span class="route-explanation-mark">2</span><p><strong>Show evidence</strong><br>The answer includes the verification status, solution steps, and measured route details.</p></div>
+        <div><span class="route-explanation-mark">3</span><p><strong>Call AI only when asked</strong><br>Explain and fallback actions are explicit, separate, and labeled unverified.</p></div>
+      </div>
+      <p class="muted-copy">The interface reports model calls, provider-reported tokens, and latency when available. It does not claim energy, FLOPs, or universal speedups.</p>
     </div>
   </dialog>
   <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
