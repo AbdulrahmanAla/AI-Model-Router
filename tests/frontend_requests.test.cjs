@@ -11,7 +11,10 @@ function appHarness() {
   const source = fs.readFileSync(path.join(__dirname, '../web/app.js'), 'utf8');
   const context = vm.createContext({
     AbortController,
-    document: { querySelector: () => ({}) },
+    document: {
+      querySelector: () => ({}),
+      createElement: () => ({ addEventListener(event, callback) { this[event] = callback; } }),
+    },
     window: {
       setTimeout: (callback) => { timers.set(++nextTimer, callback); return nextTimer; },
       clearTimeout: (id) => timers.delete(id),
@@ -22,7 +25,7 @@ function appHarness() {
     renderMessages = () => {};
     copyText = (value) => { state.copiedEvidence = value; };
     setServiceStatus = (kind, label) => { state.serviceLabel = label; };
-    this.app = { state, elements, solve, cancelSolve, retrySolve, requestAi, cancelAi, copySessionEvidence };
+    this.app = { state, elements, solve, cancelSolve, retrySolve, requestAi, cancelAi, copySessionEvidence, addCopyActions };
   })();`), context);
   return { ...context.app, pending, timers };
 }
@@ -30,6 +33,22 @@ function appHarness() {
 const request = { operation: 'derivative', expression: 'x^2' };
 const result = { status: 'solved', result: '2*x', verification: { status: 'symbolic_check', detail: 'Checked.' } };
 const response = (body) => ({ ok: true, json: async () => body });
+
+for (const [question, expected] of [
+  [{ operation: 'integral', expression: 'x', lower: '0', upper: '1' }, 'Integral x from 0 to 1'],
+  [{ operation: 'limit', expression: '1/x', target: '0', direction: '+' }, 'Limit of 1/x as x approaches 0 from the right'],
+]) {
+  test(`full-solution copy preserves context: ${expected}`, () => {
+    const app = appHarness();
+    const buttons = [];
+    app.addCopyActions({ ...result, expression: question.expression, steps: ['Compute the result.'],
+      notes: ['Numerical samples are not a proof.'] }, { append: (button) => buttons.push(button) }, question);
+    buttons.find((button) => button.textContent === 'Copy full solution').click();
+    assert.ok(app.state.copiedEvidence.includes(`Question: ${expected}`));
+    assert.match(app.state.copiedEvidence, /Verification \(Symbolic check\): Checked\./);
+    assert.match(app.state.copiedEvidence, /Numerical samples are not a proof/);
+  });
+}
 
 for (const body of [null, {}, [], { status: 'solved', result: { value: '2*x' } }, { status: 'solved', result: '2*x' }, { ...result, status: 'unresolved' }]) {
   test(`invalid solver response is retryable: ${JSON.stringify(body)}`, async () => {

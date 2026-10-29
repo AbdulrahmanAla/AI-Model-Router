@@ -226,7 +226,7 @@
     }
   }
 
-  function addCopyActions(response, card) {
+  function addCopyActions(response, card, request) {
     if (response.result !== null && response.result !== undefined) {
       const copyResult = element('button', '', 'Copy exact result');
       copyResult.type = 'button';
@@ -243,9 +243,10 @@
       const copyFull = element('button', '', 'Copy full solution');
       copyFull.type = 'button';
       copyFull.addEventListener('click', () => {
-        const verification = response.verification && response.verification.detail ? `Verification: ${response.verification.detail}` : '';
+        const verification = response.verification && response.verification.detail ? `Verification (${checkLabel(response.verification.status)}): ${response.verification.detail}` : '';
         const steps = response.steps.map((step, index) => `${index + 1}. ${step}`).join('\n');
-        copyText(`Question: ${response.expression}\nResult: ${response.result}\n${verification}\nSteps:\n${steps}`.trim(), 'Full solution copied.');
+        const notes = Array.isArray(response.notes) && response.notes.length ? `Notes:\n${response.notes.join('\n')}` : '';
+        copyText([`Question: ${displayRequest(request)}`, `Result: ${response.result}`, verification, notes, `Steps:\n${steps}`].filter(Boolean).join('\n'), 'Full solution copied.');
       });
       card.append(copyFull);
     }
@@ -315,7 +316,7 @@
     }
     renderSteps(response, card);
     const copyActions = element('div', 'card-actions');
-    addCopyActions(response, copyActions);
+    addCopyActions(response, copyActions, message.request);
     if (copyActions.childElementCount) card.append(copyActions);
     const details = element('details', 'route-details');
     details.append(element('summary', '', 'Show route details'));
