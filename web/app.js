@@ -193,7 +193,10 @@
     if (!Array.isArray(response.steps) || !response.steps.length) return;
     const details = element('details', 'solution-steps');
     details.open = true;
-    details.append(element('summary', '', 'Solution steps'));
+    const summary = element('summary', '', 'Solution steps');
+    summary.setAttribute('aria-label', 'Solution steps');
+    summary.append(document.createTextNode(` (${response.steps.length})`));
+    details.append(summary);
     const list = element('ol', 'step-list');
     response.steps.forEach((step) => list.append(element('li', '', step)));
     details.append(list);
