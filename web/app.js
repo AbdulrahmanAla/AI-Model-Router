@@ -13,7 +13,7 @@
   const elements = {
     form: $('#solve-form'), operation: $('#operation'), expression: $('#expression'), lower: $('#lower'), upper: $('#upper'),
     target: $('#target'), direction: $('#direction'), integralOptions: $('#integral-options'), limitOptions: $('#limit-options'),
-    operationHint: $('#operation-hint'), inputHelp: $('#input-help'), send: $('#send-button'), messages: $('#messages'), welcome: $('#welcome'),
+    operationHint: $('#operation-hint'), inputHelp: $('#input-help'), send: $('#send-button'), messages: $('#messages'), welcome: $('#welcome'), sessionStats: $('#session-stats'),
     formError: $('#form-error'),
     chatList: $('#chat-list'), chatSearchWrap: $('#chat-search-wrap'), chatSearch: $('#chat-search'), status: $('#service-status'), toast: $('#toast'),
     appShell: document.querySelector('.app-shell'), sidebar: $('#sidebar'), help: $('#help-dialog'), routeHelp: $('#route-dialog'), conversation: $('#conversation')
@@ -347,6 +347,7 @@
       elements.messages.append(wrapper);
     });
     renderChatList();
+    renderSessionStats();
     window.requestAnimationFrame(() => { elements.conversation.scrollTop = elements.conversation.scrollHeight; });
   }
 
@@ -366,6 +367,15 @@
       });
       elements.chatList.append(button);
     });
+  }
+
+  function renderSessionStats() {
+    const completed = state.messages.filter((message) => message.response && (message.response.status === 'solved' || message.response.status === 'unresolved')).length;
+    const attempts = state.messages.flatMap((message) => Array.isArray(message.aiAttempts) ? message.aiAttempts : []);
+    const unknownCalls = attempts.some((attempt) => !(attempt.metrics && Number.isFinite(attempt.metrics.ai_calls)));
+    const knownCalls = attempts.reduce((total, attempt) => total + (attempt.metrics && Number.isFinite(attempt.metrics.ai_calls) ? attempt.metrics.ai_calls : 0), 0);
+    const calls = unknownCalls ? 'model calls not reported' : `${knownCalls} model call${knownCalls === 1 ? '' : 's'}`;
+    setText(elements.sessionStats, `${completed} exact solve${completed === 1 ? '' : 's'} · ${calls}`);
   }
 
   async function readResponse(response) {
