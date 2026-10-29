@@ -630,6 +630,7 @@
     elements.lower.value = '';
     elements.upper.value = '';
     elements.target.value = button.dataset.target || '';
+    elements.direction.value = button.dataset.direction || 'both';
     clearFormError();
     updateOperationFields();
     elements.help.close();

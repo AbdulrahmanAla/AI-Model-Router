@@ -45,6 +45,7 @@
           <button type="button" class="starter-prompt" data-operation="derivative" data-expression="x^3*sin(x)">Differentiate x³ sin(x)</button>
           <button type="button" class="starter-prompt" data-operation="integral" data-expression="2*x + cos(x)">Integrate 2x + cos(x)</button>
           <button type="button" class="starter-prompt" data-operation="limit" data-expression="sin(x)/x" data-target="0">Limit sin(x)/x</button>
+          <button type="button" class="starter-prompt" data-operation="limit" data-expression="sqrt(x)" data-target="0" data-direction="+">Right-hand limit √x</button>
           <button type="button" class="starter-prompt" data-operation="equation" data-expression="x^2 - 4 = 0">Solve x² − 4 = 0</button>
         </div>
         </div>
@@ -93,7 +94,7 @@
       <p>Enter a real-valued expression that uses the variable <code>x</code>. Write multiplication explicitly.</p>
       <dl class="syntax-list"><div><dt>Operators</dt><dd><code>+ - * / ^ **</code>, parentheses, and unary signs</dd></div><div><dt>Constants</dt><dd><code>pi</code>, <code>E</code>, <code>oo</code>, and <code>-oo</code></dd></div><div><dt>Functions</dt><dd><code>sin</code>, <code>cos</code>, <code>tan</code>, <code>exp</code>, <code>log</code>, <code>sqrt</code>, <code>Abs</code>, <code>asin</code>, <code>acos</code>, <code>atan</code>, <code>sinh</code>, <code>cosh</code>, and <code>tanh</code></dd></div></dl>
       <p class="examples-heading">Examples</p>
-      <dl class="syntax-list example-list"><div><dt>Derivative</dt><dd><button type="button" class="syntax-example" data-operation="derivative" data-expression="x^3*sin(x)">x^3*sin(x)</button></dd></div><div><dt>Integral</dt><dd><button type="button" class="syntax-example" data-operation="integral" data-expression="2*x + cos(x)">2*x + cos(x)</button>, optionally with bounds</dd></div><div><dt>Limit</dt><dd><button type="button" class="syntax-example" data-operation="limit" data-expression="sin(x)/x" data-target="0">sin(x)/x</button> as <code>x → 0</code></dd></div><div><dt>Equation</dt><dd><button type="button" class="syntax-example" data-operation="equation" data-expression="x^2 - 4 = 0">x^2 - 4 = 0</button></dd></div></dl>
+      <dl class="syntax-list example-list"><div><dt>Derivative</dt><dd><button type="button" class="syntax-example" data-operation="derivative" data-expression="x^3*sin(x)">x^3*sin(x)</button></dd></div><div><dt>Integral</dt><dd><button type="button" class="syntax-example" data-operation="integral" data-expression="2*x + cos(x)">2*x + cos(x)</button>, optionally with bounds</dd></div><div><dt>Limit</dt><dd><button type="button" class="syntax-example" data-operation="limit" data-expression="sin(x)/x" data-target="0">sin(x)/x</button> as <code>x → 0</code>, or <button type="button" class="syntax-example" data-operation="limit" data-expression="sqrt(x)" data-target="0" data-direction="+">sqrt(x)</button> from the right</dd></div><div><dt>Equation</dt><dd><button type="button" class="syntax-example" data-operation="equation" data-expression="x^2 - 4 = 0">x^2 - 4 = 0</button></dd></div></dl>
       <p class="muted-copy">Natural-language questions, matrices, plots, and multiple variables are outside this first version.</p>
     </div>
   </dialog>
