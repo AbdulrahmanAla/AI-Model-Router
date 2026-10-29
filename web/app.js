@@ -50,7 +50,7 @@
     elements.integralOptions.hidden = operation !== 'integral';
     elements.limitOptions.hidden = operation !== 'limit';
     setText(elements.operationHint, operationCopy[operation].hint);
-    setText(elements.inputHelp, operationCopy[operation].help);
+    setText(elements.inputHelp, `${operationCopy[operation].help} Press Enter to solve; Shift+Enter for a new line.`);
     const placeholders = {
       derivative: 'For example: x^3*sin(x)',
       integral: 'For example: 2*x + cos(x)',
