@@ -41,6 +41,11 @@ def test_safe_result_scoring_accepts_equivalent_math_and_rejects_code():
     assert not expressions_equivalent("(x**10000)**2", "x")
 
 
+def test_safe_result_scoring_preserves_decimal_literal_text():
+    assert expressions_equivalent("0.100000000000000001 - 0.1", "0.000000000000000001")
+    assert not expressions_equivalent("1e-999", "0")
+
+
 def test_solver_scoring_keeps_unresolved_and_rejected_out_of_accuracy():
     solved = next(case for case in CASES if case["id"] == "derivative-01")
     unresolved = next(case for case in CASES if case["id"] == "limit-07")
@@ -95,6 +100,18 @@ def test_summary_marks_missing_usage_as_unknown():
     assert summary["latency_ms"]["median"] == 8.0
     assert summary["token_usage"]["total_tokens"]["unknown"] == 1
     assert summary["model_calls"]["unknown"] == 1
+    assert summary["token_usage"]["total_tokens"]["known_total"] == 0
+    assert summary["token_usage"]["total_tokens"]["total"] is None
+    assert summary["failed_outcomes"] == 0
+
+
+def test_summary_counts_boundary_failures_separately():
+    observation = {"http_status": 422, "body": {}}
+    score = {"passed": False, "counted": False, "outcome": "rejected", "reason": "expected validation response"}
+    summary = summarize([observation], [score])
+    assert summary["failed_outcomes"] == 1
+    assert summary["boundary_observations"] == 1
+    assert summary["boundary_passed"] == 0
 
 
 def test_runner_disables_ai_actions_without_explicit_live_flag(monkeypatch, tmp_path):
@@ -119,3 +136,8 @@ def test_runner_disables_ai_actions_without_explicit_live_flag(monkeypatch, tmp_
     assert report["ai_actions"] == []
     assert all(path == "/api/solve" for path in calls)
     assert len(report["cases"]) == 40
+
+
+def test_benchmark_cli_default_timeout_covers_provider_deadline():
+    args = runner._parser().parse_args([])
+    assert args.timeout == 60.0

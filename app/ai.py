@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import ast
 import asyncio
 import json
 import multiprocessing as mp
@@ -14,14 +13,11 @@ from dataclasses import dataclass
 from typing import Any
 
 import httpx
-import sympy as sp
-
 from .solver import (
     GrammarError,
     SOLVER_TIMEOUT_MS,
-    _has_variable_denominator,
     parse_constant,
-    parse_expression,
+    validate_structured_payload,
 )
 
 
@@ -42,6 +38,10 @@ class AIServiceError(RuntimeError):
         self.code = code
         self.detail = detail
         self.metrics = metrics
+
+
+class AIValidationBusy(GrammarError):
+    """The bounded grammar-validation worker pool has no free slot."""
 
 
 @dataclass(frozen=True)
@@ -159,37 +159,7 @@ def _chat_url(base_url: str) -> str:
 
 def _validate_grammar(payload: dict[str, Any]) -> None:
     """Validate the same bounded grammar without running a full exact solve."""
-    operation = payload["operation"]
-    expression = payload["expression"]
-    if operation == "equation":
-        if expression.count("=") > 1:
-            raise GrammarError("An equation may contain one equals sign.")
-        if "=" in expression:
-            left_source, right_source = expression.split("=", 1)
-            left = parse_expression(left_source)
-            right = parse_expression(right_source)
-            left_tree = ast.parse(left_source.replace("^", "**"), mode="eval")
-            right_tree = ast.parse(right_source.replace("^", "**"), mode="eval")
-            if _has_variable_denominator(left_tree.body) or _has_variable_denominator(right_tree.body):
-                raise GrammarError("Equations with a variable in a denominator are not supported.")
-            equation = sp.expand(left.expression - right.expression)
-        else:
-            parsed = parse_expression(expression)
-            if _has_variable_denominator(parsed.tree.body):
-                raise GrammarError("Equations with a variable in a denominator are not supported.")
-            equation = sp.expand(parsed.expression)
-        try:
-            sp.Poly(equation, sp.Symbol("x", real=True))
-        except Exception as exc:
-            raise GrammarError("Equations must be real polynomials in x.") from exc
-        return
-
-    parse_expression(expression)
-    if operation == "integral" and payload.get("lower") is not None:
-        parse_constant(payload["lower"])
-        parse_constant(payload["upper"])
-    if operation == "limit":
-        parse_constant(payload["target"])
+    validate_structured_payload(payload)
 
 
 def _grammar_worker(payload: dict[str, Any], result_queue: Any) -> None:
@@ -205,7 +175,7 @@ def _grammar_worker(payload: dict[str, Any], result_queue: Any) -> None:
 def _validate_grammar_bounded(payload: dict[str, Any]) -> None:
     """Run grammar parsing and SymPy construction outside the request loop."""
     if not _GRAMMAR_CONCURRENCY.acquire(blocking=False):
-        raise GrammarError("Structured input validation is busy. Try again shortly.")
+        raise AIValidationBusy("Structured input validation is busy. Try again shortly.")
     result_queue = None
     try:
         context = mp.get_context("spawn")
@@ -253,21 +223,29 @@ def _messages(action: str, payload: dict[str, Any], exact: dict[str, Any] | None
             },
             {"role": "user", "content": f"Structured request: {request_text}\nExact result and check: {exact_text}"},
         ]
+    equation_contract = (
+        "Use a sorted JSON array of real root strings for a solved polynomial equation, or the exact sentinels "
+        "all real x and no real solutions."
+    )
+    if action == "fallback":
+        equation_contract += " For a non-polynomial equation, a short unverified result string may describe a symbolic family."
     return [
         {
             "role": "system",
             "content": (
                 "Answer the structured math request. Return exactly one JSON object and no prose, markdown, "
                 "or code fences. The object must have exactly these keys: status and result. "
-                "status is solved, unresolved, or rejected. Use a formula string for a solved calculus answer. "
-                "Use a sorted JSON array of real root strings for a solved equation. Use result null for unresolved or rejected."
+                "The variable is real x. For a solved derivative, limit, or integral, use a typed formula string; "
+                "omit an arbitrary integration constant C. "
+                f"{equation_contract} status is solved, unresolved, or rejected, and result is null for unresolved "
+                "or rejected."
             ),
         },
         {"role": "user", "content": f"Structured request: {request_text}"},
     ]
 
 
-def _machine_answer_is_valid(text: str, operation: str) -> bool:
+def _machine_answer_is_valid(text: str, operation: str, action: str) -> bool:
     try:
         value = json.loads(text)
     except (TypeError, json.JSONDecodeError):
@@ -281,6 +259,8 @@ def _machine_answer_is_valid(text: str, operation: str) -> bool:
     if status in {"unresolved", "rejected"}:
         return result is None
     if operation == "equation":
+        if action == "fallback" and isinstance(result, str) and result.strip() and len(result) <= 1000:
+            return True
         if isinstance(result, str) and result in {"all real x", "no real solutions"}:
             return True
         if not isinstance(result, list) or any(not isinstance(item, str) or not item.strip() for item in result):
@@ -311,7 +291,7 @@ def _response_content(body: Any, action: str, operation: str) -> str:
     content = message["content"].strip()
     if not content or len(content) > 12000:
         raise ValueError("response text is empty or too large")
-    if action in {"baseline", "fallback"} and not _machine_answer_is_valid(content, operation):
+    if action in {"baseline", "fallback"} and not _machine_answer_is_valid(content, operation, action):
         raise ValueError("response does not match the JSON answer contract")
     return content
 
@@ -457,8 +437,8 @@ async def handle_ai(app: Any, action: str, request: Any, validated_payload: dict
     """Validate, optionally recompute, and make one provider request."""
     if action not in _ALLOWED_ACTIONS:
         raise GrammarError("That AI action is not supported.")
-    await asyncio.to_thread(_validate_grammar_bounded, validated_payload)
     started = time.perf_counter()
+    await asyncio.to_thread(_validate_grammar_bounded, validated_payload)
     exact: dict[str, Any] | None = None
     solver_ms: float | None = None
     if action == "explain":

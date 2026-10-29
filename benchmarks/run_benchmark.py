@@ -192,7 +192,7 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--cases", default=str(DEFAULT_CASES))
     parser.add_argument("--output", default="benchmark-results.json")
     parser.add_argument("--repeats", type=int, default=1)
-    parser.add_argument("--timeout", type=float, default=15.0)
+    parser.add_argument("--timeout", type=float, default=60.0)
     parser.add_argument("--live-ai", action="store_true", help="explicitly call the configured provider")
     parser.add_argument("--ai-actions", default="baseline", help="comma-separated baseline, explain, fallback")
     return parser

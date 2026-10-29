@@ -39,6 +39,15 @@ def test_indefinite_integral_is_checked_by_differentiating_antiderivative() -> N
     assert body["verification"]["status"] == "symbolic_check"
 
 
+def test_real_logarithmic_antiderivative_uses_abs_and_states_domain() -> None:
+    response = client.post("/api/solve", json={"operation": "integral", "expression": "1/x"})
+    body = response.json()
+    assert response.status_code == 200
+    assert body["result"] == "log(Abs(x))"
+    assert body["verification"]["status"] == "symbolic_check"
+    assert "nonzero" in body["notes"][1]
+
+
 def test_definite_integral_reports_independent_quadrature() -> None:
     response = client.post("/api/solve", json={"operation": "integral", "expression": "x", "lower": "0", "upper": "1"})
     body = response.json()
@@ -61,6 +70,44 @@ def test_equation_returns_real_roots_and_checks_substitution() -> None:
     assert response.status_code == 200
     assert body["result"] == "{2}"
     assert body["verification"]["status"] == "symbolic_check"
+
+
+def test_equation_allows_whitespace_around_equals() -> None:
+    response = client.post("/api/solve", json={"operation": "equation", "expression": "x^2 = 1"})
+    assert response.status_code == 200
+    assert response.json()["result"] == "{-1, 1}"
+
+
+def test_equation_accepts_a_bounded_nested_quartic() -> None:
+    response = client.post("/api/solve", json={"operation": "equation", "expression": "(x^2-1)^2=0"})
+    assert response.status_code == 200
+    assert response.json()["result"] == "{-1, 1}"
+
+
+def test_cancelled_nonpolynomial_equation_does_not_claim_all_real_x() -> None:
+    response = client.post("/api/solve", json={"operation": "equation", "expression": "log(x)=log(x)"})
+    assert response.status_code == 200
+    assert response.json()["status"] == "unresolved"
+
+
+def test_decimal_literals_are_exact_before_symbolic_cancellation() -> None:
+    response = client.post(
+        "/api/solve",
+        json={"operation": "derivative", "expression": "(0.100000000000000001 - 0.1)*x"},
+    )
+    assert response.status_code == 200
+    assert response.json()["result"] == "1/1000000000000000000"
+
+
+def test_oversized_scientific_exponent_is_rejected() -> None:
+    response = client.post("/api/solve", json={"operation": "derivative", "expression": "1e-999*x"})
+    assert response.status_code == 422
+
+
+def test_ordinary_decimal_literal_remains_supported() -> None:
+    response = client.post("/api/solve", json={"operation": "derivative", "expression": "0.125*x"})
+    assert response.status_code == 200
+    assert response.json()["result"] == "1/8"
 
 
 def test_nonexistent_two_sided_limit_is_explicit() -> None:
@@ -107,6 +154,29 @@ def test_definite_integral_preserves_unsimplified_square_root_domain() -> None:
     assert response.status_code == 200
     assert body["status"] == "unresolved"
     assert body["verification"]["status"] == "not_checked"
+
+
+def test_definite_integral_rejects_an_unsimplified_domain_gap() -> None:
+    response = client.post(
+        "/api/solve",
+        json={
+            "operation": "integral",
+            "expression": "sqrt((x-1)*(x-2))^2",
+            "lower": "0",
+            "upper": "5",
+        },
+    )
+    assert response.status_code == 200
+    assert response.json()["status"] == "unresolved"
+
+
+def test_endpoint_improper_integral_can_still_be_solved() -> None:
+    response = client.post(
+        "/api/solve",
+        json={"operation": "integral", "expression": "1/sqrt(x)", "lower": "0", "upper": "1"},
+    )
+    assert response.status_code == 200
+    assert response.json()["result"] == "2"
 
 
 def test_definite_integral_preserves_a_cancelled_denominator_hole() -> None:

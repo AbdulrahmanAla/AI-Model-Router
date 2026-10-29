@@ -9,7 +9,9 @@ from __future__ import annotations
 import ast
 import json
 import math
+import re
 from collections import Counter
+from decimal import Decimal, InvalidOperation
 from statistics import median
 from typing import Any
 
@@ -40,31 +42,62 @@ _BINARY_OPERATORS = {
     ast.Div: lambda left, right: left / right,
     ast.Pow: lambda left, right: left**right,
 }
-_MAX_CONSTANT = 1_000_000_000_000
+_MAX_CONSTANT = 10**30 - 1
 _MAX_EFFECTIVE_POWER = 10_000
+_MAX_NUMERIC_DIGITS = 30
+_MAX_DECIMAL_EXPONENT = 100
+_NUMERIC_LITERAL = re.compile(r"^(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$")
 
 
 class UnsafeResult(ValueError):
     """Raised when a response result is outside the benchmark grammar."""
 
 
-def _numeric_tree_value(node: ast.AST) -> float:
+def _exact_numeric_literal(literal: str) -> sp.Expr:
+    normalized = literal.replace("_", "")
+    if not _NUMERIC_LITERAL.fullmatch(normalized):
+        raise UnsafeResult("numeric literal is not allowed")
+    digits = "".join(char for char in normalized if char.isdigit())
+    if len(digits) > _MAX_NUMERIC_DIGITS:
+        raise UnsafeResult("numeric literal is too large")
+    exponent_marker = next((index for index, char in enumerate(normalized) if char in "eE"), None)
+    exponent = int(normalized[exponent_marker + 1 :]) if exponent_marker is not None else 0
+    if abs(exponent) > _MAX_DECIMAL_EXPONENT:
+        raise UnsafeResult("scientific exponent is too large")
+    try:
+        decimal = Decimal(normalized)
+    except (InvalidOperation, ValueError) as exc:
+        raise UnsafeResult("numeric literal is invalid") from exc
+    if not decimal.is_finite() or decimal.copy_abs() >= Decimal(10) ** _MAX_NUMERIC_DIGITS:
+        raise UnsafeResult("numeric literal is too large")
+    return sp.Rational(normalized)
+
+
+def _literal_segment(node: ast.AST, source: str) -> str:
+    literal = ast.get_source_segment(source, node)
+    if not literal:
+        raise UnsafeResult("numeric literal is missing")
+    return literal
+
+
+def _numeric_tree_value(node: ast.AST, source: str) -> float:
     """Return a small numeric bound without constructing symbolic powers."""
 
     if isinstance(node, ast.Constant) and isinstance(node.value, (int, float)) and not isinstance(node.value, bool):
-        if isinstance(node.value, int) and abs(node.value) > _MAX_CONSTANT:
+        exact = _exact_numeric_literal(_literal_segment(node, source))
+        if abs(exact) > _MAX_CONSTANT:
             raise UnsafeResult("numeric bound is too large")
         try:
-            value = float(node.value)
+            value = float(exact)
         except OverflowError as exc:
             raise UnsafeResult("numeric bound is too large") from exc
     elif isinstance(node, ast.UnaryOp) and isinstance(node.op, (ast.UAdd, ast.USub)):
-        value = _numeric_tree_value(node.operand)
+        value = _numeric_tree_value(node.operand, source)
         if isinstance(node.op, ast.USub):
             value = -value
     elif isinstance(node, ast.BinOp) and type(node.op) in _BINARY_OPERATORS:
-        left = _numeric_tree_value(node.left)
-        right = _numeric_tree_value(node.right)
+        left = _numeric_tree_value(node.left, source)
+        right = _numeric_tree_value(node.right, source)
         try:
             if isinstance(node.op, ast.Add):
                 value = left + right
@@ -85,17 +118,17 @@ def _numeric_tree_value(node: ast.AST) -> float:
     return value
 
 
-def _effective_power_bound(node: ast.AST) -> float:
+def _effective_power_bound(node: ast.AST, source: str) -> float:
     if not (isinstance(node, ast.BinOp) and isinstance(node.op, ast.Pow)):
         return 1.0
-    exponent = abs(_numeric_tree_value(node.right))
-    bound = _effective_power_bound(node.left) * exponent
+    exponent = abs(_numeric_tree_value(node.right, source))
+    bound = _effective_power_bound(node.left, source) * exponent
     if bound > _MAX_EFFECTIVE_POWER:
         raise UnsafeResult("effective power is too large")
     return bound
 
 
-def _validate_tree(node: ast.AST, depth: int = 0, count: list[int] | None = None) -> None:
+def _validate_tree(node: ast.AST, source: str, depth: int = 0, count: list[int] | None = None) -> None:
     """Check AST size and power shape before creating SymPy objects."""
 
     count = count if count is not None else [0]
@@ -103,33 +136,32 @@ def _validate_tree(node: ast.AST, depth: int = 0, count: list[int] | None = None
     if count[0] > 80 or depth > 20:
         raise UnsafeResult("result expression is too large")
     if isinstance(node, ast.BinOp) and isinstance(node.op, ast.Pow):
-        _effective_power_bound(node)
+        _effective_power_bound(node, source)
     for child in ast.iter_child_nodes(node):
-        _validate_tree(child, depth + 1, count)
+        _validate_tree(child, source, depth + 1, count)
 
 
-def _expression_node(node: ast.AST) -> sp.Expr:
+def _expression_node(node: ast.AST, source: str) -> sp.Expr:
     if isinstance(node, ast.Constant):
         if isinstance(node.value, bool) or not isinstance(node.value, (int, float)):
             raise UnsafeResult("only numeric constants are allowed")
-        if isinstance(node.value, int) and abs(node.value) > _MAX_CONSTANT:
+        value = _exact_numeric_literal(_literal_segment(node, source))
+        if abs(value) > _MAX_CONSTANT:
             raise UnsafeResult("numeric constant is too large")
-        if isinstance(node.value, float) and not math.isfinite(node.value):
-            raise UnsafeResult("non-finite constants are not allowed")
-        return sp.Integer(node.value) if isinstance(node.value, int) else sp.Float(node.value)
+        return value
     if isinstance(node, ast.Name) and node.id in _SYMBOLS:
         return _SYMBOLS[node.id]
     if isinstance(node, ast.UnaryOp) and isinstance(node.op, (ast.UAdd, ast.USub)):
-        value = _expression_node(node.operand)
+        value = _expression_node(node.operand, source)
         return value if isinstance(node.op, ast.UAdd) else -value
     if isinstance(node, ast.BinOp) and type(node.op) in _BINARY_OPERATORS:
-        left = _expression_node(node.left)
-        right = _expression_node(node.right)
+        left = _expression_node(node.left, source)
+        right = _expression_node(node.right, source)
         return _BINARY_OPERATORS[type(node.op)](left, right)
     if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id in _FUNCTIONS:
         if node.keywords or len(node.args) != 1:
             raise UnsafeResult("function arity is not allowed")
-        return _FUNCTIONS[node.func.id](_expression_node(node.args[0]))
+        return _FUNCTIONS[node.func.id](_expression_node(node.args[0], source))
     raise UnsafeResult("result syntax is not allowed")
 
 
@@ -143,8 +175,8 @@ def parse_safe_expression(value: Any) -> sp.Expr:
         tree = ast.parse(source, mode="eval")
     except SyntaxError as exc:
         raise UnsafeResult("result is not valid expression syntax") from exc
-    _validate_tree(tree.body)
-    return _expression_node(tree.body)
+    _validate_tree(tree.body, source)
+    return _expression_node(tree.body, source)
 
 
 def expressions_equivalent(actual: Any, expected: str) -> bool:
@@ -339,12 +371,21 @@ def metric_values(observation: dict[str, Any]) -> dict[str, Any]:
 def _summary_numbers(values: list[Any]) -> dict[str, Any]:
     numbers = [float(value) for value in values if isinstance(value, (int, float)) and math.isfinite(value)]
     if not numbers:
-        return {"count": 0, "median": None, "min": None, "max": None}
-    return {"count": len(numbers), "median": median(numbers), "min": min(numbers), "max": max(numbers)}
+        return {"count": 0, "median": None, "min": None, "max": None, "known_total": 0, "total": None if values else 0}
+    known_total = sum(numbers)
+    return {
+        "count": len(numbers),
+        "median": median(numbers),
+        "min": min(numbers),
+        "max": max(numbers),
+        "known_total": known_total,
+        "total": known_total if len(numbers) == len(values) else None,
+    }
 
 
 def summarize(observations: list[dict[str, Any]], scores: list[dict[str, Any]]) -> dict[str, Any]:
     counted = [score for score in scores if score.get("counted")]
+    boundary = [score for score in scores if not score.get("counted")]
     metrics = [metric_values(observation) for observation in observations]
     calls = [item["model_calls"] for item in metrics]
     token_fields = {name: [item[name] for item in metrics] for name in ("prompt_tokens", "completion_tokens", "total_tokens")}
@@ -353,6 +394,9 @@ def summarize(observations: list[dict[str, Any]], scores: list[dict[str, Any]]) 
         "scored_observations": len(counted),
         "passed": sum(1 for score in counted if score.get("passed")),
         "accuracy": (sum(1 for score in counted if score.get("passed")) / len(counted)) if counted else None,
+        "failed_outcomes": sum(1 for score in scores if score.get("passed") is False),
+        "boundary_observations": len(boundary),
+        "boundary_passed": sum(1 for score in boundary if score.get("passed") is True),
         "outcomes": dict(Counter(score.get("outcome") for score in scores)),
         "latency_ms": _summary_numbers([item["elapsed_ms"] for item in metrics]),
         "solver_ms": _summary_numbers([item["solver_ms"] for item in metrics]),
