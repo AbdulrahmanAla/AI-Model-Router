@@ -394,6 +394,26 @@
     setText(elements.sessionStats, `${completed} exact solve${completed === 1 ? '' : 's'}${unresolvedLabel} · ${calls}`);
   }
 
+  function copySessionEvidence() {
+    if (!state.messages.length) {
+      showToast('Solve a question before copying session evidence.');
+      return;
+    }
+    const lines = ['AI Math Assistant session evidence', ''];
+    state.messages.forEach((message, index) => {
+      const response = message.response || {};
+      const metrics = response.metrics || {};
+      lines.push(`${index + 1}. ${message.display}`);
+      lines.push(`Status: ${response.status || (message.loading ? 'loading' : 'error')}`);
+      if (response.result !== null && response.result !== undefined) lines.push(`Result: ${response.result}`);
+      if (response.verification && response.verification.detail) lines.push(`Verification: ${response.verification.detail}`);
+      lines.push(`General-model calls: ${Number.isFinite(metrics.ai_calls) ? metrics.ai_calls : 'not reported'}`);
+      lines.push(`Steps: ${Array.isArray(response.steps) ? response.steps.length : 0}`);
+      lines.push('');
+    });
+    copyText(lines.join('\n').trim(), 'Session evidence copied.');
+  }
+
   async function readResponse(response) {
     let body;
     try { body = await response.json(); } catch (error) { body = {}; }
@@ -595,6 +615,7 @@
     $('#new-chat').addEventListener('click', resetChat);
     $('#syntax-help').addEventListener('click', () => elements.help.showModal());
     $('#route-help').addEventListener('click', () => elements.routeHelp.showModal());
+    $('#session-copy').addEventListener('click', copySessionEvidence);
     $('#open-help-inline').addEventListener('click', () => elements.help.showModal());
     $('#close-help').addEventListener('click', () => elements.help.close());
     $('#close-route').addEventListener('click', () => elements.routeHelp.close());
