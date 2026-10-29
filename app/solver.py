@@ -55,6 +55,10 @@ class SolveTimeout(RuntimeError):
     """The bounded worker did not finish before its deadline."""
 
 
+class SolveUnresolved(RuntimeError):
+    """The math conclusion is valid but the requested result is unresolved."""
+
+
 class SolverBusy(RuntimeError):
     """All bounded solver slots are in use."""
 
@@ -485,7 +489,10 @@ def _compute(payload: dict[str, Any]) -> dict[str, Any]:
                 except Exception:
                     same = False
             if not same:
-                return {"result": "does not exist", "latex": r"\text{does not exist}", "verification": {"status": "failed", "method": "one-sided limit comparison", "detail": "The one-sided limits differ."}, "notes": []}
+                raise SolveUnresolved(
+                    "The two-sided limit does not exist because the left-hand limit is "
+                    f"{_sstr(left)} and the right-hand limit is {_sstr(right)}."
+                )
             result_expr = left
         else:
             result_expr = sp.limit(expression, _X, target, dir=direction)
@@ -504,6 +511,8 @@ def _worker(payload: dict[str, Any], result_queue: Any) -> None:
         result_queue.put({"ok": True, "data": data})
     except GrammarError as exc:
         result_queue.put({"ok": False, "kind": "grammar", "message": str(exc)})
+    except SolveUnresolved as exc:
+        result_queue.put({"ok": False, "kind": "unresolved", "message": str(exc)})
     except Exception as exc:
         result_queue.put({"ok": False, "kind": "unresolved", "message": str(exc)})
 
@@ -530,6 +539,8 @@ def run_bounded(payload: dict[str, Any]) -> dict[str, Any]:
             return result["data"]
         if result.get("kind") == "grammar":
             raise GrammarError(result.get("message", "Invalid expression."))
+        if result.get("kind") == "unresolved":
+            raise SolveUnresolved(result.get("message", "The solver could not finish."))
         raise RuntimeError(result.get("message", "The solver could not finish."))
     finally:
         if result_queue is not None:

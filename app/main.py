@@ -16,7 +16,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ConfigDict, Field
 
 from .ai import AIServiceError, handle_ai
-from .solver import GrammarError, SolveTimeout, SolverBusy, run_bounded
+from .solver import GrammarError, SolveTimeout, SolveUnresolved, SolverBusy, run_bounded
 
 
 class SolveRequest(BaseModel):
@@ -42,23 +42,44 @@ app = FastAPI(title="AI Math Assistant", version="0.1.0")
 
 
 @app.exception_handler(RequestValidationError)
-async def validation_error_handler(_: Request, exc: RequestValidationError) -> JSONResponse:
-    return JSONResponse(status_code=422, content={"error": "invalid_request", "detail": json.loads(json.dumps(exc.errors(), default=str))})
+async def validation_error_handler(request: Request, exc: RequestValidationError) -> JSONResponse:
+    content: dict[str, object] = {"error": "invalid_request", "detail": json.loads(json.dumps(exc.errors(), default=str))}
+    if request.url.path == "/api/solve":
+        content["metrics"] = {"route": "validation", "ai_calls": 0, "model_calls": 0, "solver_ms": None, "elapsed_ms": None, "model": None, "input_tokens": None, "output_tokens": None, "total_tokens": None}
+    return JSONResponse(status_code=422, content=content)
+
+
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException) -> JSONResponse:
+    if request.url.path != "/api/solve" or exc.status_code not in {400, 422}:
+        return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail}, headers=exc.headers)
+    content = dict(exc.detail) if isinstance(exc.detail, dict) else {"detail": exc.detail}
+    content.setdefault("metrics", {"route": "validation", "ai_calls": 0, "model_calls": 0, "solver_ms": None, "elapsed_ms": None, "model": None, "input_tokens": None, "output_tokens": None, "total_tokens": None})
+    return JSONResponse(status_code=exc.status_code, content=content, headers=exc.headers)
 
 
 @app.middleware("http")
 async def limit_request_body(request: Request, call_next):
-    if request.method in {"POST", "PUT", "PATCH"}:
-        body = await request.body()
-        if len(body) > 16 * 1024:
-            return JSONResponse(status_code=413, content={"error": "request_too_large", "detail": "Request body is limited to 16 KiB."})
     content_length = request.headers.get("content-length")
     try:
         too_large = content_length is not None and int(content_length) > 16 * 1024
     except ValueError:
         too_large = True
     if too_large:
-        return JSONResponse(status_code=413, content={"error": "request_too_large", "detail": "Request body is limited to 16 KiB."})
+        content: dict[str, object] = {"error": "request_too_large", "detail": "Request body is limited to 16 KiB."}
+        if request.url.path == "/api/solve":
+            content["metrics"] = {"route": "validation", "ai_calls": 0, "model_calls": 0, "solver_ms": None, "elapsed_ms": None, "model": None, "input_tokens": None, "output_tokens": None, "total_tokens": None}
+        return JSONResponse(status_code=413, content=content)
+    if request.method in {"POST", "PUT", "PATCH"}:
+        body = bytearray()
+        async for chunk in request.stream():
+            if len(body) + len(chunk) > 16 * 1024:
+                content = {"error": "request_too_large", "detail": "Request body is limited to 16 KiB."}
+                if request.url.path == "/api/solve":
+                    content["metrics"] = {"route": "validation", "ai_calls": 0, "model_calls": 0, "solver_ms": None, "elapsed_ms": None, "model": None, "input_tokens": None, "output_tokens": None, "total_tokens": None}
+                return JSONResponse(status_code=413, content=content)
+            body.extend(chunk)
+        request._body = bytes(body)
     return await call_next(request)
 
 
@@ -106,6 +127,8 @@ def _solve_request_sync(request: SolveRequest) -> dict[str, object]:
         raise HTTPException(status_code=503, detail="The exact solver is busy. Try again shortly.") from exc
     except SolveTimeout:
         return _unresolved(payload, "timeout", "The exact solver reached its time limit.", started)
+    except SolveUnresolved as exc:
+        return _unresolved(payload, "unresolved", str(exc), started)
     except Exception:
         return _unresolved(payload, "unresolved", "The exact solver could not safely finish this request.", started)
     elapsed = (time.perf_counter() - started) * 1000
