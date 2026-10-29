@@ -521,6 +521,7 @@
     elements.lower.value = '';
     elements.upper.value = '';
     elements.target.value = '';
+    clearFormError();
     updateOperationFields();
     renderMessages();
     elements.expression.focus();
@@ -528,7 +529,7 @@
 
   function wireEvents() {
     elements.form.addEventListener('submit', submit);
-    elements.operation.addEventListener('change', updateOperationFields);
+    elements.operation.addEventListener('change', () => { updateOperationFields(); clearFormError(); });
     elements.expression.addEventListener('input', () => { resizeExpression(); clearFormError(); });
     [elements.lower, elements.upper, elements.target].forEach((field) => field.addEventListener('input', clearFormError));
     elements.expression.addEventListener('keydown', (event) => {
