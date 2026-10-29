@@ -2,7 +2,7 @@
   'use strict';
 
   const $ = (selector) => document.querySelector(selector);
-  const state = { messages: [], solving: false, health: null, chatFilter: '', nextMessageId: 1 };
+  const state = { messages: [], solving: false, health: null, chatFilter: '', nextMessageId: 1, solveGeneration: 0 };
   const operationCopy = {
     derivative: { hint: 'Find d/dx of an expression', help: 'Use explicit multiplication, such as 2*x.' },
     integral: { hint: 'Find an antiderivative or a definite integral', help: 'Leave bounds blank for an antiderivative, or provide both.' },
@@ -367,6 +367,7 @@
       if (error.status === 422) setServiceStatus('ready', 'Solver ready');
       else setServiceStatus('error', 'Solver unavailable');
     } finally {
+      if (message.generation !== state.solveGeneration) return;
       state.solving = false;
       elements.send.disabled = false;
       renderMessages();
@@ -412,7 +413,7 @@
     if (validationError) { showToast(validationError); elements.expression.focus(); return; }
     state.solving = true;
     elements.send.disabled = true;
-    const message = { id: String(state.nextMessageId++), request, display: displayRequest(request), loading: true };
+    const message = { id: String(state.nextMessageId++), generation: state.solveGeneration, request, display: displayRequest(request), loading: true };
     state.messages.push(message);
     renderMessages();
     solve(request, message);
@@ -430,6 +431,9 @@
   }
 
   function resetChat() {
+    state.solveGeneration += 1;
+    state.solving = false;
+    elements.send.disabled = false;
     state.messages = [];
     state.nextMessageId = 1;
     state.chatFilter = '';
