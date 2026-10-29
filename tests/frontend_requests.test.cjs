@@ -28,8 +28,59 @@ function appHarness() {
 }
 
 const request = { operation: 'derivative', expression: 'x^2' };
-const result = { status: 'solved', result: '2*x' };
+const result = { status: 'solved', result: '2*x', verification: { status: 'symbolic_check', detail: 'Checked.' } };
 const response = (body) => ({ ok: true, json: async () => body });
+
+for (const body of [null, {}, [], { status: 'solved', result: { value: '2*x' } }, { status: 'solved', result: '2*x' }, { ...result, status: 'unresolved' }]) {
+  test(`invalid solver response is retryable: ${JSON.stringify(body)}`, async () => {
+    const app = appHarness();
+    const message = { request, generation: 0, loading: true };
+    const running = app.solve(request, message);
+    app.pending[0].resolve(response(body));
+    await running;
+    assert.equal(message.response, undefined);
+    assert.match(message.error, /invalid response/i);
+    assert.equal(message.loading, false);
+    assert.equal(app.elements.send.disabled, false);
+  });
+}
+
+test('invalid AI success cannot masquerade as an explanation', async () => {
+  const app = appHarness();
+  const message = { request, response: result };
+  const running = app.requestAi(message, 'explain');
+  app.pending[0].resolve(response({}));
+  await running;
+  assert.equal(message.ai.status, 'error');
+  assert.match(message.ai.message, /invalid response/i);
+  assert.equal(message.response.result, '2*x');
+});
+
+test('valid unresolved response remains available for explicit fallback', async () => {
+  const app = appHarness();
+  const message = { request, generation: 0, loading: true };
+  const running = app.solve(request, message);
+  app.pending[0].resolve(response({ status: 'unresolved', result: null,
+    verification: { status: 'not_checked', detail: 'The exact solver reached its time limit.' } }));
+  await running;
+  assert.equal(message.response.status, 'unresolved');
+  assert.equal(message.error, undefined);
+  assert.equal(message.loading, false);
+});
+
+test('retry recovers from an invalid response with the same question', async () => {
+  const app = appHarness();
+  const message = { request, generation: 0, loading: true };
+  const running = app.solve(request, message);
+  app.pending[0].resolve(response({}));
+  await running;
+  app.retrySolve(message);
+  app.pending[1].resolve(response(result));
+  await new Promise(setImmediate);
+  assert.equal(message.response.result, '2*x');
+  assert.equal(message.error, null);
+  assert.equal(message.request, request);
+});
 
 test('session export includes all explanation calls and reported tokens', () => {
   const app = appHarness();

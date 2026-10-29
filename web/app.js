@@ -449,7 +449,22 @@
     const controller = externalController || new AbortController();
     const timer = window.setTimeout(() => controller.abort(), timeoutMs);
     try {
-      return await readResponse(await fetch(url, { ...options, signal: controller.signal }));
+      const body = await readResponse(await fetch(url, { ...options, signal: controller.signal }));
+      if (!body || typeof body !== 'object' || Array.isArray(body)) {
+        throw new Error('The server returned an invalid response. Please retry.');
+      }
+      if (url === '/api/solve') {
+        const check = body.verification;
+        const validCheck = check && ['symbolic_check', 'numerical_evidence', 'not_checked', 'failed'].includes(check.status) && typeof check.detail === 'string';
+        const validResult = body.status === 'solved'
+          ? typeof body.result === 'string' && body.result.trim().length > 0
+          : body.status === 'unresolved' && body.result === null && check && check.status === 'not_checked';
+        if (!validCheck || !validResult) throw new Error('The server returned an invalid response. Please retry.');
+      }
+      if (url === '/api/ai' && (body.status !== 'answered' || typeof body.text !== 'string' || !body.text.trim())) {
+        throw new Error('The server returned an invalid response. Please retry.');
+      }
+      return body;
     } catch (error) {
       if (error && error.name === 'AbortError') {
         const timeout = new Error('The request took too long. You can retry without retyping it.');
