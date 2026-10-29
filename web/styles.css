@@ -11,3 +11,4 @@
 
 .check-label{padding-left:8px;border-left:1px solid var(--line);color:var(--faint);font-size:10px;letter-spacing:.04em;text-transform:none}.ai-response{display:grid;gap:5px}.ai-label{color:var(--teal-bright);font-size:10px;font-weight:500;letter-spacing:.06em;text-transform:uppercase}.ai-response.error .ai-label{color:var(--danger)}.ai-response.ai-loading{border-color:var(--line);color:var(--muted)}.ai-response.ai-loading .ai-label{color:var(--muted)}
 @media (min-width:761px){.app-shell.sidebar-collapsed .sidebar{display:none}.app-shell.sidebar-collapsed .mobile-menu{display:grid}.app-shell.sidebar-collapsed .composer-area{left:0}}
+.app-shell{height:100dvh;min-height:0;overflow:hidden}.main-content{height:100%;min-height:0}.topbar{flex-shrink:0}.sidebar{min-height:0;overflow-y:auto}
