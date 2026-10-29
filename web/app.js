@@ -292,6 +292,12 @@
       explain.disabled = Boolean(message.aiLoading);
       explain.addEventListener('click', () => requestAi(message, 'explain'));
       actions.append(explain);
+      if (message.aiLoading) {
+        const cancelAiButton = element('button', '', 'Cancel AI request');
+        cancelAiButton.type = 'button';
+        cancelAiButton.addEventListener('click', () => cancelAi(message));
+        actions.append(cancelAiButton);
+      }
     } else if (response.status === 'unresolved') {
       const fallback = element('button', '', message.aiLoading ? 'Asking AI...' : (message.ai && message.ai.action === 'fallback' ? 'Ask AI again' : 'Ask AI for help'));
       fallback.type = 'button';
@@ -424,22 +430,32 @@
   async function requestAi(message, action) {
     if (!message.response || !message.request || message.aiLoading) return;
     message.aiLoading = true;
+    message.aiCancelled = false;
+    message.aiController = new AbortController();
     if (!Array.isArray(message.aiAttempts)) message.aiAttempts = [];
     const attempt = { action, status: 'loading', message: 'Contacting the configured AI provider...' };
     message.aiAttempts.push(attempt);
     message.ai = attempt;
     renderMessages();
     try {
-      const response = await readResponse(await fetchWithTimeout('/api/ai', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action, request: message.request }) }, 45000));
+      const response = await readResponse(await fetchWithTimeout('/api/ai', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action, request: message.request }) }, 45000, message.aiController));
       Object.assign(attempt, response, { action });
       message.ai = attempt;
     } catch (error) {
-      Object.assign(attempt, { action, status: 'error', message: error.message || 'The AI response is unavailable.', metrics: error.payload && error.payload.metrics });
+      Object.assign(attempt, { action, status: 'error', message: message.aiCancelled ? 'AI request cancelled.' : (error.message || 'The AI response is unavailable.'), metrics: error.payload && error.payload.metrics });
       message.ai = attempt;
     } finally {
       message.aiLoading = false;
       renderMessages();
     }
+  }
+
+  function cancelAi(message) {
+    if (!message.aiLoading) return;
+    message.aiCancelled = true;
+    if (message.aiController) message.aiController.abort();
+    message.aiLoading = false;
+    renderMessages();
   }
 
   function submit(event) {
@@ -470,7 +486,10 @@
   }
 
   function resetChat() {
-    state.messages.forEach((message) => { if (message.controller) message.controller.abort(); });
+    state.messages.forEach((message) => {
+      if (message.controller) message.controller.abort();
+      if (message.aiController) message.aiController.abort();
+    });
     state.solveGeneration += 1;
     state.solving = false;
     elements.send.disabled = false;
