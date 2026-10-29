@@ -53,6 +53,20 @@ def test_solver_scoring_keeps_unresolved_and_rejected_out_of_accuracy():
     assert rejected_score["passed"] and not rejected_score["counted"]
 
 
+def test_scoring_accepts_empty_set_for_no_real_solutions():
+    case = next(case for case in CASES if case["id"] == "equation-03")
+    score = score_solver_case(case, {"http_status": 200, "body": {"status": "solved", "result": "{}"}})
+    assert score["passed"] and score["counted"]
+
+
+def test_bounded_input_accepts_safe_rejection_or_unresolved():
+    case = next(case for case in CASES if case["id"] == "derivative-09")
+    rejected = score_solver_case(case, {"http_status": 422, "body": {"detail": "power limit"}})
+    unresolved = score_solver_case(case, {"http_status": 200, "body": {"status": "unresolved"}})
+    assert rejected["passed"] and not rejected["counted"]
+    assert unresolved["passed"] and not unresolved["counted"]
+
+
 def test_ai_scoring_requires_machine_readable_answer_and_excludes_validation():
     solved = next(case for case in CASES if case["id"] == "derivative-01")
     rejected = next(case for case in CASES if case["id"] == "equation-10")
@@ -65,6 +79,12 @@ def test_ai_scoring_requires_machine_readable_answer_and_excludes_validation():
     deferred = next(case for case in CASES if case["id"] == "limit-07")
     review = score_ai_case(deferred, {"http_status": 200, "body": {"status": "answered", "text": '{"status":"solved","result":"0"}'}})
     assert review["outcome"] == "manual_review" and not review["counted"]
+
+
+def test_ai_scoring_accepts_bounded_input_validation_rejection():
+    case = next(case for case in CASES if case["id"] == "derivative-09")
+    score = score_ai_case(case, {"http_status": 422, "body": {"detail": "power limit"}})
+    assert score["passed"] and not score["counted"]
 
 
 def test_summary_marks_missing_usage_as_unknown():

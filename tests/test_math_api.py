@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import asyncio
+import json
+
 from fastapi.testclient import TestClient
 
 from app.main import app
@@ -64,15 +67,19 @@ def test_nonexistent_two_sided_limit_is_explicit() -> None:
     response = client.post("/api/solve", json={"operation": "limit", "expression": "1/x", "target": "0"})
     body = response.json()
     assert response.status_code == 200
-    assert body["status"] == "solved"
-    assert body["result"] == "does not exist"
-    assert body["verification"]["status"] == "failed"
+    assert body["status"] == "unresolved"
+    assert body["result"] is None
+    assert body["verification"]["status"] == "not_checked"
+    assert "left-hand limit" in body["notes"][0]
+    assert "-oo" in body["notes"][0] and "oo" in body["notes"][0]
 
 
 def test_rejects_unsafe_python_and_implicit_multiplication() -> None:
     for expression in ("__import__('os')", "2x", "x.__class__", "sin(x, 2)"):
         response = client.post("/api/solve", json={"operation": "derivative", "expression": expression})
         assert response.status_code == 422, expression
+        assert response.json()["metrics"]["route"] == "validation"
+        assert response.json()["metrics"]["ai_calls"] == 0
 
 
 def test_rejects_exponent_towers_before_solver_work() -> None:
@@ -112,6 +119,45 @@ def test_definite_integral_preserves_a_cancelled_denominator_hole() -> None:
 def test_request_shape_errors_are_422() -> None:
     response = client.post("/api/solve", json={"operation": "integral", "expression": "x", "lower": "0"})
     assert response.status_code == 422
+
+
+def test_chunked_request_body_limit_is_enforced_before_parser() -> None:
+    chunks = [
+        b'{"operation":"derivative","expression":"',
+        b"x" * (16 * 1024),
+        b'"}',
+    ]
+    sent: list[dict[str, object]] = []
+
+    async def receive() -> dict[str, object]:
+        if chunks:
+            body = chunks.pop(0)
+            return {"type": "http.request", "body": body, "more_body": bool(chunks)}
+        return {"type": "http.disconnect"}
+
+    async def send(message: dict[str, object]) -> None:
+        sent.append(message)
+
+    scope = {
+        "type": "http",
+        "asgi": {"version": "3.0", "spec_version": "2.3"},
+        "http_version": "1.1",
+        "method": "POST",
+        "scheme": "http",
+        "path": "/api/solve",
+        "raw_path": b"/api/solve",
+        "query_string": b"",
+        "headers": [(b"content-type", b"application/json")],
+        "client": ("testclient", 50000),
+        "server": ("testserver", 80),
+    }
+    asyncio.run(app(scope, receive, send))
+    response_start = next(message for message in sent if message["type"] == "http.response.start")
+    assert response_start["status"] == 413
+    response_body = next(message for message in sent if message["type"] == "http.response.body")["body"]
+    payload = json.loads(response_body)
+    assert payload["metrics"]["route"] == "validation"
+    assert payload["metrics"]["ai_calls"] == 0
 
 
 def test_solver_busy_is_503(monkeypatch) -> None:

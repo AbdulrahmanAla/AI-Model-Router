@@ -46,6 +46,12 @@ python -m benchmarks.run_benchmark --base-url http://127.0.0.1:8000 --live-ai --
 
 The report includes each raw response, HTTP status, case score, elapsed wall-clock time, server solver time, route model calls, and prompt, completion, and total tokens. Missing provider usage remains `null` and is counted as unknown. The summary reports median and range for observed timings, solver correctness by expected outcome, rejected and unresolved counts, and provider failures. It does not infer FLOPs, energy, or total compute.
 
+## Initial run corrections
+
+The first solver-only run against the 40 frozen cases found 29 of 30 supported solved answers and exposed three contract mismatches. The equation solver returned `{}` for the independently expected `no real solutions` sentinel, so the scorer now treats an empty finite set and that sentinel as equivalent. A valid oversized exponent was rejected with HTTP 422 before expensive work, so the `bounded_input` category accepts either that safe rejection or an `unresolved` response. A two-sided limit whose one-sided values disagree now returns `unresolved` with a null result and a note containing both one-sided values. These outcomes are recorded as boundary behavior and remain outside the solved-answer accuracy denominator where appropriate.
+
+Solve validation and grammar rejections report `route: "validation"` and `ai_calls: 0` metrics. This keeps the no-provider exact route distinguishable from an unmeasured provider attempt while preserving unknown token fields.
+
 ## Reading a report
 
 The solver claim is supported only when the supported solved cases are correct and the default exact route records zero model calls. Unresolved and rejected cases are reported separately. A live AI comparison is pending when no provider key is configured. A solver-only report is evidence about the exact route and its local latency, not an AI speed or token comparison.
