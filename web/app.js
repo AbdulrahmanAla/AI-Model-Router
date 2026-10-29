@@ -573,6 +573,14 @@
     elements.expression.addEventListener('keydown', (event) => {
       if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); elements.form.requestSubmit(); }
     });
+    document.addEventListener('keydown', (event) => {
+      if (event.key !== 'Escape') return;
+      if (elements.help.open || elements.routeHelp.open) return;
+      const solving = state.messages.find((message) => message.loading);
+      if (solving) cancelSolve(solving);
+      const aiRequest = state.messages.find((message) => message.aiLoading);
+      if (aiRequest) cancelAi(aiRequest);
+    });
     $('#new-chat').addEventListener('click', resetChat);
     $('#syntax-help').addEventListener('click', () => elements.help.showModal());
     $('#route-help').addEventListener('click', () => elements.routeHelp.showModal());
