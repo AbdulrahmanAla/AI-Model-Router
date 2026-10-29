@@ -6,24 +6,87 @@ const path = require('node:path');
 
 function appHarness() {
   const pending = [];
+  const timers = new Map();
+  let nextTimer = 0;
   const source = fs.readFileSync(path.join(__dirname, '../web/app.js'), 'utf8');
   const context = vm.createContext({
     AbortController,
     document: { querySelector: () => ({}) },
-    window: { setTimeout: () => 1, clearTimeout() {} },
-    fetch: () => new Promise((resolve, reject) => pending.push({ resolve, reject })),
+    window: {
+      setTimeout: (callback) => { timers.set(++nextTimer, callback); return nextTimer; },
+      clearTimeout: (id) => timers.delete(id),
+    },
+    fetch: (url, options) => new Promise((resolve, reject) => pending.push({ resolve, reject, signal: options.signal })),
   });
   vm.runInContext(source.replace(/  wireEvents\(\);[\s\S]*$/, `
     renderMessages = () => {};
     setServiceStatus = (kind, label) => { state.serviceLabel = label; };
     this.app = { state, elements, solve, cancelSolve, retrySolve, requestAi, cancelAi };
   })();`), context);
-  return { ...context.app, pending };
+  return { ...context.app, pending, timers };
 }
 
 const request = { operation: 'derivative', expression: 'x^2' };
 const result = { status: 'solved', result: '2*x' };
 const response = (body) => ({ ok: true, json: async () => body });
+
+test('solver deadline covers a stalled response body after headers arrive', async () => {
+  const app = appHarness();
+  const message = { request, generation: 0, loading: true };
+  const running = app.solve(request, message);
+  app.pending[0].resolve({ ok: true, json: () => new Promise((resolve, reject) => {
+    app.pending[0].signal.addEventListener('abort', () => reject(Object.assign(new Error('aborted'), { name: 'AbortError' })));
+  }) });
+  await new Promise(setImmediate);
+  assert.equal(app.timers.size, 1, 'deadline must remain active until JSON is read');
+  [...app.timers.values()][0]();
+  await running;
+  assert.equal(message.response, undefined);
+  assert.match(message.error, /took too long/);
+  assert.equal(message.loading, false);
+  assert.equal(app.elements.send.disabled, false);
+});
+
+test('malformed successful JSON is a recoverable error rather than an empty result', async () => {
+  const app = appHarness();
+  const message = { request, generation: 0, loading: true };
+  const running = app.solve(request, message);
+  app.pending[0].resolve({ ok: true, json: async () => { throw new SyntaxError('invalid JSON'); } });
+  await running;
+  assert.equal(message.response, undefined);
+  assert.match(message.error, /invalid response/i);
+  assert.equal(app.elements.send.disabled, false);
+});
+
+test('AI body timeout preserves the exact result and leaves usage unknown', async () => {
+  const app = appHarness();
+  const message = { request, response: result };
+  const running = app.requestAi(message, 'explain');
+  app.pending[0].resolve({ ok: true, json: () => new Promise((resolve, reject) => {
+    app.pending[0].signal.addEventListener('abort', () => reject(Object.assign(new Error('aborted'), { name: 'AbortError' })));
+  }) });
+  await new Promise(setImmediate);
+  assert.equal(app.timers.size, 1);
+  [...app.timers.values()][0]();
+  await running;
+  assert.equal(message.response.result, '2*x');
+  assert.equal(message.aiLoading, false);
+  assert.equal(message.ai.metrics, undefined);
+  assert.match(message.ai.message, /took too long/);
+});
+
+test('provider failure retains reported call accounting', async () => {
+  const app = appHarness();
+  const message = { request, response: result };
+  const running = app.requestAi(message, 'explain');
+  app.pending[0].resolve({ ok: false, status: 502, json: async () => ({
+    detail: 'Provider unavailable.', metrics: { ai_calls: 1, total_tokens: null },
+  }) });
+  await running;
+  assert.equal(message.ai.metrics.ai_calls, 1);
+  assert.equal(message.ai.metrics.total_tokens, null);
+  assert.equal(message.response.result, '2*x');
+});
 
 test('cancelled solve cannot unlock or overwrite an immediate retry', async () => {
   const app = appHarness();

@@ -416,7 +416,13 @@
 
   async function readResponse(response) {
     let body;
-    try { body = await response.json(); } catch (error) { body = {}; }
+    try {
+      body = await response.json();
+    } catch (error) {
+      if (error && error.name === 'AbortError') throw error;
+      if (response.ok) throw new Error('The server returned an invalid response. Please retry.');
+      body = {};
+    }
     if (!response.ok) {
       let detail = typeof body.detail === 'string' ? body.detail : body.message;
       if (!detail && Array.isArray(body.detail)) {
@@ -441,7 +447,7 @@
     const controller = externalController || new AbortController();
     const timer = window.setTimeout(() => controller.abort(), timeoutMs);
     try {
-      return await fetch(url, { ...options, signal: controller.signal });
+      return await readResponse(await fetch(url, { ...options, signal: controller.signal }));
     } catch (error) {
       if (error && error.name === 'AbortError') {
         const timeout = new Error('The request took too long. You can retry without retyping it.');
@@ -461,7 +467,7 @@
     state.activeSolve = controller;
     const current = () => message.controller === controller && state.activeSolve === controller && message.generation === state.solveGeneration;
     try {
-      const response = await readResponse(await fetchWithTimeout('/api/solve', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(request) }, 20000, controller));
+      const response = await fetchWithTimeout('/api/solve', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(request) }, 20000, controller);
       if (!current()) return;
       message.loading = false;
       message.response = response;
@@ -518,7 +524,7 @@
     message.ai = attempt;
     renderMessages();
     try {
-      const response = await readResponse(await fetchWithTimeout('/api/ai', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action, request: message.request }) }, 45000, controller));
+      const response = await fetchWithTimeout('/api/ai', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action, request: message.request }) }, 45000, controller);
       if (!current()) return;
       Object.assign(attempt, response, { action });
       message.ai = attempt;
@@ -568,7 +574,7 @@
   async function checkHealth() {
     window.clearTimeout(checkHealth.timer);
     try {
-      const response = await readResponse(await fetchWithTimeout('/api/health', {}, 5000));
+      const response = await fetchWithTimeout('/api/health', {}, 5000);
       state.health = response;
       setServiceStatus('ready', response.ai_configured ? 'Solver ready · AI configured' : 'Solver ready');
     } catch (error) {
