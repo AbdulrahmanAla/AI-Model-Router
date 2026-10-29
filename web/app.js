@@ -370,7 +370,7 @@
   }
 
   function renderSessionStats() {
-    const completed = state.messages.filter((message) => message.response && (message.response.status === 'solved' || message.response.status === 'unresolved')).length;
+    const completed = state.messages.filter((message) => message.response && message.response.status === 'solved').length;
     const attempts = state.messages.flatMap((message) => Array.isArray(message.aiAttempts) ? message.aiAttempts : []);
     const unknownCalls = attempts.some((attempt) => !(attempt.metrics && Number.isFinite(attempt.metrics.ai_calls)));
     const knownCalls = attempts.reduce((total, attempt) => total + (attempt.metrics && Number.isFinite(attempt.metrics.ai_calls) ? attempt.metrics.ai_calls : 0), 0);
