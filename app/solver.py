@@ -318,7 +318,34 @@ def _latex(expression: sp.Expr) -> str:
     return sp.latex(expression)
 
 
-def _verify_derivative(original: sp.Expr, result: sp.Expr) -> dict[str, str]:
+def _raw_point_is_real(tree: ast.AST | None, source: str | None, point: sp.Expr) -> bool:
+    """Check raw function and denominator restrictions at one real point."""
+    if tree is None or source is None:
+        return True
+    try:
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Call):
+                value = sp.simplify(_compile(node, allow_oo=False, source=source).subs(_X, point))
+                if value in (sp.zoo, sp.nan) or value.is_real is not True:
+                    return False
+            elif isinstance(node, ast.BinOp) and isinstance(node.op, ast.Div) and _contains_variable(node.right):
+                denominator = _compile(node.right, allow_oo=False, source=source)
+                value = sp.simplify(denominator.subs(_X, point))
+                if value in (0, sp.zoo, sp.nan) or value.is_real is not True:
+                    return False
+            elif isinstance(node, ast.BinOp) and isinstance(node.op, ast.Pow) and _contains_variable(node.left):
+                exponent = _compile(node.right, allow_oo=False, source=source)
+                if exponent.is_negative:
+                    denominator = _compile(node.left, allow_oo=False, source=source)
+                    value = sp.simplify(denominator.subs(_X, point))
+                    if value in (0, sp.zoo, sp.nan) or value.is_real is not True:
+                        return False
+    except Exception:
+        return False
+    return True
+
+
+def _verify_derivative(original: sp.Expr, result: sp.Expr, raw_tree: ast.AST | None = None, source: str | None = None) -> dict[str, str]:
     original_fn = sp.lambdify(_X, original, "mpmath")
     result_fn = sp.lambdify(_X, result, "mpmath")
     valid = 0
@@ -327,6 +354,8 @@ def _verify_derivative(original: sp.Expr, result: sp.Expr) -> dict[str, str]:
         try:
             x = mpmath.mpf(point)
             h = mpmath.mpf("1e-6")
+            if not all(_raw_point_is_real(raw_tree, source, sp.Float(sample)) for sample in (point, point - 1e-6, point + 1e-6)):
+                continue
             expected = (original_fn(x + h) - original_fn(x - h)) / (2 * h)
             actual = result_fn(x)
             if not mpmath.isfinite(expected) or not mpmath.isfinite(actual):
@@ -504,7 +533,7 @@ def _check_raw_denominator_domains(tree: ast.AST, lower: sp.Expr, upper: sp.Expr
         raise RuntimeError("The denominator domain is unresolved across the interval.")
 
 
-def _verify_limit_numeric(original: sp.Expr, result: sp.Expr, target: sp.Expr, direction: str) -> dict[str, str]:
+def _verify_limit_numeric(original: sp.Expr, result: sp.Expr, target: sp.Expr, direction: str, raw_tree: ast.AST | None = None, source: str | None = None) -> dict[str, str]:
     if target.is_finite is not True or result in (sp.oo, -sp.oo, sp.zoo, sp.nan) or result.has(sp.Limit, sp.AccumBounds):
         return {"status": "not_checked", "method": "near-target samples", "detail": "A finite real sample check was not available."}
     try:
@@ -517,6 +546,8 @@ def _verify_limit_numeric(original: sp.Expr, result: sp.Expr, target: sp.Expr, d
         for distance in (mpmath.mpf("1e-2"), mpmath.mpf("1e-4"), mpmath.mpf("1e-6")):
             offsets = (-distance, distance) if direction == "both" else ((distance if direction == "+" else -distance),)
             for offset in offsets:
+                if not _raw_point_is_real(raw_tree, source, sp.Float(target_value + offset)):
+                    continue
                 value = fn(target_value + offset)
                 if abs(mpmath.im(value)) <= 1e-8 and abs(complex(value) - expected) <= max(1e-5, abs(expected) * 1e-4):
                     matched += 1
@@ -591,7 +622,7 @@ def _compute(payload: dict[str, Any]) -> dict[str, Any]:
     expression = parsed.expression
     if operation == "derivative":
         result_expr = sp.diff(expression, _X)
-        return {"result": _sstr(result_expr), "latex": _latex(result_expr), "verification": _verify_derivative(expression, result_expr), "notes": []}
+        return {"result": _sstr(result_expr), "latex": _latex(result_expr), "verification": _verify_derivative(expression, result_expr, parsed.tree, parsed.source), "notes": []}
     if operation == "integral":
         if payload.get("lower") is None and payload.get("upper") is None:
             result_expr = sp.integrate(expression, _X)
@@ -674,7 +705,7 @@ def _compute(payload: dict[str, Any]) -> dict[str, Any]:
             result_expr = sp.limit(expression, _X, target, dir=direction)
         if result_expr in (sp.nan, sp.zoo) or result_expr.has(sp.Limit, sp.AccumBounds):
             raise RuntimeError("The limit is unresolved.")
-        verification = _verify_limit_numeric(expression, result_expr, target, direction)
+        verification = _verify_limit_numeric(expression, result_expr, target, direction, parsed.tree, parsed.source)
         return {"result": _sstr(result_expr), "latex": _latex(result_expr), "verification": verification, "notes": []}
     raise GrammarError("That operation is not supported.")
 

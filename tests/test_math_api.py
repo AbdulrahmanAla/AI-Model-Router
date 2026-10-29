@@ -31,6 +31,14 @@ def test_derivative_uses_exact_route_and_independent_numeric_evidence() -> None:
     assert body["metrics"]["solver_ms"] is not None
 
 
+def test_derivative_verification_does_not_sample_outside_raw_domain() -> None:
+    response = client.post("/api/solve", json={"operation": "derivative", "expression": "sqrt(x-10)^2"})
+    body = response.json()
+    assert response.status_code == 200
+    assert body["result"] == "1"
+    assert body["verification"]["status"] == "not_checked"
+
+
 def test_indefinite_integral_is_checked_by_differentiating_antiderivative() -> None:
     response = client.post("/api/solve", json={"operation": "integral", "expression": "2*x"})
     body = response.json()
@@ -131,6 +139,17 @@ def test_nonexistent_two_sided_limit_is_explicit() -> None:
     assert body["verification"]["status"] == "not_checked"
     assert "left-hand limit" in body["notes"][0]
     assert "-oo" in body["notes"][0] and "oo" in body["notes"][0]
+
+
+def test_limit_verification_does_not_sample_outside_raw_domain() -> None:
+    response = client.post(
+        "/api/solve",
+        json={"operation": "limit", "expression": "sqrt(x-10)^2", "target": "0"},
+    )
+    body = response.json()
+    assert response.status_code == 200
+    assert body["result"] == "-10"
+    assert body["verification"]["status"] == "not_checked"
 
 
 def test_rejects_unsafe_python_and_implicit_multiplication() -> None:
