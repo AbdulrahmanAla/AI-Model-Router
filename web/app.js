@@ -389,7 +389,7 @@
     } catch (error) {
       message.loading = false;
       message.error = message.cancelled ? 'Solve cancelled. You can retry this question.' : (error.message || 'The solver is unavailable.');
-      if (error.status === 422) setServiceStatus('ready', 'Solver ready');
+      if (message.cancelled || error.status === 422) setServiceStatus('ready', 'Solver ready');
       else setServiceStatus('error', 'Solver unavailable');
     } finally {
       if (message.generation !== state.solveGeneration) return;
