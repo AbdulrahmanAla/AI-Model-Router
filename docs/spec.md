@@ -27,10 +27,10 @@ Parse an allowlisted arithmetic AST. Accept integers and decimals, `x`, `pi`, `E
 `POST /api/solve` accepts:
 
 ```json
-{"operation":"derivative", "expression":"x^3*sin(x)", "variable":"x", "lower":null, "upper":null, "target":null, "direction":"both"}
+{"operation":"derivative", "expression":"x^3*sin(x)", "variable":"x", "lower":null, "upper":null, "target":null, "direction":null}
 ```
 
-Operations are `derivative`, `integral`, `limit`, and `equation`. Integral bounds must appear together. Limits require target and direction `both`, `+`, or `-`. All unnecessary fields must be absent or null. Invalid JSON or unsafe grammar returns a helpful 422 response. A request which parses but cannot be answered safely returns a normal `unresolved` result. Busy server returns 503. Solver deadline returns `unresolved` with timeout status. No automatic retries or AI fallback.
+Operations are `derivative`, `integral`, `limit`, and `equation`. Integral bounds must appear together. Limits require target and direction `both`, `+`, or `-`. All unnecessary fields must be absent or null, including direction outside a limit request. Invalid JSON or unsafe grammar returns a helpful 422 response. A request which parses but cannot be answered safely returns a normal `unresolved` result. Busy server returns 503. Solver deadline returns `unresolved` with timeout status. No automatic retries or AI fallback.
 
 Every successful API response to solve contains:
 
