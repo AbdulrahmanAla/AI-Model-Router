@@ -20,8 +20,9 @@ function appHarness() {
   });
   vm.runInContext(source.replace(/  wireEvents\(\);[\s\S]*$/, `
     renderMessages = () => {};
+    copyText = (value) => { state.copiedEvidence = value; };
     setServiceStatus = (kind, label) => { state.serviceLabel = label; };
-    this.app = { state, elements, solve, cancelSolve, retrySolve, requestAi, cancelAi };
+    this.app = { state, elements, solve, cancelSolve, retrySolve, requestAi, cancelAi, copySessionEvidence };
   })();`), context);
   return { ...context.app, pending, timers };
 }
@@ -29,6 +30,48 @@ function appHarness() {
 const request = { operation: 'derivative', expression: 'x^2' };
 const result = { status: 'solved', result: '2*x' };
 const response = (body) => ({ ok: true, json: async () => body });
+
+test('session export includes all explanation calls and reported tokens', () => {
+  const app = appHarness();
+  app.state.messages.push({ display: 'Derivative x^2', response: { ...result, metrics: { ai_calls: 0 } }, aiAttempts: [
+    { status: 'answered', action: 'explain', metrics: { ai_calls: 1, total_tokens: 40 } },
+    { status: 'answered', action: 'explain', metrics: { ai_calls: 1, total_tokens: 60 } },
+  ] });
+  app.copySessionEvidence();
+  assert.match(app.state.copiedEvidence, /General-model calls: 2/);
+  assert.match(app.state.copiedEvidence, /Reported tokens: 100/);
+  assert.match(app.state.copiedEvidence, /AI attempts: 2/);
+});
+
+test('session export never treats interrupted AI usage as zero', () => {
+  const app = appHarness();
+  app.state.messages.push({ display: 'Derivative x^2', response: { ...result, metrics: { ai_calls: 0 } }, aiAttempts: [
+    { status: 'error', action: 'explain' },
+  ] });
+  app.copySessionEvidence();
+  assert.match(app.state.copiedEvidence, /General-model calls: not reported/);
+  assert.match(app.state.copiedEvidence, /Reported tokens: not reported/);
+});
+
+test('session export reports zero model calls for a solver-only answer', () => {
+  const app = appHarness();
+  app.state.messages.push({ display: 'Derivative x^2', response: { ...result, metrics: { ai_calls: 0 } } });
+  app.copySessionEvidence();
+  assert.match(app.state.copiedEvidence, /General-model calls: 0/);
+  assert.match(app.state.copiedEvidence, /AI attempts: 0/);
+});
+
+test('unknown usage in one AI attempt prevents a misleading partial total', () => {
+  const app = appHarness();
+  app.state.messages.push({ display: 'Derivative x^2', response: { ...result, metrics: { ai_calls: 0 } }, aiAttempts: [
+    { status: 'answered', metrics: { ai_calls: 1, total_tokens: 40 } },
+    { status: 'error' },
+  ] });
+  app.copySessionEvidence();
+  assert.match(app.state.copiedEvidence, /General-model calls: not reported/);
+  assert.match(app.state.copiedEvidence, /Reported tokens: not reported/);
+  assert.match(app.state.copiedEvidence, /AI attempts: 2/);
+});
 
 test('solver deadline covers a stalled response body after headers arrive', async () => {
   const app = appHarness();
