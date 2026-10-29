@@ -225,6 +225,16 @@
       copySteps.addEventListener('click', () => copyText(response.steps.map((step, index) => `${index + 1}. ${step}`).join('\n'), 'Solution steps copied.'));
       card.append(copySteps);
     }
+    if (response.result !== null && response.result !== undefined && Array.isArray(response.steps) && response.steps.length) {
+      const copyFull = element('button', '', 'Copy full solution');
+      copyFull.type = 'button';
+      copyFull.addEventListener('click', () => {
+        const verification = response.verification && response.verification.detail ? `Verification: ${response.verification.detail}` : '';
+        const steps = response.steps.map((step, index) => `${index + 1}. ${step}`).join('\n');
+        copyText(`Question: ${response.expression}\nResult: ${response.result}\n${verification}\nSteps:\n${steps}`.trim(), 'Full solution copied.');
+      });
+      card.append(copyFull);
+    }
   }
 
   function renderAiResponse(message, body) {
