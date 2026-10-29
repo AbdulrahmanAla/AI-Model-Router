@@ -86,7 +86,10 @@
   function clearFormError() {
     elements.formError.hidden = true;
     setText(elements.formError, '');
-    [elements.expression, elements.lower, elements.upper, elements.target].forEach((field) => field.removeAttribute('aria-invalid'));
+    [elements.expression, elements.lower, elements.upper, elements.target].forEach((field) => {
+      field.removeAttribute('aria-invalid');
+      field.removeAttribute('aria-describedby');
+    });
     if (elements.toast.dataset.formError === 'true') {
       elements.toast.hidden = true;
       delete elements.toast.dataset.formError;
@@ -96,7 +99,10 @@
   function showFormError(message, fields = [elements.expression]) {
     setText(elements.formError, message);
     elements.formError.hidden = false;
-    fields.forEach((field) => field.setAttribute('aria-invalid', 'true'));
+    fields.forEach((field) => {
+      field.setAttribute('aria-invalid', 'true');
+      field.setAttribute('aria-describedby', 'form-error');
+    });
   }
 
   function prettyOperation(operation) {
