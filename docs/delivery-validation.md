@@ -24,6 +24,7 @@ The actual website at `http://127.0.0.1:8000` was exercised through the in-app b
 - The current UI also exposes the exact-first rationale, a visible general-model call count, inline validation for incomplete bounds or targets, copy actions for the result and full solution, and cancel/retry controls for slow solver or optional AI requests.
 - A repeated-question browser journey keeps duplicate sidebar entries addressable, and a cancelled solve returns to a ready service state with the original question available for retry.
 - The top-bar session scorecard reports solved exact routes and provider calls, excluding unresolved requests from the solved count. Syntax-help examples can be clicked to populate the composer, including a limit target.
+- Each deterministic solution section displays its bounded step count while keeping the full numbered derivation visible.
 - When an exact route stops safely, the scorecard reports the unresolved count separately instead of presenting it as a solve.
 - Escape cancels an active solver or optional AI request while preserving the retry path; dialog Escape behavior remains unchanged.
 - The composer hint documents Enter to solve, Shift+Enter for a new line, and Escape to cancel an active request.
