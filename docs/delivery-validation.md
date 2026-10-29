@@ -55,3 +55,31 @@ Provider contract tests use a fake external HTTP transport and make no paid mode
 No API key or external hosting configuration was supplied. Live provider comparison and external publication remain pending user-owned configuration. The local solver remains usable without them. The repository provides `.env.example`, a Dockerfile, and a manual HTTPS deployment guide. Docker is unavailable on this PC, so a container build has not been verified here.
 
 No energy, FLOP, GPU-power, or total cloud-compute measurement is claimed.
+
+## Final merged browser regression checks
+
+The app was restarted from integration commit `5ec24e4` in the clean verification environment, without reload and without provider configuration. The final browser checks confirmed:
+
+- `(0.100000000000000001-0.1)*x` differentiates to exact `1/1000000000000000000`.
+- `x^2 = 1` returns `{-1, 1}` with substitution checks.
+- `sin(x)=0` is unresolved on the polynomial route and offers explicit AI fallback. Without configuration, that action reports provider unavailable rather than an inconsistent grammar rejection.
+- Explain without configuration preserves the exact result and reports provider unavailable.
+- The indefinite integral of `1/x` displays `log(Abs(x))`, the omitted constant note, a nonzero-domain note, and numerical evidence rather than an unsupported symbolic proof.
+- Route details show zero general-model calls for the exact integral. Browser console inspection returned no warnings or errors.
+
+![Final real antiderivative and route details](evidence/final-integral.png)
+
+The clean-environment final gate passed 61 pytest tests, JavaScript syntax, and real HTTP smoke of all 40 frozen cases. One upstream Starlette/httpx deprecation warning remains.
+
+
+## Five-run solver-only evidence
+
+Source commit `5ec24e43221fe6148498467725e969ea9a665d75`; Python 3.14.7; i5-12400F, 6 physical cores and 12 logical processors. One production-style Uvicorn process used the locked verification environment, no reload, no provider credentials, and serial requests. Other test suites were stopped. Background desktop activity remained, so latency is a local observation rather than a controlled hardware comparison.
+
+Across five repetitions of the unchanged 40-case set, all 150 supported solved observations were correct. All 50 boundary observations matched their expected safe behavior. There were zero failed outcomes and zero transport failures. Each repeat contained 30 solved cases, five grammar rejections, four unresolved cases, and one bounded-input refusal. These boundary cases are excluded from supported-answer accuracy.
+
+All 200 requests recorded zero general-model calls with no unknown call counts. Provider token usage remains unreported, rather than being invented as zero. This establishes call avoidance on this fixed set only. It does not establish equal quality to a live AI baseline, token savings against a model, or a hardware-compute reduction.
+
+Median HTTP latency over all outcomes was 585.12 ms, with observation range 515.20 to 1278.83 ms. The five per-repeat HTTP medians were 590.93, 601.46, 580.17, 569.96, 561.45 ms; their median was 580.17 ms and range 561.45 to 601.46 ms. Fast rejections contribute to this all-outcome distribution. Fresh subprocess startup and math imports are material overhead, as the separate import diagnostic shows. No AI latency comparison was run.
+
+[Raw requests, responses, scores, counters, and environment](evidence/solver-five-runs.json). [Measurement protocol](evidence/measurement-plan.md).

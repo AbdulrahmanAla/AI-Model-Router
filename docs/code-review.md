@@ -25,3 +25,11 @@ The reviewer found four material issues:
 All four findings were accepted. A single implementation worker owns their correction and regression tests. The grammar clarification permits safe structured non-polynomial equations to reach an explicitly requested unverified AI fallback, while the exact equation path remains limited to polynomials of degree at most four.
 
 Initial review totals: no hard standards breaches, four nonblocking standards suggestions, and four material spec findings. The worst spec findings concern incorrect exact results and unsupported domain-verification claims. Correction evidence is recorded after the final gate.
+
+## Correction and final gate
+
+Review corrections were integrated as `5ec24e4` from frozen branch tip `78090b9`. The final primary gate ran in the clean locked-dependency verification environment: 61 pytest tests passed, JavaScript syntax passed, and the real HTTP smoke passed all 40 frozen cases with explicit zero-call evidence. One upstream Starlette/httpx deprecation warning remains. `git diff --check` passed.
+
+Regression coverage now includes lexical decimal precision, bounded scientific exponents, equation whitespace, shared solver/AI grammar, symbolic fallback families, full-interval raw function domains and denominator zero sets, safe nested quartics, real logarithmic antiderivatives, and validation-capacity accounting. Raw domains also gate numerical derivative and limit samples, so cancellation cannot turn an invalid original expression into passed evidence. The real logarithm branch uses safe numerical evidence where a symbolic branch identity is not established.
+
+The standards suggestions for a shared validation seam and shared validation metrics were implemented. Broader internal typing and provider-module splitting remain nonblocking future improvements. The accepted material review findings are resolved and covered at the public API boundaries.
