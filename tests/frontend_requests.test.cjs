@@ -25,7 +25,7 @@ function appHarness() {
     renderMessages = () => {};
     copyText = (value) => { state.copiedEvidence = value; };
     setServiceStatus = (kind, label) => { state.serviceLabel = label; };
-    this.app = { state, elements, solve, cancelSolve, retrySolve, requestAi, cancelAi, copySessionEvidence, addCopyActions, exampleValues, routeLabel };
+    this.app = { state, elements, solve, cancelSolve, retrySolve, requestAi, cancelAi, copySessionEvidence, sessionEvidenceText, addCopyActions, exampleValues, routeLabel };
   })();`), context);
   return { ...context.app, pending, timers };
 }
@@ -129,6 +129,7 @@ test('session export includes all explanation calls and reported tokens', () => 
   assert.match(app.state.copiedEvidence, /Routes: solver \+ explain/);
   assert.match(app.state.copiedEvidence, /Solver time: 12\.50 ms/);
   assert.match(app.state.copiedEvidence, /Total solve time: 25\.75 ms/);
+  assert.match(app.sessionEvidenceText(), /AI Math Assistant session evidence/);
 });
 
 test('session export never treats interrupted AI usage as zero', () => {

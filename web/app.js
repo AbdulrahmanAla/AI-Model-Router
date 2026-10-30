@@ -398,11 +398,8 @@
     setText(elements.sessionStats, `${completed} exact solve${completed === 1 ? '' : 's'}${unresolvedLabel} · ${calls}`);
   }
 
-  function copySessionEvidence() {
-    if (!state.messages.length) {
-      showToast('Solve a question before copying session evidence.');
-      return;
-    }
+  function sessionEvidenceText() {
+    if (!state.messages.length) return '';
     const lines = ['AI Math Assistant session evidence', ''];
     state.messages.forEach((message, index) => {
       const response = message.response || {};
@@ -424,7 +421,32 @@
       lines.push(`Steps: ${Array.isArray(response.steps) ? response.steps.length : 0}`);
       lines.push('');
     });
-    copyText(lines.join('\n').trim(), 'Session evidence copied.');
+    return lines.join('\n').trim();
+  }
+
+  function copySessionEvidence() {
+    const evidence = sessionEvidenceText();
+    if (!evidence) {
+      showToast('Solve a question before copying session evidence.');
+      return;
+    }
+    copyText(evidence, 'Session evidence copied.');
+  }
+
+  function downloadSessionEvidence() {
+    const evidence = sessionEvidenceText();
+    if (!evidence) {
+      showToast('Solve a question before downloading session evidence.');
+      return;
+    }
+    const blob = new Blob([evidence], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'ai-math-assistant-session-evidence.txt';
+    link.click();
+    URL.revokeObjectURL(url);
+    showToast('Session evidence downloaded.');
   }
 
   async function readResponse(response) {
@@ -679,6 +701,7 @@
     $('#syntax-help').addEventListener('click', () => elements.help.showModal());
     $('#route-help').addEventListener('click', () => elements.routeHelp.showModal());
     $('#session-copy').addEventListener('click', copySessionEvidence);
+    $('#session-download').addEventListener('click', downloadSessionEvidence);
     $('#open-help-inline').addEventListener('click', () => elements.help.showModal());
     $('#close-help').addEventListener('click', () => elements.help.close());
     $('#close-route').addEventListener('click', () => elements.routeHelp.close());
