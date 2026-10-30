@@ -8,7 +8,7 @@ Command:
 C:\Users\D7my\Documents\ChatGPT\HUMAIN\.venv\Scripts\python.exe -m pytest -q tests/test_math_api.py
 ```
 
-Latest local result: 68 passed across the full project gate. The suite covers derivatives, indefinite and definite integrals including infinite bounds, finite and infinite limits, equations, non-existent limits, real-domain approach failures, unsafe syntax, implicit multiplication, exponent towers, variable denominators, malformed operation fields, solver saturation, deadline handling, static home serving, and secret-free health output.
+Latest local result: 69 passed across the full project gate. The suite covers derivatives, derivative domain caveats, indefinite and definite integrals including infinite bounds, finite and infinite limits, equations, non-existent limits, real-domain approach failures, unsafe syntax, implicit multiplication, exponent towers, variable denominators, malformed operation fields, solver saturation, deadline handling, static home serving, and secret-free health output.
 
 The solver uses a spawned worker with a two-process semaphore and `SOLVER_TIMEOUT_SECONDS` (default 8). A `SOLVER_TIMEOUT_MS` environment override remains available for focused tests. The worker returns its own SymPy compute time, while the API reports full request elapsed time separately.
 
