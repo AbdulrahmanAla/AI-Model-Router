@@ -204,6 +204,17 @@ test('invalid AI success cannot masquerade as an explanation', async () => {
   assert.equal(message.response.result, '2*x');
 });
 
+test('AI success without explicit unverified metadata is rejected', async () => {
+  const app = appHarness();
+  const message = { request, response: result };
+  const running = app.requestAi(message, 'explain');
+  app.pending[0].resolve(response({ status: 'answered', text: 'Use the power rule.' }));
+  await running;
+  assert.equal(message.ai.status, 'error');
+  assert.match(message.ai.message, /invalid response/i);
+  assert.equal(message.response.result, '2*x');
+});
+
 test('oversized AI success is a recoverable invalid response', async () => {
   const app = appHarness();
   const message = { request, response: result };
@@ -438,11 +449,11 @@ test('cancelled AI response cannot replace a new explanation', async () => {
   const old = app.requestAi(message, 'explain');
   app.cancelAi(message);
   const next = app.requestAi(message, 'explain');
-  app.pending[0].resolve(response({ status: 'answered', text: 'stale' }));
+  app.pending[0].resolve(response({ status: 'answered', text: 'stale', verification: { status: 'not_checked', method: 'AI output', detail: 'Unverified.' } }));
   await old;
   assert.equal(message.aiLoading, true);
   assert.equal(message.ai.status, 'loading');
-  app.pending[1].resolve(response({ status: 'answered', text: 'current' }));
+  app.pending[1].resolve(response({ status: 'answered', text: 'current', verification: { status: 'not_checked', method: 'AI output', detail: 'Unverified.' } }));
   await next;
   assert.equal(message.ai.text, 'current');
   assert.equal(message.aiLoading, false);

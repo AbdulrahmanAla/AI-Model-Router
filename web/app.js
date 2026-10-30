@@ -548,7 +548,11 @@
           : body.status === 'unresolved' && body.result === null && check && check.status === 'not_checked';
         if (!matchesRequest || !validCheck || !validSteps || !validResult) throw new Error('The server returned an invalid response. Please retry.');
       }
-      if (url === '/api/ai' && (body.status !== 'answered' || typeof body.text !== 'string' || !body.text.trim() || body.text.length > MAX_AI_TEXT_LENGTH)) {
+      const validAiVerification = body.verification
+        && body.verification.status === 'not_checked'
+        && typeof body.verification.method === 'string'
+        && typeof body.verification.detail === 'string';
+      if (url === '/api/ai' && (body.status !== 'answered' || typeof body.text !== 'string' || !body.text.trim() || body.text.length > MAX_AI_TEXT_LENGTH || !validAiVerification)) {
         throw new Error('The server returned an invalid response. Please retry.');
       }
       if (url === '/api/health' && (body.status !== 'ok' || typeof body.ai_configured !== 'boolean')) {
