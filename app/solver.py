@@ -605,12 +605,20 @@ def _derivative_rule_step(expression: sp.Expr | None) -> str:
     if expression is None:
         return "Apply the supported differentiation rules with respect to x."
     if expression.is_Add:
+        terms = [f"d/dx({ _sstr(term) }) = { _sstr(sp.diff(term, _X)) }" for term in expression.args]
+        if len(terms) <= 3:
+            return f"Use linearity: {'; '.join(terms)}."
         return "Use linearity: differentiate each term and add the results."
     if expression.is_Mul:
+        factors = list(expression.args)
+        if len(factors) == 2:
+            left, right = factors
+            return f"Product rule: ({_sstr(left)})'·({_sstr(right)}) + ({_sstr(left)})·({_sstr(right)})' = {_sstr(sp.diff(left, _X))}·({_sstr(right)}) + ({_sstr(left)})·{_sstr(sp.diff(right, _X))}."
         return "Apply the product rule to the factors that depend on x."
     if expression.is_Pow:
         if expression.base.has(_X) and not expression.exp.has(_X):
-            return "Apply the power rule, including the chain rule for the base."
+            derivative = sp.simplify(expression.exp * expression.base ** (expression.exp - 1) * sp.diff(expression.base, _X))
+            return f"Power rule and chain rule: {_sstr(expression.exp)}·({_sstr(expression.base)})^({_sstr(expression.exp - 1)})·({_sstr(sp.diff(expression.base, _X))}) = {_sstr(derivative)}."
         return "Apply the supported power rule to the expression in x."
     rules = {
         sp.sin: "Use d/dx sin(u) = cos(u)·u'.",

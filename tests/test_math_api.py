@@ -41,6 +41,13 @@ def test_solution_steps_name_the_integral_rule_family() -> None:
     assert any("linearity" in step.lower() for step in body["steps"])
 
 
+def test_product_derivative_step_shows_the_intermediate_rule() -> None:
+    response = client.post("/api/solve", json={"operation": "derivative", "expression": "x^3*sin(x)"})
+    body = response.json()
+    assert response.status_code == 200
+    assert any("product rule:" in step.lower() and "sin(x)" in step for step in body["steps"])
+
+
 def test_each_supported_operation_returns_bounded_deterministic_steps() -> None:
     requests = [
         {"operation": "derivative", "expression": "x^3"},
