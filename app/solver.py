@@ -679,6 +679,7 @@ def _solved_steps(
     left_limit: sp.Expr | None = None,
     right_limit: sp.Expr | None = None,
     expanded_equation: str | None = None,
+    factorized_equation: str | None = None,
     polynomial_degree: int | None = None,
     branch_sensitive: bool = False,
 ) -> list[str]:
@@ -725,6 +726,8 @@ def _solved_steps(
             steps.append("Treat the expression as an equation equal to zero.")
         if expanded_equation is not None:
             steps.append(f"Expand the polynomial: {expanded_equation} = 0.")
+        if factorized_equation and factorized_equation != expanded_equation and factorized_equation not in {"0", "1", "-1"}:
+            steps.append(f"Factor the polynomial: {factorized_equation} = 0.")
         if result == "all real x":
             steps.append("Recognize a polynomial identity, so every real x is a solution.")
         elif result == "no real solutions":
@@ -780,6 +783,7 @@ def _compute(payload: dict[str, Any]) -> dict[str, Any]:
             raise RuntimeError("Only real polynomial equations are supported.") from exc
         equation = sp.expand(equation_input)
         polynomial = sp.Poly(equation, _X)
+        factorized_equation = _sstr(sp.factor(equation))
         if polynomial.degree() > 4:
             raise RuntimeError("This polynomial is outside the supported degree-four boundary.")
         if polynomial.is_zero:
@@ -817,6 +821,7 @@ def _compute(payload: dict[str, Any]) -> dict[str, Any]:
                 result,
                 verification,
                 expanded_equation=_sstr(equation),
+                factorized_equation=factorized_equation,
                 polynomial_degree=None if polynomial.is_zero else int(polynomial.degree()),
             ),
         }

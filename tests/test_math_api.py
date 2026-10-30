@@ -148,7 +148,9 @@ def test_equation_returns_real_roots_and_checks_substitution() -> None:
 def test_equation_allows_whitespace_around_equals() -> None:
     response = client.post("/api/solve", json={"operation": "equation", "expression": "x^2 = 1"})
     assert response.status_code == 200
-    assert response.json()["result"] == "{-1, 1}"
+    body = response.json()
+    assert body["result"] == "{-1, 1}"
+    assert any("factor the polynomial" in step.lower() for step in body["steps"])
 
 
 def test_equation_accepts_a_bounded_nested_quartic() -> None:
