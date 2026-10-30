@@ -17,6 +17,7 @@ The actual website at `http://127.0.0.1:8000` was exercised through the in-app b
 - An unsupported function produced a useful validation message while the solver stayed ready.
 - Syntax help opened, displayed the allowlist, and closed with Escape.
 - Session question search filtered the sidebar, and New chat cleared the session.
+- The selected chat row is highlighted and exposed as the current item to assistive technology; Latest question returns focus to the newest result.
 - Desktop sidebar collapse and reopen worked.
 - Repeated submissions exposed an unbounded conversation layout. The final shell uses a viewport height and an internal scroll area. After the fix, the newest result remained visible above the composer on wide and narrow viewports.
 - A narrow viewport displayed a real derivative result without horizontal page overflow in the captured view.
