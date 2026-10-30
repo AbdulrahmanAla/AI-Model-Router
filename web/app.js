@@ -1256,7 +1256,7 @@
     clearFormError();
     state.solving = true;
     elements.send.disabled = true;
-    const structuredRequest = request.expression ? request : null;
+    const structuredRequest = request && request.expression ? request : null;
     const display = (elements.chatInput && String(elements.chatInput.value || '').trim())
       || (structuredRequest ? displayRequest(structuredRequest) : payload.prompt);
     const message = { id: String(state.nextMessageId++), generation: state.solveGeneration, request: structuredRequest, prompt: payload.prompt || null, routeMode: payload.mode, display, loading: true };

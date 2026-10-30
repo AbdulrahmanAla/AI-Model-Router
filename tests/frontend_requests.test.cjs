@@ -80,6 +80,14 @@ test('general chat prompts pass route validation without a structured request', 
   assert.equal(app.validateRoutePayload(payload), null);
 });
 
+test('submitting a general chat prompt does not dereference a missing request', async () => {
+  const app = appHarness();
+  app.elements.chatInput.value = 'hi';
+  app.submit({ preventDefault() {} });
+  assert.equal(app.state.solving, true);
+  assert.equal(app.elements.send.disabled, true);
+});
+
 function descendants(node) {
   return (node.children || []).flatMap((child) => [child, ...descendants(child)]);
 }
