@@ -47,7 +47,7 @@ function appHarness({ withMathQuill = false, staticMathFailure = false, liveRend
     ${liveRender ? '' : 'renderMessages = () => {};'}
     copyText = (value) => { state.copiedEvidence = value; };
     setServiceStatus = (kind, label) => { state.serviceLabel = label; };
-    this.app = { state, elements, solve, route, cancelSolve, retrySolve, retryRoute, requestAi, cancelAi, copySessionEvidence, downloadSessionEvidence, sessionEvidenceText, addCopyActions, exampleValues, fillComposer, freeformRequest, routeLabel, resultAriaLabel, shouldFocusComposer, shouldCloseSidebarOnEscape, shouldCloseChatSearch, shouldFocusChatSearch, latestMessage, renderAiResponse, renderChatList, closeChatSearch, openChatSearch, fetchWithTimeout, submit, clearFormError, renderAssistant, renderConversation, latexToExpression, expressionToLatex, buildRequest, buildRoutePayload, setFieldValue, validateRequest, validateRoutePayload };
+    this.app = { state, elements, solve, route, cancelSolve, retrySolve, retryRoute, requestAi, cancelAi, copySessionEvidence, downloadSessionEvidence, sessionEvidenceText, addCopyActions, exampleValues, fillComposer, freeformRequest, routeLabel, resultAriaLabel, shouldFocusComposer, shouldCloseSidebarOnEscape, shouldCloseChatSearchOnEscape, shouldFocusChatSearch, latestMessage, renderAiResponse, renderChatList, closeChatSearch, openChatSearch, fetchWithTimeout, submit, clearFormError, renderAssistant, renderConversation, latexToExpression, expressionToLatex, buildRequest, buildRoutePayload, setFieldValue, validateRequest, validateRoutePayload };
   })();`), context);
   return { ...context.app, pending, timers, downloads, mathFields };
 }
@@ -58,13 +58,13 @@ const response = (body) => ({ ok: true, json: async () => body });
 
 test('free form math messages become validated structured requests', () => {
   const app = appHarness();
-  assert.deepEqual(app.freeformRequest('Differentiate x^3 + sin(x)'), {
+  assert.equal(JSON.stringify(app.freeformRequest('Differentiate x^3 + sin(x)')), JSON.stringify({
     request: { operation: 'derivative', expression: 'x^3 + sin(x)', variable: 'x', lower: null, upper: null, target: null, direction: null }, prompt: ''
-  });
-  assert.deepEqual(app.freeformRequest('Find the limit of sin(x)/x as x approaches 0 from the right').request, {
+  }));
+  assert.equal(JSON.stringify(app.freeformRequest('Find the limit of sin(x)/x as x approaches 0 from the right').request), JSON.stringify({
     operation: 'limit', expression: 'sin(x)/x', variable: 'x', lower: null, upper: null, target: '0', direction: '+'
-  });
-  assert.deepEqual(app.freeformRequest('Solve x^2 - 4 = 0').request.operation, 'equation');
+  }));
+  assert.equal(app.freeformRequest('Solve x^2 - 4 = 0').request.operation, 'equation');
 });
 
 test('free form prose stays a prompt and is never treated as a formula', () => {
@@ -1058,3 +1058,4 @@ test('cancelled AI response cannot replace a new explanation', async () => {
   assert.equal(message.ai.text, 'current');
   assert.equal(message.aiLoading, false);
 });
+
