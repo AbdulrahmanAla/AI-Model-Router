@@ -66,6 +66,7 @@ test('free form math messages become validated structured requests', () => {
   }));
   assert.equal(app.freeformRequest('What is the derivative of sin(x)').request.operation, 'derivative');
   assert.equal(app.freeformRequest('Solve x^2 - 4 = 0').request.operation, 'equation');
+  assert.equal(app.freeformRequest('Solve for x: x^2 - 4 = 0').request.operation, 'equation');
 });
 
 test('free form prose stays a prompt and is never treated as a formula', () => {

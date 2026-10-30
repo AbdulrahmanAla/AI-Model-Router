@@ -405,7 +405,7 @@
       const target = clean(match[2]);
       if (expression && target) return { request: { operation: 'limit', expression, variable: 'x', lower: null, upper: null, target, direction: match[3] ? (match[3].toLowerCase() === 'right' ? '+' : '-') : 'both' }, prompt: '' };
     }
-    match = source.match(/^(?:please\s+)?(?:solve|find\s+the\s+roots?\s+of)\s+(.+)$/i);
+    match = source.match(/^(?:please\s+)?(?:solve(?:\s+for\s+x)?|find\s+the\s+roots?\s+of)\s*:?\s+(.+)$/i);
     if (match && /=/.test(match[1])) {
       const expression = bounded(match[1]);
       if (expression) return { request: { operation: 'equation', expression, variable: 'x', lower: null, upper: null, target: null, direction: null }, prompt: '' };

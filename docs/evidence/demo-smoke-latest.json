@@ -1,0 +1,43 @@
+{
+  "recorded_at_utc": "2026-10-30T22:10:07.817760+00:00",
+  "base_url": "http://127.0.0.1:8020",
+  "cases": [
+    {
+      "message": "Hi",
+      "choice": "ai",
+      "answer_status": "answered"
+    },
+    {
+      "message": "What is Python?",
+      "choice": "ai",
+      "answer_status": "answered"
+    },
+    {
+      "message": "What is the derivative of sin(x)?",
+      "choice": "solver",
+      "answer_status": "solved"
+    },
+    {
+      "message": "Differentiate x^3 + 2x",
+      "choice": "solver",
+      "answer_status": "solved"
+    },
+    {
+      "message": "What is the integral of 2x + cos(x)?",
+      "choice": "solver",
+      "answer_status": "solved"
+    },
+    {
+      "message": "Find the limit of sin(x)/x as x approaches 0",
+      "choice": "solver",
+      "answer_status": "solved"
+    },
+    {
+      "message": "Solve x^2 - 4 = 0",
+      "choice": "solver",
+      "answer_status": "solved"
+    }
+  ],
+  "passed": true,
+  "failures": []
+}

@@ -27,7 +27,7 @@ _LIMIT_PATTERN = re.compile(
     re.I,
 )
 _EQUATION_PATTERNS = (
-    re.compile(r"^(?:solve|solve\s+for\s+x|find\s+the\s+roots?\s+of|roots?\s+of)\s+(.+)$", re.I),
+    re.compile(r"^(?:solve\s+for\s+x|solve|find\s+the\s+roots?\s+of|roots?\s+of)\s*:?\s+(.+)$", re.I),
     re.compile(r"^(?:what\s+are\s+the\s+solutions\s+to)\s+(.+)$", re.I),
 )
 _TOKEN_PATTERN = re.compile(r"(?:\d+(?:\.\d*)?|\.\d+|[A-Za-z_][A-Za-z_0-9]*|==|[()+\-*/^=,])")
