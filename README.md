@@ -65,6 +65,14 @@ $env:OLLAMA_TIMEOUT_SECONDS = "120"
 
 The local adapter sends no authorization header and does not require `AI_API_KEY`. Local inference has no API charge, but model download size, GPU or CPU time, memory, electricity, and latency still count as resources. If Ollama is unavailable, exact solver requests continue to work and AI actions report a recoverable unavailable state.
 
+On Windows, the official GUI installer is listed by `winget` as `Ollama.Ollama`. If that download is blocked, the official portable package is `Ollama.Ollama.Portable`:
+
+```powershell
+winget show --id Ollama.Ollama.Portable --exact
+```
+
+Use the published `Installer SHA256` to verify the archive before extracting it. Do not run a partial download. Start `ollama.exe`, confirm `http://127.0.0.1:11434/api/tags` responds, and only then pull the model. Live model benchmarking remains pending until these checks pass.
+
 To reproduce an explanation followed by a failed retry without a live model, run `python scripts/preview_ai_contract.py`. Open the printed local URL, solve a question, and request an explanation twice. The first response and its token counters are explicitly labeled synthetic fixtures; later provider attempts fail. This preview binds only to localhost and substitutes the external HTTP transport. It does not measure model quality, usage, or efficiency.
 
 ## Evaluate the compute-saving claim
