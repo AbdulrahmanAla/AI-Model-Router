@@ -29,7 +29,7 @@ function appHarness() {
     renderMessages = () => {};
     copyText = (value) => { state.copiedEvidence = value; };
     setServiceStatus = (kind, label) => { state.serviceLabel = label; };
-    this.app = { state, elements, solve, cancelSolve, retrySolve, requestAi, cancelAi, copySessionEvidence, downloadSessionEvidence, sessionEvidenceText, addCopyActions, exampleValues, routeLabel, shouldFocusComposer, shouldCloseSidebarOnEscape, shouldCloseChatSearchOnEscape, shouldFocusChatSearch, latestMessage, renderAiResponse, renderChatList, closeChatSearch };
+    this.app = { state, elements, solve, cancelSolve, retrySolve, requestAi, cancelAi, copySessionEvidence, downloadSessionEvidence, sessionEvidenceText, addCopyActions, exampleValues, routeLabel, resultAriaLabel, shouldFocusComposer, shouldCloseSidebarOnEscape, shouldCloseChatSearchOnEscape, shouldFocusChatSearch, latestMessage, renderAiResponse, renderChatList, closeChatSearch };
   })();`), context);
   return { ...context.app, pending, timers, downloads };
 }
@@ -51,6 +51,12 @@ test('route label makes the exact local path explicit', () => {
   assert.equal(app.routeLabel({ aiCalls: 0, routes: ['solver'] }), 'Exact local · 0 model calls');
   assert.equal(app.routeLabel({ aiCalls: 1, routes: ['solver', 'explain'] }), '1 general-model call');
   assert.equal(app.routeLabel({ aiCalls: null, routes: ['solver'] }), 'AI calls not reported');
+});
+
+test('exact results expose a spoken result label', () => {
+  const app = appHarness();
+  assert.equal(app.resultAriaLabel(result), 'Exact result: 2*x');
+  assert.equal(app.resultAriaLabel({ result: null }), 'Exact result unavailable');
 });
 
 test('slash shortcut only focuses the composer outside text fields', () => {

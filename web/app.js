@@ -127,6 +127,11 @@
     return 'Solver error';
   }
 
+  function resultAriaLabel(response) {
+    if (response && response.result !== null && response.result !== undefined) return `Exact result: ${response.result}`;
+    return 'Exact result unavailable';
+  }
+
   function checkLabel(status) {
     if (status === 'symbolic_check') return 'Symbolic check';
     if (status === 'numerical_evidence') return 'Numerical evidence';
@@ -338,7 +343,12 @@
     const routeMetrics = combinedMetrics(message);
     heading.append(element('span', 'route-label', routeLabel(routeMetrics)));
     card.append(heading);
-    if (response.result !== null && response.result !== undefined) card.append(element('div', 'formula', response.result));
+    if (response.result !== null && response.result !== undefined) {
+      const formula = element('div', 'formula', response.result);
+      formula.setAttribute('role', 'status');
+      formula.setAttribute('aria-label', resultAriaLabel(response));
+      card.append(formula);
+    }
     if (response.verification && response.verification.detail) card.append(element('p', 'message-time', response.verification.detail));
     if (Array.isArray(response.notes) && response.notes.length) {
       const notes = element('ul', 'result-notes');
