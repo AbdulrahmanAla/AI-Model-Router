@@ -214,3 +214,13 @@ The local gate passed 92 Python tests, 110 frontend tests, syntax checks, and al
 The final browser session solved the chain-rule and substitution examples, then declined the real-domain example. The dialog displayed two solved questions, one unresolved question, one symbolic check, one numerical check, zero model calls, and unreported tokens. After the specific copy-success notification, clipboard inspection confirmed the same summary ahead of the detailed evidence. At an effective narrow CSS width of about 433 px, the dialog fit within the viewport and used two metric columns. The viewport override was reset. Browser error/warning logs were empty. No live provider was configured or invoked during these checks.
 
 ![Observed session outcomes and model-usage summary](evidence/session-summary.png)
+
+## Long formulas on narrow screens
+
+Two grid minimum-size issues were reproduced in the browser. A long visual expression grew to about 487 px inside a 413 px composer. Its long typeset answer also expanded the message to about 781 px inside a 393 px conversation column, clipping the surrounding text. The stylesheet now permits the editor and conversation grid tracks to shrink, confines fields to their columns, and preserves local mathematical scrolling.
+
+At an effective narrow CSS viewport of about 433 px, the corrected main editor measured about 383 px. The message matched the 393 px conversation column, while its 768 px formula scrolled inside a 313 px result area. Horizontal result scrolling left the outer page at x = 0 and y = 0. Long limit targets and integral bounds remained inside their approximately 170 px columns. Settled caret checks after Ctrl+Home and Ctrl+End placed the caret inside the field, and adding a final `+x` then submitting preserved that term in the derivative. A nested fraction retained its full 49 px math height inside a 65 px field and submitted successfully. Desktop restoration produced an approximately 814 px field inside an 850 px composer.
+
+The existing local gate passed 92 Python tests, 110 frontend tests, syntax checks, and all 40 frozen HTTP evaluation cases. The browser geometry, editing, scrolling, and submission checks verify the layout change directly. Review found no material issue, and the additional caret and nested-fraction checks covered its remaining concerns.
+
+![Contained long formula and answer on a narrow screen](evidence/long-formula-mobile.png)
