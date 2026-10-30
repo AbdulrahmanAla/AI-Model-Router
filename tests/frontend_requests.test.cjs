@@ -7,27 +7,31 @@ const path = require('node:path');
 function appHarness() {
   const pending = [];
   const timers = new Map();
+  const downloads = [];
   let nextTimer = 0;
   const source = fs.readFileSync(path.join(__dirname, '../web/app.js'), 'utf8');
   const context = vm.createContext({
     AbortController,
     document: {
-      querySelector: () => ({}),
-      createElement: () => ({ addEventListener(event, callback) { this[event] = callback; } }),
+      querySelector: () => ({ dataset: {}, hidden: true, classList: { add() {}, remove() {} } }),
+      body: { append(node) { downloads.push(node); } },
+      createElement: () => ({ style: {}, addEventListener(event, callback) { this[event] = callback; }, click() { this.clicked = true; }, remove() { this.removed = true; } }),
     },
     window: {
       setTimeout: (callback) => { timers.set(++nextTimer, callback); return nextTimer; },
       clearTimeout: (id) => timers.delete(id),
     },
+    Blob: class Blob { constructor(parts, options) { this.parts = parts; this.options = options; } },
+    URL: { createObjectURL: () => 'blob:test', revokeObjectURL: () => {} },
     fetch: (url, options) => new Promise((resolve, reject) => pending.push({ resolve, reject, signal: options.signal })),
   });
   vm.runInContext(source.replace(/  wireEvents\(\);[\s\S]*$/, `
     renderMessages = () => {};
     copyText = (value) => { state.copiedEvidence = value; };
     setServiceStatus = (kind, label) => { state.serviceLabel = label; };
-    this.app = { state, elements, solve, cancelSolve, retrySolve, requestAi, cancelAi, copySessionEvidence, sessionEvidenceText, addCopyActions, exampleValues, routeLabel };
+    this.app = { state, elements, solve, cancelSolve, retrySolve, requestAi, cancelAi, copySessionEvidence, downloadSessionEvidence, sessionEvidenceText, addCopyActions, exampleValues, routeLabel };
   })();`), context);
-  return { ...context.app, pending, timers };
+  return { ...context.app, pending, timers, downloads };
 }
 
 const request = { operation: 'derivative', expression: 'x^2' };
@@ -130,6 +134,17 @@ test('session export includes all explanation calls and reported tokens', () => 
   assert.match(app.state.copiedEvidence, /Solver time: 12\.50 ms/);
   assert.match(app.state.copiedEvidence, /Total solve time: 25\.75 ms/);
   assert.match(app.sessionEvidenceText(), /AI Math Assistant session evidence/);
+});
+
+test('session evidence download creates a text attachment', () => {
+  const app = appHarness();
+  app.state.messages.push({ display: 'Derivative x^2', response: { ...result, metrics: { ai_calls: 0 } } });
+  app.downloadSessionEvidence();
+  assert.equal(app.downloads.length, 1);
+  assert.equal(app.downloads[0].download, 'ai-math-assistant-session-evidence.txt');
+  assert.equal(app.downloads[0].href, 'blob:test');
+  assert.equal(app.downloads[0].clicked, true);
+  assert.equal(app.downloads[0].removed, true);
 });
 
 test('session export never treats interrupted AI usage as zero', () => {
