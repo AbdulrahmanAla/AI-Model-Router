@@ -453,7 +453,12 @@
       const metrics = combinedMetrics(message);
       lines.push(`${index + 1}. ${message.display}`);
       lines.push(`Status: ${response.status || (message.loading ? 'loading' : 'error')}`);
+      if (message.error) lines.push(`Solver error: ${message.error}`);
       if (response.result !== null && response.result !== undefined) lines.push(`Result: ${response.result}`);
+      if (Array.isArray(response.notes) && response.notes.length) {
+        lines.push('Notes:');
+        response.notes.forEach((note) => lines.push(`- ${note}`));
+      }
       if (response.verification) {
         const verification = response.verification.detail ? `${checkLabel(response.verification.status)}: ${response.verification.detail}` : checkLabel(response.verification.status);
         lines.push(`Verification: ${verification}`);
@@ -465,6 +470,12 @@
       lines.push(`General-model calls: ${Number.isFinite(metrics.aiCalls) ? metrics.aiCalls : 'not reported'}`);
       lines.push(`Reported tokens: ${Number.isFinite(metrics.totalTokens) ? metrics.totalTokens : 'not reported'}`);
       lines.push(`AI attempts: ${metrics.attempts}`);
+      const attempts = Array.isArray(message.aiAttempts) ? message.aiAttempts : (message.ai ? [message.ai] : []);
+      attempts.forEach((attempt, attemptIndex) => {
+        lines.push(`AI attempt ${attemptIndex + 1}: ${attempt.action || 'AI'}; ${attempt.status || 'not reported'}`);
+        if (attempt.message) lines.push(`AI attempt detail: ${attempt.message}`);
+        if (attempt.metrics && attempt.metrics.model) lines.push(`AI model: ${attempt.metrics.model}`);
+      });
       const aiTexts = answeredAiTexts(message).map((text) => `AI explanation (unverified):\n${text}`);
       lines.push(...aiTexts);
       const steps = Array.isArray(response.steps) ? response.steps : [];

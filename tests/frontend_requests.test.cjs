@@ -374,6 +374,28 @@ test('session export includes all explanation calls and reported tokens', () => 
   assert.match(app.state.copiedEvidence, /Steps \(2\):\n1\. Read the function\.\n2\. Apply the power rule\./);
 });
 
+test('session evidence preserves solver failures without inventing an answer', () => {
+  const app = appHarness();
+  app.state.messages.push({ display: 'Derivative x^2', error: 'The request took too long. You can retry without retyping it.' });
+  app.copySessionEvidence();
+  assert.match(app.state.copiedEvidence, /Status: error\nSolver error: The request took too long/);
+  assert.doesNotMatch(app.state.copiedEvidence, /^Result:/m);
+});
+
+test('session evidence preserves domain notes and each AI attempt outcome', () => {
+  const app = appHarness();
+  app.state.messages.push({ display: 'Integral 1/x', response: { ...result, result: 'log(Abs(x))', notes: ['Exclude x = 0.'], metrics: { ai_calls: 0 } }, aiAttempts: [
+    { action: 'explain', status: 'answered', text: 'Respect the domain.', metrics: { model: 'test-model', ai_calls: 1, total_tokens: 20 } },
+    { action: 'explain', status: 'error', message: 'AI request cancelled. Provider usage is not yet known.' },
+  ] });
+  app.copySessionEvidence();
+  assert.match(app.state.copiedEvidence, /Notes:\n- Exclude x = 0\./);
+  assert.match(app.state.copiedEvidence, /AI attempt 1: explain; answered\nAI model: test-model/);
+  assert.match(app.state.copiedEvidence, /AI attempt 2: explain; error\nAI attempt detail: AI request cancelled/);
+  assert.match(app.state.copiedEvidence, /General-model calls: not reported/);
+  assert.match(app.state.copiedEvidence, /AI explanation \(unverified\):\nRespect the domain\./);
+});
+
 test('session evidence download creates a text attachment', () => {
   const app = appHarness();
   app.state.messages.push({ display: 'Derivative x^2', response: { ...result, metrics: { ai_calls: 0 } } });

@@ -29,6 +29,7 @@ The actual website at `http://127.0.0.1:8000` was exercised through the in-app b
 - The sidebar's Copy session evidence and Download session evidence actions package the current session's statuses, results, verification details, route call counts, timings, optional unverified AI text, and every numbered solution step for review.
 - A solved answer's full-solution copy preserves the same route proof and any answered AI explanations, even when a later AI retry fails.
 - Safely unresolved requests expose a Copy full attempt action that preserves the question, stop reason, verification state, and steps without inventing a result.
+- Session evidence also preserves solver errors, domain notes, and the action, status, reported model, and available failure detail for each AI attempt. Failed retries remain visible alongside earlier answered AI text and honest aggregate usage.
 - When an exact route stops safely, the scorecard reports the unresolved count separately instead of presenting it as a solve.
 - Escape cancels an active solver or optional AI request while preserving the retry path; dialog Escape behavior remains unchanged.
 - Both explanation and fallback routes display a Cancel AI request button while waiting. Cancelling aborts the browser request, preserves the solver response, reports provider usage as unknown, and ignores late AI responses. It does not promise to stop work already running at the provider.
