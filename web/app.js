@@ -522,7 +522,9 @@
       lines.push(`AI attempts: ${metrics.attempts}`);
       const aiTexts = answeredAiTexts(message).map((text) => `AI explanation (unverified):\n${text}`);
       lines.push(...aiTexts);
-      lines.push(`Steps: ${Array.isArray(response.steps) ? response.steps.length : 0}`);
+      const steps = Array.isArray(response.steps) ? response.steps : [];
+      lines.push(`Steps (${steps.length}):`);
+      steps.forEach((step, stepIndex) => lines.push(`${stepIndex + 1}. ${step}`));
       lines.push('');
     });
     return lines.join('\n').trim();

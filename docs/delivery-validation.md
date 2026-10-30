@@ -26,7 +26,7 @@ The actual website at `http://127.0.0.1:8000` was exercised through the in-app b
 - A repeated-question browser journey keeps duplicate sidebar entries addressable, and a cancelled solve returns to a ready service state with the original question available for retry.
 - The top-bar session scorecard reports solved exact routes and provider calls, excluding unresolved requests from the solved count. Syntax-help examples can be clicked to populate the composer, including a limit target.
 - Each deterministic solution section displays its bounded step count while keeping the full numbered derivation visible.
-- The sidebar's Copy session evidence and Download session evidence actions package the current session's statuses, results, verification details, route call counts, timings, optional unverified AI text, and step counts for review.
+- The sidebar's Copy session evidence and Download session evidence actions package the current session's statuses, results, verification details, route call counts, timings, optional unverified AI text, and every numbered solution step for review.
 - A solved answer's full-solution copy preserves the same route proof and any answered AI explanations, even when a later AI retry fails.
 - Safely unresolved requests expose a Copy full attempt action that preserves the question, stop reason, verification state, and steps without inventing a result.
 - When an exact route stops safely, the scorecard reports the unresolved count separately instead of presenting it as a solve.
