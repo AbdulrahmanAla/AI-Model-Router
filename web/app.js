@@ -380,6 +380,7 @@
       const button = element('button', 'chat-row', requestTitle(message.request));
       button.type = 'button';
       button.addEventListener('click', () => {
+        closeMobileSidebar();
         const target = elements.messages.querySelector(`[data-message-id="${message.id}"]`);
         if (target) target.scrollIntoView({ behavior: 'smooth', block: 'center' });
       });
