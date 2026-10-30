@@ -740,14 +740,15 @@
       if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); elements.form.requestSubmit(); }
     });
     document.addEventListener('keydown', (event) => {
-      if (shouldFocusChatSearch(event, document.activeElement && document.activeElement.tagName)) {
+      const dialogOpen = elements.help.open || elements.routeHelp.open;
+      if (!dialogOpen && shouldFocusChatSearch(event, document.activeElement && document.activeElement.tagName)) {
         event.preventDefault();
         closeMobileSidebar();
         elements.chatSearchWrap.hidden = false;
         elements.chatSearch.focus();
         return;
       }
-      if (shouldFocusComposer(event, document.activeElement && document.activeElement.tagName)) {
+      if (!dialogOpen && shouldFocusComposer(event, document.activeElement && document.activeElement.tagName)) {
         event.preventDefault();
         elements.expression.focus();
         return;
