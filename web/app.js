@@ -389,12 +389,12 @@
       if (/[\n\r]/.test(expression)) return null;
       return addImplicitMultiplication(expression);
     };
-    let match = source.match(/^(?:please\s+)?(?:(?:what\s+is|calculate|compute|find)\s+)?(?:the\s+)?(?:differentiate|derivative\s+of|find\s+the\s+derivative\s+of|d\s*\/\s*d\s*x)\s*(?:of\s+)?(.+)$/i);
+    let match = source.match(/^(?:(?:please|can\s+you|could\s+you|would\s+you)\s+)?(?:(?:what\s+is|calculate|compute|find)\s+)?(?:the\s+)?(?:differentiate|derivative\s+of|find\s+the\s+derivative\s+of|d\s*\/\s*d\s*x)\s*(?:of\s+)?(.+)$/i);
     if (match) {
       const expression = bounded(match[1]);
       if (expression) return { request: { operation: 'derivative', expression, variable: 'x', lower: null, upper: null, target: null, direction: null }, prompt: '' };
     }
-    match = source.match(/^(?:please\s+)?(?:(?:what\s+is|calculate|compute|find)\s+)?(?:integrate|integral\s+of|find\s+the\s+integral\s+of)\s*(?:of\s+)?(.+)$/i);
+    match = source.match(/^(?:(?:please|can\s+you|could\s+you|would\s+you)\s+)?(?:(?:what\s+is|calculate|compute|find)\s+)?(?:integrate|integral\s+of|find\s+the\s+integral\s+of)\s*(?:of\s+)?(.+)$/i);
     if (match) {
       const expression = bounded(match[1]);
       if (expression) return { request: { operation: 'integral', expression, variable: 'x', lower: null, upper: null, target: null, direction: null }, prompt: '' };
@@ -405,7 +405,7 @@
       const target = clean(match[2]);
       if (expression && target) return { request: { operation: 'limit', expression, variable: 'x', lower: null, upper: null, target, direction: match[3] ? (match[3].toLowerCase() === 'right' ? '+' : '-') : 'both' }, prompt: '' };
     }
-    match = source.match(/^(?:please\s+)?(?:solve(?:\s+for\s+x)?|find\s+the\s+roots?\s+of)\s*:?\s+(.+)$/i);
+    match = source.match(/^(?:(?:please|can\s+you|could\s+you|would\s+you)\s+)?(?:solve(?:\s+for\s+x)?|find\s+the\s+roots?\s+of|what\s+are\s+the\s+roots?\s+(?:to|of))\s*:?\s+(.+)$/i);
     if (match && /=/.test(match[1])) {
       const expression = bounded(match[1]);
       if (expression) return { request: { operation: 'equation', expression, variable: 'x', lower: null, upper: null, target: null, direction: null }, prompt: '' };

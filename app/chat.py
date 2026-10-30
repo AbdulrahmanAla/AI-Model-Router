@@ -14,21 +14,21 @@ _MAX_MESSAGE_LENGTH = 2000
 _MAX_EXPRESSION_LENGTH = 400
 
 _DERIVATIVE_PATTERNS = (
-    re.compile(r"^(?:what\s+is\s+|calculate\s+|compute\s+|find\s+)?(?:the\s+)?derivative\s+of\s+(.+)$", re.I),
-    re.compile(r"^(?:what\s+is\s+|calculate\s+|compute\s+|find\s+)?differentiate\s+(.+)$", re.I),
-    re.compile(r"^d\s*/\s*d\s*x\s+(.+)$", re.I),
+    re.compile(r"^(?:(?:please|can\s+you|could\s+you|would\s+you)\s+)?(?:(?:what\s+is|calculate|compute|find)\s+)?(?:the\s+)?derivative\s+of\s+(.+)$", re.I),
+    re.compile(r"^(?:(?:please|can\s+you|could\s+you|would\s+you)\s+)?(?:(?:what\s+is|calculate|compute|find)\s+)?(?:the\s+)?differentiate\s+(.+)$", re.I),
+    re.compile(r"^(?:(?:please|can\s+you|could\s+you|would\s+you)\s+)?(?:(?:what\s+is|calculate|compute|find)\s+)?d\s*/\s*d\s*x\s+(.+)$", re.I),
 )
 _INTEGRAL_PATTERNS = (
-    re.compile(r"^(?:what\s+is\s+|calculate\s+|compute\s+|find\s+)?(?:the\s+)?integral\s+of\s+(.+)$", re.I),
-    re.compile(r"^(?:what\s+is\s+|calculate\s+|compute\s+|find\s+)?integrate\s+(.+)$", re.I),
+    re.compile(r"^(?:(?:please|can\s+you|could\s+you|would\s+you)\s+)?(?:(?:what\s+is|calculate|compute|find)\s+)?(?:the\s+)?integral\s+of\s+(.+)$", re.I),
+    re.compile(r"^(?:(?:please|can\s+you|could\s+you|would\s+you)\s+)?(?:(?:what\s+is|calculate|compute|find)\s+)?integrate\s+(.+)$", re.I),
 )
 _LIMIT_PATTERN = re.compile(
     r"^(?:what\s+is\s+|calculate\s+|compute\s+|find\s+)?(?:the\s+)?limit\s+of\s+(.+?)\s+as\s+x\s+approaches\s+([^\s]+)(?:\s+from\s+(?:the\s+)?(left|right))?$",
     re.I,
 )
 _EQUATION_PATTERNS = (
-    re.compile(r"^(?:solve\s+for\s+x|solve|find\s+the\s+roots?\s+of|roots?\s+of)\s*:?\s+(.+)$", re.I),
-    re.compile(r"^(?:what\s+are\s+the\s+solutions\s+to)\s+(.+)$", re.I),
+    re.compile(r"^(?:(?:please|can\s+you|could\s+you|would\s+you)\s+)?(?:solve\s+for\s+x|solve|find\s+the\s+roots?\s+of|roots?\s+of)\s*:?\s+(.+)$", re.I),
+    re.compile(r"^(?:what\s+are\s+the\s+(?:solutions|roots?)\s+(?:to|of))\s+(.+)$", re.I),
 )
 _TOKEN_PATTERN = re.compile(r"(?:\d+(?:\.\d*)?|\.\d+|[A-Za-z_][A-Za-z_0-9]*|==|[()+\-*/^=,])")
 _FUNCTION_NAMES = {"sin", "cos", "tan", "log", "exp", "sqrt", "Abs", "asin", "acos", "atan", "sinh", "cosh", "tanh"}
@@ -99,7 +99,8 @@ def parse_freeform(message: str) -> dict[str, Any] | None:
     for pattern in _DERIVATIVE_PATTERNS:
         match = pattern.match(text)
         if match:
-            expression = re.sub(r"\s+with\s+respect\s+to\s+x$", "", match.group(1), flags=re.I)
+            expression = re.sub(r"^of\s+", "", _clean(match.group(1)), flags=re.I)
+            expression = re.sub(r"\s+with\s+respect\s+to\s+x[?!.]?$", "", expression, flags=re.I)
             return _candidate("derivative", expression)
 
     for pattern in _INTEGRAL_PATTERNS:

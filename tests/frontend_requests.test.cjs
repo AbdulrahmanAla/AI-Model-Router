@@ -65,6 +65,11 @@ test('free form math messages become validated structured requests', () => {
     operation: 'limit', expression: 'sin(x)/x', variable: 'x', lower: null, upper: null, target: '0', direction: '+'
   }));
   assert.equal(app.freeformRequest('What is the derivative of sin(x)').request.operation, 'derivative');
+  assert.equal(app.freeformRequest('Can you differentiate x^2?').request.operation, 'derivative');
+  assert.equal(app.freeformRequest('Please find the integral of x^2').request.operation, 'integral');
+  assert.equal(app.freeformRequest('Find d/dx of x^2').request.operation, 'derivative');
+  assert.equal(app.freeformRequest('What is the derivative of x^2 with respect to x?').request.operation, 'derivative');
+  assert.equal(app.freeformRequest('What are the roots of x^2 - 4 = 0?').request.operation, 'equation');
   assert.equal(app.freeformRequest('Solve x^2 - 4 = 0').request.operation, 'equation');
   assert.equal(app.freeformRequest('Solve for x: x^2 - 4 = 0').request.operation, 'equation');
 });
