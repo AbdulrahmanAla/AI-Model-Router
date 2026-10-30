@@ -16,7 +16,7 @@
     target: $('#target'), direction: $('#direction'), integralOptions: $('#integral-options'), limitOptions: $('#limit-options'),
     operationHint: $('#operation-hint'), inputHelp: $('#input-help'), send: $('#send-button'), messages: $('#messages'), welcome: $('#welcome'), sessionStats: $('#session-stats'),
     formError: $('#form-error'),
-    chatList: $('#chat-list'), chatSearchWrap: $('#chat-search-wrap'), chatSearch: $('#chat-search'), status: $('#service-status'), toast: $('#toast'),
+    chatList: $('#chat-list'), chatSearchWrap: $('#chat-search-wrap'), chatSearch: $('#chat-search'), chatSearchToggle: $('#search-toggle'), status: $('#service-status'), toast: $('#toast'),
     appShell: document.querySelector('.app-shell'), sidebar: $('#sidebar'), help: $('#help-dialog'), routeHelp: $('#route-dialog'), conversation: $('#conversation')
   };
 
@@ -759,6 +759,7 @@
   function closeChatSearch() {
     if (elements.chatSearchWrap.hidden) return;
     elements.chatSearchWrap.hidden = true;
+    elements.chatSearchToggle.setAttribute('aria-expanded', 'false');
     elements.chatSearch.value = '';
     state.chatFilter = '';
     renderChatList();
@@ -806,6 +807,7 @@
         event.preventDefault();
         closeMobileSidebar();
         elements.chatSearchWrap.hidden = false;
+        elements.chatSearchToggle.setAttribute('aria-expanded', 'true');
         elements.chatSearch.focus();
         return;
       }
@@ -843,6 +845,7 @@
     $('#search-toggle').addEventListener('click', () => {
       if (elements.chatSearchWrap.hidden) {
         elements.chatSearchWrap.hidden = false;
+        elements.chatSearchToggle.setAttribute('aria-expanded', 'true');
         elements.chatSearch.focus();
       } else closeChatSearch();
     });
