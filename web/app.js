@@ -250,9 +250,13 @@
       copyFull.type = 'button';
       copyFull.addEventListener('click', () => {
         const verification = response.verification && response.verification.detail ? `Verification (${checkLabel(response.verification.status)}): ${response.verification.detail}` : '';
+        const metrics = response.metrics || {};
+        const route = `Route: ${metrics.route || 'not reported'}`;
+        const calls = `General-model calls: ${Number.isFinite(metrics.ai_calls) ? metrics.ai_calls : 'not reported'}`;
+        const timing = `Timing: solver ${metricValue(metrics.solver_ms, 'ms')}; total ${metricValue(metrics.elapsed_ms, 'ms')}`;
         const steps = response.steps.map((step, index) => `${index + 1}. ${step}`).join('\n');
         const notes = Array.isArray(response.notes) && response.notes.length ? `Notes:\n${response.notes.join('\n')}` : '';
-        copyText([`Question: ${displayRequest(request)}`, `Result: ${response.result}`, verification, notes, `Steps:\n${steps}`].filter(Boolean).join('\n'), 'Full solution copied.');
+        copyText([`Question: ${displayRequest(request)}`, `Result: ${response.result}`, verification, route, calls, timing, notes, `Steps:\n${steps}`].filter(Boolean).join('\n'), 'Full solution copied.');
       });
       card.append(copyFull);
     }
