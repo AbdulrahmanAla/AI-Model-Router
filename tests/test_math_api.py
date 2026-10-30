@@ -372,6 +372,7 @@ def test_one_sided_limit_steps_show_the_evaluated_side() -> None:
     response = client.post("/api/solve", json={"operation": "limit", "expression": "sqrt(x)", "target": "0", "direction": "+"})
     body = response.json()
     assert response.status_code == 200
+    assert body["verification"]["status"] == "numerical_evidence"
     assert any("one-sided limit evaluates to 0" in step.lower() for step in body["steps"])
 
 
