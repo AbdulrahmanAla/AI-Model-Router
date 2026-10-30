@@ -131,6 +131,16 @@ test('answered AI text has an independent copy action', () => {
   assert.equal(app.state.copiedEvidence, 'Use the power rule here.');
 });
 
+test('AI states expose live-region semantics', () => {
+  const app = appHarness();
+  const loading = [];
+  app.renderAiResponse({ ai: { status: 'loading', message: 'Working...' } }, { append: (node) => loading.push(node) });
+  assert.equal(loading[0].attributes['aria-busy'], 'true');
+  const answered = [];
+  app.renderAiResponse({ ai: { status: 'answered', text: 'Done.' } }, { append: (node) => answered.push(node) });
+  assert.equal(answered[0].attributes['aria-live'], 'polite');
+});
+
 for (const body of [null, {}, [], { status: 'solved', result: { value: '2*x' } }, { status: 'solved', result: '2*x' }, { ...result, status: 'unresolved' }]) {
   test(`invalid solver response is retryable: ${JSON.stringify(body)}`, async () => {
     const app = appHarness();

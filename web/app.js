@@ -278,6 +278,8 @@
     const response = message.ai;
     const boxClass = response.status === 'answered' ? 'ai-response' : (response.status === 'loading' ? 'ai-response ai-loading' : 'ai-response error');
     const box = element('div', boxClass);
+    if (response.status === 'loading') box.setAttribute('aria-busy', 'true');
+    if (response.status === 'answered') box.setAttribute('aria-live', 'polite');
     const label = response.status === 'answered' ? 'AI text · unverified' : (response.status === 'loading' ? 'AI request in progress' : 'AI response unavailable');
     box.append(element('span', 'ai-label', label));
     box.append(element('span', 'ai-copy', response.status === 'answered' ? (response.text || 'The provider returned no explanation text.') : (response.message || 'The AI response is unavailable.')));
