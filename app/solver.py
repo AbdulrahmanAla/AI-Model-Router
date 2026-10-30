@@ -622,15 +622,20 @@ def _derivative_rule_step(expression: sp.Expr | None) -> str:
             derivative = sp.simplify(expression.exp * expression.base ** (expression.exp - 1) * sp.diff(expression.base, _X))
             return f"Power rule and chain rule: {_sstr(expression.exp)}*({_sstr(expression.base)})^({_sstr(expression.exp - 1)})*({_sstr(sp.diff(expression.base, _X))}) = {_sstr(derivative)}."
         return "Apply the supported power rule to the expression in x."
-    rules = {
-        sp.sin: "Use d/dx sin(u) = cos(u)*u'.",
-        sp.cos: "Use d/dx cos(u) = -sin(u)*u'.",
-        sp.tan: "Use d/dx tan(u) = sec(u)^2*u'.",
-        sp.exp: "Use d/dx exp(u) = exp(u)*u'.",
-        sp.log: "Use d/dx log(u) = u'/u.",
-        sp.Abs: "Differentiate the absolute-value branch where the real derivative is defined.",
-    }
-    return rules.get(expression.func, "Apply the supported differentiation rules with respect to x.")
+    if expression.func in (sp.sin, sp.cos, sp.tan, sp.exp, sp.log, sp.asin, sp.acos, sp.atan, sp.sinh, sp.cosh, sp.tanh):
+        argument = expression.args[0]
+        inner_derivative = sp.diff(argument, _X)
+        u = sp.Symbol("u", real=True)
+        outer_derivative = sp.diff(expression.func(u), u)
+        outer_at_argument = outer_derivative.subs(u, argument)
+        return (
+            f"Chain rule: u = {_sstr(argument)}; du/dx = {_sstr(inner_derivative)}. "
+            f"The outer derivative is {_sstr(outer_derivative)}; substitute u and multiply: "
+            f"({_sstr(outer_at_argument)})*({_sstr(inner_derivative)}) = {_sstr(sp.diff(expression, _X))}."
+        )
+    if expression.func == sp.Abs:
+        return "Differentiate the absolute-value branch where the real derivative is defined."
+    return "Apply the supported differentiation rules with respect to x."
 
 
 def _integral_rule_step(expression: sp.Expr | None) -> str:

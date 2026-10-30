@@ -23,3 +23,5 @@ Sine, cosine, and exponential integrals with a linear argument show the concrete
 Power integrals show n and n + 1, division by the new exponent, and the separate n = -1 logarithm rule. Constant integrands show multiplication by x; scalar multiples name the extracted factor and retain the remaining power or substitution steps. Worked API cases cover positive and negative powers, the logarithm exception, constants, and a scaled sine.
 
 Finite polynomial definite integrals show the termwise antiderivative, both endpoint values, and F(b) - F(a). Worked API cases cover a monomial, a linear polynomial with a negative lower endpoint, and a constant integrand. Infinite bounds and nonpolynomial integrands retain their existing route descriptions.
+
+Supported elementary function derivatives show the concrete chain rule: the inner expression u, du/dx, the outer derivative in u, and the substituted product. Public API examples cover a quadratic inner expression, a shifted logarithm, and a negative exponential slope. The independent derivative check remains numerical evidence.

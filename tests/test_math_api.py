@@ -86,6 +86,22 @@ def test_product_derivative_step_shows_the_intermediate_rule() -> None:
     assert all("\ufffd" not in step for step in body["steps"])
 
 
+def test_composite_derivatives_show_inner_and_outer_chain_factors() -> None:
+    for expression, expected, inner, inner_derivative in (
+        ("sin(x^2)", "2*x*cos(x**2)", "x**2", "2*x"),
+        ("log(3*x+1)", "3/(3*x + 1)", "3*x + 1", "3"),
+        ("exp(-2*x)", "-2*exp(-2*x)", "-2*x", "-2"),
+    ):
+        response = client.post("/api/solve", json={"operation": "derivative", "expression": expression})
+        body = response.json()
+        assert response.status_code == 200
+        assert body["status"] == "solved"
+        assert body["result"] == expected
+        assert any("Chain rule:" in step and f"u = {inner}" in step and f"du/dx = {inner_derivative}" in step and expected in step for step in body["steps"])
+        assert body["verification"]["status"] == "numerical_evidence"
+        assert body["metrics"]["ai_calls"] == 0
+
+
 def test_each_supported_operation_returns_bounded_deterministic_steps() -> None:
     requests = [
         {"operation": "derivative", "expression": "x^3"},
