@@ -175,7 +175,7 @@ test('retry recovers from an invalid response with the same question', async () 
 
 test('session export includes all explanation calls and reported tokens', () => {
   const app = appHarness();
-  app.state.messages.push({ display: 'Derivative x^2', response: { ...result, metrics: { route: 'solver', ai_calls: 0, solver_ms: 12.5, elapsed_ms: 25.75 } }, aiAttempts: [
+  app.state.messages.push({ display: 'Derivative x^2', response: { ...result, metrics: { route: 'solver', ai_calls: 0, solver_ms: 12.5, elapsed_ms: 25.75 } }, ai: { status: 'answered', text: 'Explain the power rule.' }, aiAttempts: [
     { status: 'answered', action: 'explain', metrics: { ai_calls: 1, total_tokens: 40 } },
     { status: 'answered', action: 'explain', metrics: { ai_calls: 1, total_tokens: 60 } },
   ] });
@@ -187,6 +187,7 @@ test('session export includes all explanation calls and reported tokens', () => 
   assert.match(app.state.copiedEvidence, /Solver time: 12\.50 ms/);
   assert.match(app.state.copiedEvidence, /Total solve time: 25\.75 ms/);
   assert.match(app.sessionEvidenceText(), /AI Math Assistant session evidence/);
+  assert.match(app.state.copiedEvidence, /AI explanation \(unverified\):\nExplain the power rule\./);
 });
 
 test('session evidence download creates a text attachment', () => {

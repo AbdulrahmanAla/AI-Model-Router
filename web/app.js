@@ -431,6 +431,7 @@
       lines.push(`General-model calls: ${Number.isFinite(metrics.aiCalls) ? metrics.aiCalls : 'not reported'}`);
       lines.push(`Reported tokens: ${Number.isFinite(metrics.totalTokens) ? metrics.totalTokens : 'not reported'}`);
       lines.push(`AI attempts: ${metrics.attempts}`);
+      if (message.ai && message.ai.status === 'answered' && message.ai.text) lines.push(`AI explanation (unverified):\n${message.ai.text}`);
       lines.push(`Steps: ${Array.isArray(response.steps) ? response.steps.length : 0}`);
       lines.push('');
     });
