@@ -29,7 +29,7 @@ function appHarness() {
     renderMessages = () => {};
     copyText = (value) => { state.copiedEvidence = value; };
     setServiceStatus = (kind, label) => { state.serviceLabel = label; };
-    this.app = { state, elements, solve, cancelSolve, retrySolve, requestAi, cancelAi, copySessionEvidence, downloadSessionEvidence, sessionEvidenceText, addCopyActions, exampleValues, routeLabel, shouldFocusComposer, shouldCloseSidebarOnEscape, latestMessage, renderAiResponse };
+    this.app = { state, elements, solve, cancelSolve, retrySolve, requestAi, cancelAi, copySessionEvidence, downloadSessionEvidence, sessionEvidenceText, addCopyActions, exampleValues, routeLabel, shouldFocusComposer, shouldCloseSidebarOnEscape, shouldFocusChatSearch, latestMessage, renderAiResponse };
   })();`), context);
   return { ...context.app, pending, timers, downloads };
 }
@@ -64,6 +64,13 @@ test('escape gives an open sidebar priority', () => {
   const app = appHarness();
   assert.equal(app.shouldCloseSidebarOnEscape({ key: 'Escape' }, true), true);
   assert.equal(app.shouldCloseSidebarOnEscape({ key: 'Escape' }, false), false);
+});
+
+test('command K focuses chat search outside text fields', () => {
+  const app = appHarness();
+  assert.equal(app.shouldFocusChatSearch({ key: 'k', ctrlKey: true, metaKey: false, altKey: false }, 'BODY'), true);
+  assert.equal(app.shouldFocusChatSearch({ key: 'K', ctrlKey: false, metaKey: true, altKey: false }, 'BODY'), true);
+  assert.equal(app.shouldFocusChatSearch({ key: 'k', ctrlKey: true, metaKey: false, altKey: false }, 'INPUT'), false);
 });
 
 test('latest question navigation selects the newest session message', () => {

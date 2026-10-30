@@ -696,6 +696,10 @@
     return event.key === 'Escape' && sidebarOpen;
   }
 
+  function shouldFocusChatSearch(event, activeTagName) {
+    return event.key.toLowerCase() === 'k' && (event.ctrlKey || event.metaKey) && !event.altKey && !['INPUT', 'TEXTAREA', 'SELECT'].includes(activeTagName || '');
+  }
+
   function latestMessage(messages) {
     return Array.isArray(messages) && messages.length ? messages[messages.length - 1] : null;
   }
@@ -734,6 +738,13 @@
       if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); elements.form.requestSubmit(); }
     });
     document.addEventListener('keydown', (event) => {
+      if (shouldFocusChatSearch(event, document.activeElement && document.activeElement.tagName)) {
+        event.preventDefault();
+        closeMobileSidebar();
+        elements.chatSearchWrap.hidden = false;
+        elements.chatSearch.focus();
+        return;
+      }
       if (shouldFocusComposer(event, document.activeElement && document.activeElement.tagName)) {
         event.preventDefault();
         elements.expression.focus();
