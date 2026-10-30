@@ -95,6 +95,9 @@ test('restoring a square-root example keeps the radicand inside the root', () =>
   assert.equal(app.expressionToLatex('sqrt(x)'), '\\sqrt x');
   app.setFieldValue('expression', 'sqrt(x)');
   assert.equal(app.buildRequest().expression, 'sqrt(x)');
+  assert.equal(app.expressionToLatex('sqrt(x+1)'), '\\sqrt{\\left(x+1\\right)}');
+  app.setFieldValue('expression', 'sqrt(x+1)');
+  assert.equal(app.buildRequest().expression, 'sqrt((x+1))');
 });
 
 test('visual editor request construction includes operation context while typed fallback remains usable', () => {

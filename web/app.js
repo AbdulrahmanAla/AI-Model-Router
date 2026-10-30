@@ -213,7 +213,10 @@
           if (identifier === 'sqrt' && source[afterIdentifier] === '(') {
             const radicand = convert(afterIdentifier + 1, true);
             if (radicand.end > afterIdentifier + 1 && source[radicand.end - 1] === ')') {
-              output += `\\sqrt ${radicand.output}`;
+              const simpleRadicand = /^(?:[A-Za-z_][A-Za-z_0-9]*|\d+(?:\.\d+)?)$/.test(radicand.output);
+              output += simpleRadicand
+                ? `\\sqrt ${radicand.output}`
+                : `\\sqrt{\\left(${radicand.output}\\right)}`;
               index = radicand.end;
               continue;
             }
