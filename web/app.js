@@ -724,12 +724,25 @@
     return event.key === 'Escape' && sidebarOpen;
   }
 
+  function shouldCloseChatSearchOnEscape(event, searchOpen) {
+    return event.key === 'Escape' && searchOpen;
+  }
+
   function shouldFocusChatSearch(event, activeTagName) {
     return event.key.toLowerCase() === 'k' && (event.ctrlKey || event.metaKey) && !event.altKey && !['INPUT', 'TEXTAREA', 'SELECT'].includes(activeTagName || '');
   }
 
   function latestMessage(messages) {
     return Array.isArray(messages) && messages.length ? messages[messages.length - 1] : null;
+  }
+
+  function closeChatSearch() {
+    if (elements.chatSearchWrap.hidden) return;
+    elements.chatSearchWrap.hidden = true;
+    elements.chatSearch.value = '';
+    state.chatFilter = '';
+    renderChatList();
+    $('#search-toggle').focus();
   }
 
   function scrollToLatest() {
@@ -787,6 +800,10 @@
         closeMobileSidebar();
         return;
       }
+      if (shouldCloseChatSearchOnEscape(event, !elements.chatSearchWrap.hidden)) {
+        closeChatSearch();
+        return;
+      }
       const solving = state.messages.find((message) => message.loading);
       if (solving) cancelSolve(solving);
       const aiRequest = state.messages.find((message) => message.aiLoading);
@@ -803,7 +820,12 @@
     $('#close-route').addEventListener('click', () => elements.routeHelp.close());
     $('#close-sidebar').addEventListener('click', () => { elements.sidebar.classList.remove('open'); elements.appShell.classList.add('sidebar-collapsed'); });
     $('#open-sidebar').addEventListener('click', () => { elements.appShell.classList.remove('sidebar-collapsed'); elements.sidebar.classList.add('open'); });
-    $('#search-toggle').addEventListener('click', () => { elements.chatSearchWrap.hidden = !elements.chatSearchWrap.hidden; if (!elements.chatSearchWrap.hidden) elements.chatSearch.focus(); });
+    $('#search-toggle').addEventListener('click', () => {
+      if (elements.chatSearchWrap.hidden) {
+        elements.chatSearchWrap.hidden = false;
+        elements.chatSearch.focus();
+      } else closeChatSearch();
+    });
     elements.chatSearch.addEventListener('input', () => { state.chatFilter = elements.chatSearch.value; renderChatList(); });
     document.querySelectorAll('.starter-prompt').forEach((button) => {
       button.addEventListener('click', () => applyExample(button));

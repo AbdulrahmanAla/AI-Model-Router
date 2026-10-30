@@ -29,7 +29,7 @@ function appHarness() {
     renderMessages = () => {};
     copyText = (value) => { state.copiedEvidence = value; };
     setServiceStatus = (kind, label) => { state.serviceLabel = label; };
-    this.app = { state, elements, solve, cancelSolve, retrySolve, requestAi, cancelAi, copySessionEvidence, downloadSessionEvidence, sessionEvidenceText, addCopyActions, exampleValues, routeLabel, shouldFocusComposer, shouldCloseSidebarOnEscape, shouldFocusChatSearch, latestMessage, renderAiResponse, renderChatList };
+    this.app = { state, elements, solve, cancelSolve, retrySolve, requestAi, cancelAi, copySessionEvidence, downloadSessionEvidence, sessionEvidenceText, addCopyActions, exampleValues, routeLabel, shouldFocusComposer, shouldCloseSidebarOnEscape, shouldCloseChatSearchOnEscape, shouldFocusChatSearch, latestMessage, renderAiResponse, renderChatList, closeChatSearch };
   })();`), context);
   return { ...context.app, pending, timers, downloads };
 }
@@ -64,6 +64,13 @@ test('escape gives an open sidebar priority', () => {
   const app = appHarness();
   assert.equal(app.shouldCloseSidebarOnEscape({ key: 'Escape' }, true), true);
   assert.equal(app.shouldCloseSidebarOnEscape({ key: 'Escape' }, false), false);
+});
+
+test('escape closes chat search before request cancellation', () => {
+  const app = appHarness();
+  assert.equal(app.shouldCloseChatSearchOnEscape({ key: 'Escape' }, true), true);
+  assert.equal(app.shouldCloseChatSearchOnEscape({ key: 'Escape' }, false), false);
+  assert.equal(app.shouldCloseChatSearchOnEscape({ key: 'Enter' }, true), false);
 });
 
 test('command K focuses chat search outside text fields', () => {
