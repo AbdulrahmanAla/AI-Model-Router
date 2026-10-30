@@ -713,6 +713,7 @@ def _solved_steps(
                 steps.append(f"Left-hand limit = {_sstr(left_limit)}; right-hand limit = {_sstr(right_limit)}.")
         else:
             steps.append(f"Compute the one-sided limit from {direction_text}.")
+            steps.append(f"The one-sided limit evaluates to {result}.")
         steps.extend([f"Simplify the limit to {result}.", _verification_step(verification)])
         return _bounded_steps(steps)
 
