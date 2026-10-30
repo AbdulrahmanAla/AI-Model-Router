@@ -254,6 +254,17 @@ def test_incomplete_provider_choice_is_rejected(monkeypatch) -> None:
     assert result.json()["metrics"]["ai_calls"] == 1
 
 
+def test_oversized_explanation_is_rejected_at_the_provider_boundary(monkeypatch) -> None:
+    configure_provider(monkeypatch, lambda request: response("x" * 12001))
+    result = client.post(
+        "/api/ai",
+        json={"action": "explain", "request": {"operation": "derivative", "expression": "x^2"}},
+    )
+
+    assert result.status_code == 502
+    assert result.json()["metrics"]["ai_calls"] == 1
+
+
 def test_truncated_provider_choice_is_rejected(monkeypatch) -> None:
     configure_provider(monkeypatch, lambda request: response('{"status":"solved"', finish_reason="length"))
     result = client.post(
