@@ -42,6 +42,21 @@ def test_solution_steps_name_the_integral_rule_family() -> None:
     assert any("integrate 2*x" in step.lower() and "integrate cos(x)" in step.lower() for step in body["steps"])
 
 
+def test_integration_by_parts_shows_the_remaining_integral() -> None:
+    response = client.post('/api/solve', json={'operation': 'integral', 'expression': 'x*exp(x)'})
+    assert response.status_code == 200
+    body = response.json()
+    assert body['status'] == 'solved'
+    steps = '\n'.join(body['steps'])
+    assert 'Integration by parts' in steps
+    assert 'u = x; du/dx = 1' in steps
+    assert 'v = exp(x)' in steps
+    assert 'integral v*du' in steps
+    assert 'Remaining integral: integral exp(x) dx = exp(x)' in steps
+    assert body['verification']['status'] == 'symbolic_check'
+    assert body['metrics']['ai_calls'] == 0
+
+
 def test_linear_argument_integrals_show_substitution_and_scale() -> None:
     for expression, expected, substitution, slope in (
         ("sin(2*x+1)", "-cos(2*x + 1)/2", "2*x + 1", "2"),
@@ -56,6 +71,36 @@ def test_linear_argument_integrals_show_substitution_and_scale() -> None:
         assert any(f"u = {substitution}" in step and f"du = ({slope})*dx" in step and expected in step for step in body["steps"])
         assert body["verification"]["status"] == "symbolic_check"
         assert body["metrics"]["ai_calls"] == 0
+
+
+def test_integration_by_parts_preserves_trig_scaling_and_negative_slopes() -> None:
+    for expression, choice, primitive, remaining in (
+        ('3*x*cos(2*x+1)', 'u = 3*x; du/dx = 3', 'v = sin(2*x + 1)/2', 'integral 3*sin(2*x + 1)/2 dx = -3*cos(2*x + 1)/4'),
+        ('x*sin(x)', 'u = x; du/dx = 1', 'v = -cos(x)', 'integral -cos(x) dx = -sin(x)'),
+        ('(x+1)*exp(-2*x)', 'u = x + 1; du/dx = 1', 'v = -exp(-2*x)/2', 'integral -exp(-2*x)/2 dx = exp(-2*x)/4'),
+    ):
+        response = client.post('/api/solve', json={'operation': 'integral', 'expression': expression})
+        assert response.status_code == 200
+        body = response.json()
+        assert body['status'] == 'solved'
+        steps = '\n'.join(body['steps'])
+        assert choice in steps
+        assert primitive in steps
+        assert remaining in steps
+        assert body['steps'][-1].startswith('Verification')
+        assert len(body['steps']) <= 8
+        assert all(len(step) <= 500 for step in body['steps'])
+        assert body['verification']['status'] == 'symbolic_check'
+        assert body['metrics']['ai_calls'] == 0
+
+
+def test_nonlinear_inner_integral_does_not_claim_linear_parts_shortcut() -> None:
+    response = client.post('/api/solve', json={'operation': 'integral', 'expression': 'x*exp(x^2)'})
+    body = response.json()
+    assert response.status_code == 200
+    assert body['status'] == 'solved'
+    assert body['result'] == 'exp(x**2)/2'
+    assert not any('Integration by parts:' in step for step in body['steps'])
 
 
 def test_integrals_show_constant_and_power_rule_arithmetic() -> None:

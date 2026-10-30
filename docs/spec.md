@@ -53,6 +53,7 @@ Unresolved responses have a null result and latex, a helpful note, and `verifica
 
 ## Math checks and boundaries
 
+- Worked integral steps include a complete integration-by-parts calculation for a linear polynomial factor times `sin`, `cos`, or `exp` with a nonzero linear inner slope. Show the choices of `u` and `dv`, the scaled primitive `v`, and the remaining integral. This is a bounded educational derivation, not a trace of SymPy internals or a claim to cover every integral.
 - Derivatives: independently compare numerical derivative estimates against the symbolic result at suitable real finite points. Label numerical evidence, never a proof or differentiation-back check. Domain failures do not become passed checks.
 - Antiderivatives: differentiate the returned expression and simplify the residual against the input. Explain domain restrictions and the arbitrary constant. Use `log(Abs(...))` for real logarithmic branches and state the excluded zeros, or return unresolved rather than a misleading complex branch.
 - Definite integrals: reject interior singularities and uncertain real-domain intervals. Do not present a Cauchy principal value as an ordinary integral. Independently compare numerical quadrature where safe. Mark absence of independent evidence honestly.

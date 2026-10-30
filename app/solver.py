@@ -716,6 +716,42 @@ def _integral_rule_step(expression: sp.Expr | None) -> str:
     return rules.get(expression.func, "Find an antiderivative with respect to x.")
 
 
+def _integration_by_parts_steps(expression: sp.Expr | None) -> list[str]:
+    """Show one complete parts calculation for a linear factor times sin/cos/exp."""
+    if expression is None or not expression.is_Mul:
+        return []
+    for index, factor in enumerate(expression.args):
+        if factor.func not in (sp.sin, sp.cos, sp.exp):
+            continue
+        u = sp.Mul(*(expression.args[:index] + expression.args[index + 1:]))
+        if not u.is_polynomial(_X) or sp.degree(u, _X) != 1:
+            continue
+        argument = factor.args[0]
+        slope = sp.diff(argument, _X)
+        if slope.has(_X) or slope.is_zero is not False:
+            continue
+        du = sp.diff(u, _X)
+        if factor.func == sp.sin:
+            v = -sp.cos(argument) / slope
+            second_primitive = -sp.sin(argument) / slope**2
+        elif factor.func == sp.cos:
+            v = sp.sin(argument) / slope
+            second_primitive = -sp.cos(argument) / slope**2
+        else:
+            v = factor / slope
+            second_primitive = factor / slope**2
+        remaining = du * v
+        remaining_primitive = du * second_primitive
+        steps = [
+            f"Integration by parts: choose u = {_sstr(u)}; du/dx = {_sstr(du)}; dv = ({_sstr(factor)})*dx.",
+            f"Integrate dv to get v = {_sstr(v)}. The inner argument is {_sstr(argument)} with derivative {_sstr(slope)}; divide by this constant when integrating.",
+            f"Apply integral u*dv = u*v - integral v*du: ({_sstr(u)})*({_sstr(v)}) - integral ({_sstr(remaining)}) dx.",
+            f"Remaining integral: integral {_sstr(remaining)} dx = {_sstr(remaining_primitive)}. Subtract it from u*v to get {_sstr(u*v - remaining_primitive)}.",
+        ]
+        return steps if all(len(step) <= 500 for step in steps) else []
+    return []
+
+
 def _derivative_domain_note(tree: ast.AST) -> str | None:
     branch_functions = {"sqrt", "log", "tan", "asin", "acos", "Abs"}
     for node in ast.walk(tree):
@@ -754,7 +790,8 @@ def _solved_steps(
     if operation == "integral":
         steps = [f"Read the integrand as {source}."]
         if lower is None and upper is None:
-            steps.append(_integral_rule_step(expression))
+            parts_steps = _integration_by_parts_steps(expression)
+            steps.extend(parts_steps or [_integral_rule_step(expression)])
             if branch_sensitive:
                 steps.append("Use the real logarithmic branch log(Abs(...)) and keep its nonzero-domain restriction.")
             steps.append(f"Display the antiderivative as {result}; the arbitrary constant C is omitted.")

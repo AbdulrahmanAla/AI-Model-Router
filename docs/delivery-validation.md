@@ -142,3 +142,13 @@ The live page was reloaded from the updated server and showed the MathQuill edit
 ![MathQuill visual equation editor](evidence/mathquill-editor.png)
 
 MathQuill supports visual fractions, roots, exponents, function names, and symbols. Integral and derivative workflows continue to use the existing operation selector and bound fields. The editor does not claim support for new mathematical operations, implicit variables, or arbitrary LaTeX.
+
+## Integration-by-parts worked solutions
+
+The exact route now shows a complete parts calculation for a linear polynomial multiplied by a sine, cosine, or exponential with a nonzero linear inner slope. Steps show `u`, `du/dx`, `dv`, the scaled primitive `v`, the parts identity, and the remaining integral before simplifying the authoritative answer. Unsupported patterns retain the existing honest generic route. No model call generates these steps, and no additional symbolic integration is introduced for the derivation.
+
+Public API regressions cover `x*exp(x)`, `x*sin(x)`, `3*x*cos(2*x+1)`, and `(x+1)*exp(-2*x)`, plus a nonlinear inner argument that must not claim the shortcut. The local gate passed 85 Python tests, 92 frontend tests, JavaScript syntax checks, and the production-style HTTP smoke with all 40 frozen evaluation cases and zero-call routing. The known upstream Starlette/httpx deprecation warning remains.
+
+The actual browser journey typed `x*exp(x)` into the visual editor, selected Integral, submitted, and displayed `(x - 1)*exp(x)` with seven numbered steps, a symbolic residual check, and zero model calls.
+
+![Worked integration by parts in the website](evidence/integration-by-parts.png)
