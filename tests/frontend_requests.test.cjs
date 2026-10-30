@@ -3,6 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const vm = require('node:vm');
 const path = require('node:path');
+const indexHtml = fs.readFileSync(path.join(__dirname, '../web/index.html'), 'utf8');
 
 function appHarness() {
   const pending = [];
@@ -57,6 +58,12 @@ test('exact results expose a spoken result label', () => {
   const app = appHarness();
   assert.equal(app.resultAriaLabel(result), 'Exact result: 2*x');
   assert.equal(app.resultAriaLabel({ result: null }), 'Exact result unavailable');
+});
+
+test('navigation and operation controls keep their accessible relationships', () => {
+  assert.match(indexHtml, /id="search-toggle"[^>]*aria-controls="chat-search-wrap"[^>]*aria-expanded="false"/);
+  assert.match(indexHtml, /id="open-sidebar"[^>]*aria-controls="sidebar"[^>]*aria-expanded="false"/);
+  assert.match(indexHtml, /id="operation"[^>]*aria-describedby="operation-hint"/);
 });
 
 for (const body of [null, {}, { status: 'ok' }, { status: 'ok', ai_configured: 'false' }]) {
