@@ -64,6 +64,7 @@ test('free form math messages become validated structured requests', () => {
   assert.equal(JSON.stringify(app.freeformRequest('Find the limit of sin(x)/x as x approaches 0 from the right').request), JSON.stringify({
     operation: 'limit', expression: 'sin(x)/x', variable: 'x', lower: null, upper: null, target: '0', direction: '+'
   }));
+  assert.equal(app.freeformRequest('What is the derivative of sin(x)').request.operation, 'derivative');
   assert.equal(app.freeformRequest('Solve x^2 - 4 = 0').request.operation, 'equation');
 });
 
@@ -86,6 +87,7 @@ test('submitting a general chat prompt does not dereference a missing request', 
   app.submit({ preventDefault() {} });
   assert.equal(app.state.solving, true);
   assert.equal(app.elements.send.disabled, true);
+  assert.equal(app.elements.chatInput.value, '');
 });
 
 function descendants(node) {

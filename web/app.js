@@ -389,12 +389,12 @@
       if (/[\n\r]/.test(expression)) return null;
       return expression;
     };
-    let match = source.match(/^(?:please\s+)?(?:differentiate|derivative\s+of|find\s+the\s+derivative\s+of|d\s*\/\s*d\s*x)\s*(?:of\s+)?(.+)$/i);
+    let match = source.match(/^(?:please\s+)?(?:(?:what\s+is|calculate|compute|find)\s+)?(?:the\s+)?(?:differentiate|derivative\s+of|find\s+the\s+derivative\s+of|d\s*\/\s*d\s*x)\s*(?:of\s+)?(.+)$/i);
     if (match) {
       const expression = bounded(match[1]);
       if (expression) return { request: { operation: 'derivative', expression, variable: 'x', lower: null, upper: null, target: null, direction: null }, prompt: '' };
     }
-    match = source.match(/^(?:please\s+)?(?:integrate|integral\s+of|find\s+the\s+integral\s+of)\s*(?:of\s+)?(.+)$/i);
+    match = source.match(/^(?:please\s+)?(?:(?:what\s+is|calculate|compute|find)\s+)?(?:integrate|integral\s+of|find\s+the\s+integral\s+of)\s*(?:of\s+)?(.+)$/i);
     if (match) {
       const expression = bounded(match[1]);
       if (expression) return { request: { operation: 'integral', expression, variable: 'x', lower: null, upper: null, target: null, direction: null }, prompt: '' };
@@ -1274,6 +1274,7 @@
     const message = { id: String(state.nextMessageId++), generation: state.solveGeneration, request: structuredRequest, prompt: payload.prompt || null, routeMode: payload.mode, display, loading: true };
     state.selectedMessageId = message.id;
     state.messages.push(message);
+    if (elements.chatInput) elements.chatInput.value = '';
     renderMessages(true, message.id);
     if (payload.mode === 'exact') solve(request, message);
     else route(payload, message);
