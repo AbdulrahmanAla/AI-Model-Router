@@ -33,7 +33,6 @@ The actual website at `http://127.0.0.1:8000` was exercised through the in-app b
 - Escape cancels an active solver or optional AI request while preserving the retry path; dialog Escape behavior remains unchanged.
 - Optional AI loading and answered states expose busy and polite live-region semantics for assistive technology.
 - The composer hint documents Enter to solve, Shift+Enter for a new line, and Escape to cancel an active request.
-- Completed questions persist locally in this browser with a bounded 20-message history, so a refresh preserves the judge-visible conversation without storing provider credentials or in-flight requests. New chat clears the persisted session.
 
 The wide and narrow viewport controls were set to 1366 by 900 and 390 by 844 respectively. Browser zoom and screenshot pixel scaling can make captured pixel dimensions differ from those requested values.
 

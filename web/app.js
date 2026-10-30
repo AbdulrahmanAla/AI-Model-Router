@@ -4,8 +4,6 @@
   const $ = (selector) => document.querySelector(selector);
   const state = { messages: [], solving: false, health: null, chatFilter: '', nextMessageId: 1, solveGeneration: 0, activeSolve: null, selectedMessageId: null };
   const MAX_AI_TEXT_LENGTH = 12000;
-  const SESSION_STORAGE_KEY = 'ai-math-assistant.session.v1';
-  const MAX_PERSISTED_MESSAGES = 20;
   const operationCopy = {
     derivative: { hint: 'Find d/dx of an expression', help: 'Use explicit multiplication, such as 2*x.' },
     integral: { hint: 'Find an antiderivative or a definite integral', help: 'Leave bounds blank for an antiderivative, or provide both.' },
@@ -25,76 +23,6 @@
   function setText(node, value) {
     node.textContent = value === null || value === undefined ? '' : String(value);
     return node;
-  }
-
-  function sessionStorage() {
-    try {
-      return window.localStorage || null;
-    } catch (error) {
-      return null;
-    }
-  }
-
-  function persistableMessage(message) {
-    if (!message || !message.request || (!message.response && !message.error)) return null;
-    const persisted = {
-      id: String(message.id || ''),
-      request: message.request,
-      display: String(message.display || ''),
-      response: message.response || null,
-      error: message.error || null,
-      ai: message.ai && message.ai.status !== 'loading' ? message.ai : null,
-      aiAttempts: Array.isArray(message.aiAttempts)
-        ? message.aiAttempts.filter((attempt) => attempt && attempt.status !== 'loading')
-        : []
-    };
-    return persisted;
-  }
-
-  function persistSession() {
-    const storage = sessionStorage();
-    if (!storage) return;
-    try {
-      const messages = state.messages.map(persistableMessage).filter(Boolean).slice(-MAX_PERSISTED_MESSAGES);
-      storage.setItem(SESSION_STORAGE_KEY, JSON.stringify({ version: 1, messages }));
-    } catch (error) {
-      // Storage can be disabled or full. The live session remains usable.
-    }
-  }
-
-  function restoreSession() {
-    const storage = sessionStorage();
-    if (!storage) return;
-    try {
-      const raw = storage.getItem(SESSION_STORAGE_KEY);
-      if (!raw) return;
-      const parsed = JSON.parse(raw);
-      if (!parsed || parsed.version !== 1 || !Array.isArray(parsed.messages)) return;
-      const restored = parsed.messages
-        .map((message) => {
-          if (!message || !message.request || typeof message.request.operation !== 'string' || typeof message.request.expression !== 'string') return null;
-          if (!message.response && !message.error) return null;
-          return {
-            id: String(message.id || ''),
-            request: message.request,
-            display: String(message.display || displayRequest(message.request)),
-            response: message.response || null,
-            error: message.error || null,
-            ai: message.ai && message.ai.status !== 'loading' ? message.ai : null,
-            aiAttempts: Array.isArray(message.aiAttempts) ? message.aiAttempts.filter((attempt) => attempt && attempt.status !== 'loading') : []
-          };
-        })
-        .filter(Boolean)
-        .slice(-MAX_PERSISTED_MESSAGES);
-      state.messages = restored;
-      state.nextMessageId = restored.reduce((highest, message) => {
-        const numeric = Number.parseInt(message.id, 10);
-        return Number.isFinite(numeric) ? Math.max(highest, numeric + 1) : highest;
-      }, 1);
-      state.selectedMessageId = restored.length ? restored[restored.length - 1].id : null;
-    } catch (error) {
-      try { storage.removeItem(SESSION_STORAGE_KEY); } catch (ignored) { /* keep the live session usable */ }
-    }
   }
 
   function element(tag, className, text) {
@@ -451,7 +379,6 @@
   }
 
   function renderMessages() {
-    persistSession();
     elements.messages.replaceChildren();
     elements.welcome.hidden = state.messages.length > 0;
     state.messages.forEach((message) => {
@@ -883,7 +810,5 @@
 
   wireEvents();
   updateOperationFields();
-  restoreSession();
-  renderMessages();
   checkHealth();
 })();

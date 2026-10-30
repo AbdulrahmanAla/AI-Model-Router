@@ -8,7 +8,6 @@ function appHarness() {
   const pending = [];
   const timers = new Map();
   const downloads = [];
-  const storage = new Map();
   let nextTimer = 0;
   const source = fs.readFileSync(path.join(__dirname, '../web/app.js'), 'utf8');
   const context = vm.createContext({
@@ -21,13 +20,7 @@ function appHarness() {
     window: {
       setTimeout: (callback) => { timers.set(++nextTimer, callback); return nextTimer; },
       clearTimeout: (id) => timers.delete(id),
-      localStorage: {
-        getItem: (key) => storage.has(key) ? storage.get(key) : null,
-        setItem: (key, value) => storage.set(key, String(value)),
-        removeItem: (key) => storage.delete(key),
-      },
     },
-    storage,
     Blob: class Blob { constructor(parts, options) { this.parts = parts; this.options = options; } },
     URL: { createObjectURL: () => 'blob:test', revokeObjectURL: () => {} },
     fetch: (url, options) => new Promise((resolve, reject) => pending.push({ resolve, reject, signal: options.signal })),
@@ -36,7 +29,7 @@ function appHarness() {
     renderMessages = () => {};
     copyText = (value) => { state.copiedEvidence = value; };
     setServiceStatus = (kind, label) => { state.serviceLabel = label; };
-    this.app = { state, elements, solve, cancelSolve, retrySolve, requestAi, cancelAi, copySessionEvidence, downloadSessionEvidence, sessionEvidenceText, addCopyActions, exampleValues, routeLabel, shouldFocusComposer, shouldCloseSidebarOnEscape, shouldFocusChatSearch, latestMessage, renderAiResponse, renderChatList, persistSession, restoreSession, storage };
+    this.app = { state, elements, solve, cancelSolve, retrySolve, requestAi, cancelAi, copySessionEvidence, downloadSessionEvidence, sessionEvidenceText, addCopyActions, exampleValues, routeLabel, shouldFocusComposer, shouldCloseSidebarOnEscape, shouldFocusChatSearch, latestMessage, renderAiResponse, renderChatList };
   })();`), context);
   return { ...context.app, pending, timers, downloads };
 }
@@ -84,27 +77,6 @@ test('latest question navigation selects the newest session message', () => {
   const app = appHarness();
   assert.equal(app.latestMessage([]), null);
   assert.equal(app.latestMessage([{ id: '1' }, { id: '2' }]).id, '2');
-});
-
-test('session persistence restores completed work without in-flight state', () => {
-  const app = appHarness();
-  app.state.messages = [{ id: '4', request, display: 'Derivative x^2', response: { ...result }, loading: false, controller: {}, aiLoading: true }];
-  app.persistSession();
-  app.state.messages = [];
-  app.restoreSession();
-  assert.equal(app.state.messages.length, 1);
-  assert.equal(app.state.messages[0].response.result, '2*x');
-  assert.equal(app.state.messages[0].loading, undefined);
-  assert.equal(app.state.messages[0].controller, undefined);
-  assert.equal(app.state.selectedMessageId, '4');
-});
-
-test('malformed session storage is discarded safely', () => {
-  const app = appHarness();
-  app.storage.set('ai-math-assistant.session.v1', '{not-json');
-  app.restoreSession();
-  assert.equal(app.state.messages.length, 0);
-  assert.equal(app.storage.has('ai-math-assistant.session.v1'), false);
 });
 
 test('selected chat row exposes aria-current', () => {
