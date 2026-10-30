@@ -17,7 +17,7 @@ function appHarness() {
       createTextNode: (text) => ({ textContent: text }),
       querySelector: () => ({ dataset: {}, style: {}, scrollHeight: 42, hidden: true, children: [], attributes: {}, focus() { this.focused = true; }, removeAttribute(name) { delete this.attributes[name]; }, setAttribute(name, value) { this.attributes[name] = value; }, classList: { add() {}, remove() {}, contains() { return false; } }, replaceChildren(...nodes) { this.children = nodes; }, append(...nodes) { this.children.push(...nodes); } }),
       body: { append(node) { downloads.push(node); } },
-      createElement: () => ({ style: {}, children: [], attributes: {}, appendChild(node) { this.children.push(node); return node; }, append(...nodes) { this.children.push(...nodes); }, setAttribute(name, value) { this.attributes[name] = value; }, addEventListener(event, callback) { this[event] = callback; }, click() { this.clicked = true; }, remove() { this.removed = true; } }),
+      createElement: () => ({ style: {}, dataset: {}, children: [], attributes: {}, appendChild(node) { this.children.push(node); return node; }, append(...nodes) { this.children.push(...nodes); }, setAttribute(name, value) { this.attributes[name] = value; }, addEventListener(event, callback) { this[event] = callback; }, click() { this.clicked = true; }, remove() { this.removed = true; } }),
     },
     window: {
       setTimeout: (callback) => { timers.set(++nextTimer, callback); return nextTimer; },
@@ -28,10 +28,11 @@ function appHarness() {
     fetch: (url, options) => new Promise((resolve, reject) => pending.push({ resolve, reject, signal: options.signal })),
   });
   vm.runInContext(source.replace(/  wireEvents\(\);[\s\S]*$/, `
+    const renderConversation = renderMessages;
     renderMessages = () => {};
     copyText = (value) => { state.copiedEvidence = value; };
     setServiceStatus = (kind, label) => { state.serviceLabel = label; };
-    this.app = { state, elements, solve, cancelSolve, retrySolve, requestAi, cancelAi, copySessionEvidence, downloadSessionEvidence, sessionEvidenceText, addCopyActions, exampleValues, routeLabel, resultAriaLabel, shouldFocusComposer, shouldCloseSidebarOnEscape, shouldCloseChatSearchOnEscape, shouldFocusChatSearch, latestMessage, renderAiResponse, renderChatList, closeChatSearch, openChatSearch, fetchWithTimeout, submit, clearFormError, renderAssistant };
+    this.app = { state, elements, solve, cancelSolve, retrySolve, requestAi, cancelAi, copySessionEvidence, downloadSessionEvidence, sessionEvidenceText, addCopyActions, exampleValues, routeLabel, resultAriaLabel, shouldFocusComposer, shouldCloseSidebarOnEscape, shouldCloseChatSearchOnEscape, shouldFocusChatSearch, latestMessage, renderAiResponse, renderChatList, closeChatSearch, openChatSearch, fetchWithTimeout, submit, clearFormError, renderAssistant, renderConversation };
   })();`), context);
   return { ...context.app, pending, timers, downloads };
 }
@@ -39,6 +40,23 @@ function appHarness() {
 const request = { operation: 'derivative', expression: 'x^2' };
 const result = { status: 'solved', operation: 'derivative', expression: 'x^2', request: { ...request, variable: 'x', lower: null, upper: null, target: null, direction: null }, result: '2*x', verification: { status: 'symbolic_check', detail: 'Checked.' }, steps: ['Read the function.', 'Apply the power rule.'] };
 const response = (body) => ({ ok: true, json: async () => body });
+
+for (const [position, force, expected] of [[200, false, 200], [580, false, 1400], [200, true, 1400]]) {
+  test(`conversation render preserves reading position ${position}, force latest ${force}`, () => {
+    const app = appHarness();
+    Object.assign(app.elements.conversation, { scrollTop: position, scrollHeight: 1000, clientHeight: 400 });
+    app.elements.messages.replaceChildren = function () {
+      this.children = [];
+      app.elements.conversation.scrollTop = 0;
+      app.elements.conversation.scrollHeight = 1400;
+    };
+    app.state.messages.push({ id: '1', request, display: 'Derivative x^2', response: result });
+    app.renderConversation(force);
+    assert.equal(app.elements.conversation.scrollTop, expected);
+    assert.equal(app.elements.messages.children.length, 1);
+    assert.equal(app.elements.welcome.hidden, true);
+  });
+}
 
 test('solution and route disclosures retain each message reading state across AI updates', async () => {
   const app = appHarness();

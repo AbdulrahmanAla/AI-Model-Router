@@ -401,7 +401,10 @@
     return row;
   }
 
-  function renderMessages() {
+  function renderMessages(scrollToLatest = false) {
+    const previousScrollTop = elements.conversation.scrollTop;
+    const followLatest = scrollToLatest || elements.conversation.scrollHeight
+      - elements.conversation.clientHeight - previousScrollTop <= 48;
     elements.messages.replaceChildren();
     elements.welcome.hidden = state.messages.length > 0;
     state.messages.forEach((message) => {
@@ -414,7 +417,7 @@
     });
     renderChatList();
     renderSessionStats();
-    window.requestAnimationFrame(() => { elements.conversation.scrollTop = elements.conversation.scrollHeight; });
+    elements.conversation.scrollTop = followLatest ? elements.conversation.scrollHeight : previousScrollTop;
   }
 
   function renderChatList() {
@@ -706,7 +709,7 @@
     const message = { id: String(state.nextMessageId++), generation: state.solveGeneration, request, display: displayRequest(request), loading: true };
     state.selectedMessageId = message.id;
     state.messages.push(message);
-    renderMessages();
+    renderMessages(true);
     solve(request, message);
   }
 
