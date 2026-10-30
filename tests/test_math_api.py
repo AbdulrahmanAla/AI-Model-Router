@@ -46,6 +46,7 @@ def test_product_derivative_step_shows_the_intermediate_rule() -> None:
     body = response.json()
     assert response.status_code == 200
     assert any("product rule:" in step.lower() and "sin(x)" in step for step in body["steps"])
+    assert all("\ufffd" not in step for step in body["steps"])
 
 
 def test_each_supported_operation_returns_bounded_deterministic_steps() -> None:
