@@ -6,6 +6,7 @@
   <meta name="description" content="AI Math Assistant computes supported calculus and algebra questions with a local exact solver.">
   <title>AI Math Assistant</title>
   <link rel="stylesheet" href="/web/styles.css">
+  <link rel="stylesheet" href="/web/assets/mathquill.css">
 </head>
 <body>
   <div class="app-shell">
@@ -68,13 +69,13 @@
           </div>
           <form id="solve-form" novalidate>
             <div class="input-grid">
-          <label class="field expression-field" for="expression"><span>Expression</span><textarea id="expression" rows="1" required spellcheck="false" placeholder="For example: x^3*sin(x)" aria-describedby="input-help" aria-keyshortcuts="Enter Shift+Enter Escape /"></textarea></label>
+              <label class="field expression-field" for="expression"><span>Expression</span><span id="expression" class="math-field" role="textbox" aria-label="Expression" tabindex="0" data-placeholder="For example: x^3 sin(x)" aria-describedby="input-help" aria-keyshortcuts="Enter Shift+Enter Escape /"></span><textarea id="expression-typed" class="typed-math-field" rows="1" hidden spellcheck="false" placeholder="For example: x^3*sin(x)" aria-describedby="input-help"></textarea></label>
               <div class="option-fields" id="integral-options" hidden>
-                <label class="field" for="lower"><span>Lower bound</span><input id="lower" type="text" inputmode="text" placeholder="0" spellcheck="false"></label>
-                <label class="field" for="upper"><span>Upper bound</span><input id="upper" type="text" inputmode="text" placeholder="1" spellcheck="false"></label>
+                <label class="field" for="lower"><span>Lower bound</span><span id="lower" class="math-field compact-math-field" role="textbox" aria-label="Lower bound" tabindex="0" data-placeholder="0"></span><input id="lower-typed" class="typed-math-field" type="text" hidden placeholder="0"></label>
+                <label class="field" for="upper"><span>Upper bound</span><span id="upper" class="math-field compact-math-field" role="textbox" aria-label="Upper bound" tabindex="0" data-placeholder="1"></span><input id="upper-typed" class="typed-math-field" type="text" hidden placeholder="1"></label>
               </div>
               <div class="option-fields" id="limit-options" hidden>
-                <label class="field" for="target"><span>As x approaches</span><input id="target" type="text" inputmode="text" placeholder="0" spellcheck="false"></label>
+                <label class="field" for="target"><span>As x approaches</span><span id="target" class="math-field compact-math-field" role="textbox" aria-label="As x approaches" tabindex="0" data-placeholder="0"></span><input id="target-typed" class="typed-math-field" type="text" hidden placeholder="0"></label>
                 <label class="field" for="direction"><span>Direction</span><select id="direction"><option value="both">Both sides</option><option value="+">From the right</option><option value="-">From the left</option></select></label>
               </div>
             </div>
@@ -93,7 +94,7 @@
   <dialog class="help-dialog" id="help-dialog" aria-labelledby="help-title">
     <div class="dialog-header"><h2 id="help-title">Supported syntax</h2><button class="icon-button" id="close-help" type="button" aria-label="Close syntax help">×</button></div>
     <div class="dialog-body">
-      <p>Enter a real-valued expression that uses the variable <code>x</code>. Write multiplication explicitly.</p>
+      <p>Enter a real-valued expression that uses the variable <code>x</code>. The visual editor accepts implicit multiplication such as <code>2x</code>. In typed formulas, write multiplication explicitly as <code>2*x</code>.</p>
       <dl class="syntax-list"><div><dt>Operators</dt><dd><code>+ - * / ^ **</code>, parentheses, and unary signs</dd></div><div><dt>Constants</dt><dd><code>pi</code>, <code>E</code>, <code>oo</code>, and <code>-oo</code></dd></div><div><dt>Functions</dt><dd><code>sin</code>, <code>cos</code>, <code>tan</code>, <code>exp</code>, <code>log</code>, <code>sqrt</code>, <code>Abs</code>, <code>asin</code>, <code>acos</code>, <code>atan</code>, <code>sinh</code>, <code>cosh</code>, and <code>tanh</code></dd></div></dl>
       <p class="examples-heading">Examples</p>
       <dl class="syntax-list example-list"><div><dt>Derivative</dt><dd><button type="button" class="syntax-example" data-operation="derivative" data-expression="x^3*sin(x)">x^3*sin(x)</button></dd></div><div><dt>Integral</dt><dd><button type="button" class="syntax-example" data-operation="integral" data-expression="2*x + cos(x)">2*x + cos(x)</button>, optionally with bounds</dd></div><div><dt>Limit</dt><dd><button type="button" class="syntax-example" data-operation="limit" data-expression="sin(x)/x" data-target="0">sin(x)/x</button> as <code>x → 0</code>, or <button type="button" class="syntax-example" data-operation="limit" data-expression="sqrt(x)" data-target="0" data-direction="+">sqrt(x)</button> from the right</dd></div><div><dt>Equation</dt><dd><button type="button" class="syntax-example" data-operation="equation" data-expression="x^2 - 4 = 0">x^2 - 4 = 0</button></dd></div></dl>
@@ -113,6 +114,8 @@
     </div>
   </dialog>
   <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+  <script src="/web/assets/jquery.min.js"></script>
+  <script src="/web/assets/mathquill.min.js"></script>
   <script src="/web/app.js" defer></script>
 </body>
 </html>

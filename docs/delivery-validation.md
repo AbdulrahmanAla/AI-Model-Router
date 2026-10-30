@@ -87,6 +87,58 @@ These timings include local process and HTTP overhead and are evidence about thi
 
 Provider contract tests use a fake external HTTP transport and make no paid model calls. They validate requests, grounding, usage accounting, and failure handling. They do not establish live model quality, provider compatibility, token savings, or model inference latency.
 
-No API key or external hosting configuration was supplied. Live provider comparison and external publication remain pending user-owned configuration. The local solver remains usable without them. The repository provides `.env.example`, a Dockerfile, and a manual HTTPS deployment guide. Docker is unavailable on this PC, so a container build has not been verified here.
+No API key or external hosting configuration was supplied. Live provider comparison and external publication remain pending user-owned configuration. The local solver remains usable without them. The repository provides local environment instructions, a Dockerfile, and a manual HTTPS deployment guide. Docker is unavailable on this PC, so a container build has not been verified here.
 
 No energy, FLOP, GPU-power, or total cloud-compute measurement is claimed.
+
+## Final merged browser regression checks
+
+The app was restarted from integration commit `5ec24e4` in the clean verification environment, without reload and without provider configuration. The final browser checks confirmed:
+
+- `(0.100000000000000001-0.1)*x` differentiates to exact `1/1000000000000000000`.
+- `x^2 = 1` returns `{-1, 1}` with substitution checks.
+- `sin(x)=0` is unresolved on the polynomial route and offers explicit AI fallback. Without configuration, that action reports provider unavailable rather than an inconsistent grammar rejection.
+- Explain without configuration preserves the exact result and reports provider unavailable.
+- The indefinite integral of `1/x` displays `log(Abs(x))`, the omitted constant note, a nonzero-domain note, and numerical evidence rather than an unsupported symbolic proof.
+- Route details show zero general-model calls for the exact integral. Browser console inspection returned no warnings or errors.
+
+![Final real antiderivative and route details](evidence/final-integral.png)
+
+The clean-environment final gate passed 61 pytest tests, JavaScript syntax, and real HTTP smoke of all 40 frozen cases. One upstream Starlette/httpx deprecation warning remains.
+
+
+## Five-run solver-only evidence
+
+Source commit `5ec24e43221fe6148498467725e969ea9a665d75`; Python 3.14.7; i5-12400F, 6 physical cores and 12 logical processors. One production-style Uvicorn process used the locked verification environment, no reload, no provider credentials, and serial requests. Other test suites were stopped. Background desktop activity remained, so latency is a local observation rather than a controlled hardware comparison.
+
+Across five repetitions of the unchanged 40-case set, all 150 supported solved observations were correct. All 50 boundary observations matched their expected safe behavior. There were zero failed outcomes and zero transport failures. Each repeat contained 30 solved cases, five grammar rejections, four unresolved cases, and one bounded-input refusal. These boundary cases are excluded from supported-answer accuracy.
+
+All 200 requests recorded zero general-model calls with no unknown call counts. Provider token usage remains unreported, rather than being invented as zero. This establishes call avoidance on this fixed set only. It does not establish equal quality to a live AI baseline, token savings against a model, or a hardware-compute reduction.
+
+Median HTTP latency over all outcomes was 585.12 ms, with observation range 515.20 to 1278.83 ms. The five per-repeat HTTP medians were 590.93, 601.46, 580.17, 569.96, 561.45 ms; their median was 580.17 ms and range 561.45 to 601.46 ms. Fast rejections contribute to this all-outcome distribution. Fresh subprocess startup and math imports are material overhead, as the separate import diagnostic shows. No AI latency comparison was run.
+
+[Raw requests, responses, scores, counters, and environment](evidence/solver-five-runs.json). [Measurement protocol](evidence/measurement-plan.md).
+
+## Repository completion and cleanup
+
+The reviewed integration was directly merged into `main`, pushed, and made the GitHub default branch. All in-scope GitHub issues, including the Wayfinder map, are closed with evidence links. No PR or GitHub Actions run was created.
+
+Managed-worktree cleanup was attempted through the Codex archive tool. The app refused to archive the solver, website, and evaluation worktrees because active tasks still reference them, and refused the review worktree as a primary checkout. These recoverable local checkouts were retained. No checkout was deleted manually. The final local server remains on port 8000; synthetic-provider services are stopped.
+
+## Deterministic solution steps
+
+Commit `ddfb026` adds a bounded `steps` list to every solver response that reaches the public solve contract. Solved requests describe the actual route for derivatives, indefinite and definite integrals, limits, and polynomial equations. Unresolved requests include a stopping step that names why the exact route stopped. Each list is limited to eight entries of 500 characters or fewer.
+
+The website renders the list as an expandable **Show steps** section inside the answer card. Route metrics remain separate. AI explanations remain optional and are never used to generate these steps. The browser check submitted `x^3*sin(x)`, expanded **Show steps**, and displayed the product-rule route plus the numerical verification step. The API returned the same steps at `/api/solve`.
+
+![Expanded deterministic solution steps](evidence/solution-steps.png)
+
+## Visual math editor validation
+
+The composer now uses a bundled MathQuill 0.10.1-a field for the expression, integral bounds, and limit target. The MathQuill stylesheet, jQuery dependency, JavaScript build, and Symbola fonts are served locally from `web/assets`, so the editor does not depend on a CDN during the demo.
+
+The live page was reloaded from the updated server and showed the MathQuill editable-field class on the expression control, the MathQuill stylesheet loaded, and the expected visual equation input area. The editor remains a presentation layer: the browser converts supported MathQuill LaTeX to the existing structured expression grammar before submitting `/api/solve`. The solver API and 40-case evaluation contract are unchanged.
+
+![MathQuill visual equation editor](evidence/mathquill-editor.png)
+
+MathQuill supports visual fractions, roots, exponents, function names, and symbols. Integral and derivative workflows continue to use the existing operation selector and bound fields. The editor does not claim support for new mathematical operations, implicit variables, or arbitrary LaTeX.

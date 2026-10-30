@@ -20,6 +20,250 @@
     appShell: document.querySelector('.app-shell'), sidebar: $('#sidebar'), openSidebar: $('#open-sidebar'), help: $('#help-dialog'), routeHelp: $('#route-dialog'), conversation: $('#conversation')
   };
 
+  const mathFields = {};
+  const mathFunctions = new Set(['sin', 'cos', 'tan', 'log', 'exp', 'sqrt', 'Abs', 'asin', 'acos', 'atan', 'sinh', 'cosh', 'tanh']);
+  const latexCommandNames = {
+    sin: 'sin', cos: 'cos', tan: 'tan', log: 'log', ln: 'log', exp: 'exp', sqrt: 'sqrt', Abs: 'Abs',
+    asin: 'asin', acos: 'acos', atan: 'atan', sinh: 'sinh', cosh: 'cosh', tanh: 'tanh'
+  };
+
+  function readLatexGroup(source, start, open = '{', close = '}') {
+    if (source[start] !== open) return null;
+    let depth = 0;
+    for (let index = start; index < source.length; index += 1) {
+      if (source[index] === open) depth += 1;
+      else if (source[index] === close) {
+        depth -= 1;
+        if (depth === 0) return { content: source.slice(start + 1, index), end: index + 1 };
+      }
+    }
+    return null;
+  }
+
+  function skipLatexSpace(source, start) {
+    let index = start;
+    while (index < source.length && /\s/.test(source[index])) index += 1;
+    return index;
+  }
+
+  const MAX_LATEX_LENGTH = 4000;
+  const MAX_LATEX_DEPTH = 16;
+
+  function convertLatexSegment(source, depth = 0) {
+    if (source.length > MAX_LATEX_LENGTH || depth > MAX_LATEX_DEPTH) return '__unsupported_math_input__';
+    let output = '';
+    let index = 0;
+    while (index < source.length) {
+      if (/\s/.test(source[index])) {
+        output += source[index];
+        index += 1;
+        continue;
+      }
+      if (source.startsWith('\\frac', index) && !/[A-Za-z]/.test(source[index + 5] || '')) {
+        let cursor = skipLatexSpace(source, index + 5);
+        const numerator = readLatexGroup(source, cursor);
+        if (!numerator) { output += '__unsupported_frac__'; index += 5; continue; }
+        cursor = skipLatexSpace(source, numerator.end);
+        const denominator = readLatexGroup(source, cursor);
+        if (!denominator) { output += '__unsupported_frac__'; index = numerator.end; continue; }
+        output += `((${convertLatexSegment(numerator.content, depth + 1)})/(${convertLatexSegment(denominator.content, depth + 1)}))`;
+        index = denominator.end;
+        continue;
+      }
+      if (source.startsWith('\\sqrt', index) && !/[A-Za-z]/.test(source[index + 5] || '')) {
+        let cursor = skipLatexSpace(source, index + 5);
+        let indexedRoot = false;
+        if (source[cursor] === '[') {
+          const rootIndex = readLatexGroup(source, cursor, '[', ']');
+          if (rootIndex) {
+            indexedRoot = true;
+            cursor = skipLatexSpace(source, rootIndex.end);
+          }
+        }
+        let radicand = readLatexGroup(source, cursor);
+        if (!radicand && source[cursor] === '(') {
+          radicand = readLatexGroup(source, cursor, '(', ')');
+        }
+        if (!radicand) { output += '__unsupported_sqrt__'; index += 5; continue; }
+        output += indexedRoot ? '__unsupported_indexed_root__' : `sqrt(${convertLatexSegment(radicand.content, depth + 1)})`;
+        index = radicand.end;
+        continue;
+      }
+      if (source.startsWith('\\left', index) || source.startsWith('\\right', index)) {
+        index += source[index + 1] === 'l' ? 5 : 6;
+        continue;
+      }
+      if (source[index] === '\\') {
+        const command = source.slice(index + 1).match(/^[A-Za-z]+|^./);
+        if (!command) { output += '\\\\'; index += 1; continue; }
+        const name = command[0];
+        index += name.length + 1;
+        if (['(', ')', '[', ']', '{', '}'].includes(name)) { output += name; continue; }
+        if (name === 'cdot' || name === 'times') { output += '*'; continue; }
+        if (name === 'pi') { output += 'pi'; continue; }
+        if (name === 'infty') { output += 'oo'; continue; }
+        if (name === 'le' || name === 'leq') { output += '<='; continue; }
+        if (name === 'ge' || name === 'geq') { output += '>='; continue; }
+        if (name === 'pm') { output += '+/-'; continue; }
+        if (latexCommandNames[name]) {
+          const functionName = latexCommandNames[name];
+          let cursor = skipLatexSpace(source, index);
+          if (source.startsWith('\\left', cursor)) cursor = skipLatexSpace(source, cursor + 5);
+          if (source[cursor] === '{' || source[cursor] === '(') {
+            const argument = source[cursor] === '{'
+              ? readLatexGroup(source, cursor)
+              : readLatexGroup(source, cursor, '(', ')');
+            if (argument) {
+              output += `${functionName}(${convertLatexSegment(argument.content, depth + 1)})`;
+              index = argument.end;
+              continue;
+            }
+          }
+          output += functionName;
+          continue;
+        }
+        output += `__unsupported_latex_command_${name}__`;
+        continue;
+      }
+      if (source[index] === '{') {
+        const group = readLatexGroup(source, index);
+        if (!group) { output += '__unsupported_group__'; index += 1; continue; }
+        output += `(${convertLatexSegment(group.content, depth + 1)})`;
+        index = group.end;
+        continue;
+      }
+      output += source[index];
+      index += 1;
+    }
+    return output;
+  }
+
+  function addImplicitMultiplication(expression) {
+    const tokens = [];
+    const tokenPattern = /(?:\d+(?:\.\d*)?(?:[eE][+-]?\d+)?|\.\d+(?:[eE][+-]?\d+)?|[A-Za-z_][A-Za-z_0-9]*|==|[()+\-*/^=,])/g;
+    let cursor = 0;
+    let match;
+    while ((match = tokenPattern.exec(expression)) !== null) {
+      if (/\S/.test(expression.slice(cursor, match.index))) tokens.push(expression.slice(cursor, match.index));
+      tokens.push(match[0]);
+      cursor = match.index + match[0].length;
+    }
+    if (/\S/.test(expression.slice(cursor))) tokens.push(expression.slice(cursor));
+    const canEnd = (token) => token === ')' || /^\d/.test(token) || /^[A-Za-z_]/.test(token);
+    const canStart = (token) => token === '(' || /^\d/.test(token) || /^[A-Za-z_]/.test(token);
+    const result = [];
+    tokens.forEach((token) => {
+      const previous = result[result.length - 1];
+      const functionCall = previous && mathFunctions.has(previous) && token === '(';
+      if (previous && canEnd(previous) && canStart(token) && !functionCall) result.push('*');
+      result.push(token);
+    });
+    return result.join('');
+  }
+
+  function latexToExpression(latex) {
+    const converted = convertLatexSegment(String(latex || '').replace(/\\!|\\,/g, ''));
+    return addImplicitMultiplication(converted).trim();
+  }
+
+  function expressionToLatex(expression) {
+    const source = String(expression || '').replace(/\*\*/g, '^');
+    const convert = (start, stopAtClose = false) => {
+      let output = '';
+      let index = start;
+      while (index < source.length) {
+        const char = source[index];
+        if (char === ')' && stopAtClose) return { output, end: index + 1 };
+        if (char === '(') {
+          const nested = convert(index + 1, true);
+          output += `(${nested.output})`;
+          index = nested.end;
+          continue;
+        }
+        if (char === '^') {
+          let cursor = index + 1;
+          while (/\s/.test(source[cursor] || '') && cursor < source.length) cursor += 1;
+          if (source[cursor] === '(') {
+            const exponent = convert(cursor + 1, true);
+            output += `^{${exponent.output}}`;
+            index = exponent.end;
+          } else {
+            const atom = source.slice(cursor).match(/^[+-]?(?:\d+(?:\.\d*)?(?:[eE][+-]?\d+)?|\.\d+(?:[eE][+-]?\d+)?|[A-Za-z_][A-Za-z_0-9]*)/);
+            if (!atom) { output += '^'; index += 1; continue; }
+            output += `^{${atom[0]}}`;
+            index = cursor + atom[0].length;
+          }
+          continue;
+        }
+        if (/[A-Za-z_]/.test(char)) {
+          const identifier = source.slice(index).match(/^[A-Za-z_][A-Za-z_0-9]*/)[0];
+          const commands = { sin: '\\sin', cos: '\\cos', tan: '\\tan', log: '\\log', exp: '\\exp', sqrt: '\\sqrt', Abs: 'Abs', pi: '\\pi', oo: '\\infty' };
+          output += commands[identifier] || identifier;
+          index += identifier.length;
+          continue;
+        }
+        output += char === '*' ? '\\cdot ' : char;
+        index += 1;
+      }
+      return { output, end: index };
+    };
+    return convert(0).output;
+  }
+
+  function useTypedFallback() {
+    ['expression', 'lower', 'upper', 'target'].forEach((name) => {
+      const fallback = document.querySelector(`#${name}-typed`);
+      if (!fallback) return;
+      fallback.hidden = false;
+      fallback.value = '';
+      elements[name].hidden = true;
+      elements[name] = fallback;
+      const label = document.querySelector(`label[for="${name}"]`);
+      if (label) label.htmlFor = fallback.id;
+    });
+  }
+
+  function setupMathFields() {
+    if (!window.MathQuill || typeof window.MathQuill.getInterface !== 'function') {
+      useTypedFallback();
+      return;
+    }
+    const MQ = window.MathQuill.getInterface(2);
+    if (!MQ || typeof MQ.MathField !== 'function') {
+      useTypedFallback();
+      return;
+    }
+    ['expression', 'lower', 'upper', 'target'].forEach((name) => {
+      const node = elements[name];
+      if (!node || typeof MQ.MathField !== 'function') return;
+      mathFields[name] = MQ.MathField(node, {
+        restrictMismatchedBrackets: true,
+        handlers: { edit: () => { resizeExpression(); clearFormError(); } }
+      });
+    });
+  }
+
+  function fieldValue(name) {
+    const mathField = mathFields[name];
+    if (mathField) {
+      const latex = mathField.latex();
+      if (latex && latex.trim()) return latexToExpression(latex);
+    }
+    return String(elements[name] && elements[name].value ? elements[name].value : '').trim();
+  }
+
+  function setFieldValue(name, value) {
+    const text = value || '';
+    if (mathFields[name]) mathFields[name].latex(expressionToLatex(text));
+    else if (elements[name]) elements[name].value = text;
+  }
+
+  function focusField(name) {
+    const mathField = mathFields[name];
+    if (mathField) mathField.focus();
+    else if (elements[name] && typeof elements[name].focus === 'function') elements[name].focus();
+  }
+
   function setText(node, value) {
     node.textContent = value === null || value === undefined ? '' : String(value);
     return node;
@@ -51,34 +295,46 @@
     elements.integralOptions.hidden = operation !== 'integral';
     elements.limitOptions.hidden = operation !== 'limit';
     setText(elements.operationHint, operationCopy[operation].hint);
-    setText(elements.inputHelp, `${operationCopy[operation].help} Enter solves; Shift+Enter makes a new line; / focuses the composer; Escape cancels a running request.`);
+    const multiplicationHelp = mathFields.expression ? ' Visual entry accepts implicit multiplication such as 2x.' : ' Use explicit multiplication, such as 2*x.';
+    setText(elements.inputHelp, `${operationCopy[operation].help}${multiplicationHelp} Enter solves; Shift+Enter makes a new line; / focuses the composer; Escape cancels a running request.`);
     const placeholders = {
       derivative: 'For example: x^3*sin(x)',
       integral: 'For example: 2*x + cos(x)',
       limit: 'For example: sin(x)/x',
       equation: 'For example: x^2 - 4 = 0'
     };
-    elements.expression.placeholder = placeholders[operation];
+    if ('placeholder' in elements.expression) elements.expression.placeholder = placeholders[operation];
+    elements.expression.dataset.placeholder = placeholders[operation];
     resizeExpression();
   }
 
   function resizeExpression() {
+    if (mathFields.expression) return;
     elements.expression.style.height = 'auto';
     elements.expression.style.height = `${Math.min(elements.expression.scrollHeight, 120)}px`;
   }
 
   function buildRequest() {
     const operation = elements.operation.value;
-    const request = { operation, expression: elements.expression.value.trim(), variable: 'x' };
-    request.lower = operation === 'integral' && elements.lower.value.trim() ? elements.lower.value.trim() : null;
-    request.upper = operation === 'integral' && elements.upper.value.trim() ? elements.upper.value.trim() : null;
-    request.target = operation === 'limit' && elements.target.value.trim() ? elements.target.value.trim() : null;
+    const request = { operation, expression: fieldValue('expression'), variable: 'x' };
+    const lower = fieldValue('lower');
+    const upper = fieldValue('upper');
+    const target = fieldValue('target');
+    request.lower = operation === 'integral' && lower ? lower : null;
+    request.upper = operation === 'integral' && upper ? upper : null;
+    request.target = operation === 'limit' && target ? target : null;
     request.direction = operation === 'limit' ? elements.direction.value : null;
     return request;
   }
 
   function validateRequest(request) {
     if (!request.expression) return { message: 'Enter an expression before solving.', fields: ['expression'] };
+    if (request.expression.length > 400 || ['lower', 'upper', 'target'].some((name) => request[name] && request[name].length > 100)) {
+      return { message: 'This formula is too long. Shorten it and try again.', fields: ['expression'] };
+    }
+    if (request.expression.includes('__unsupported_') || ['lower', 'upper', 'target'].some((name) => request[name] && request[name].includes('__unsupported_'))) {
+      return { message: 'That visual math symbol is not supported yet. Use the listed functions and symbols, or enter a typed formula.', fields: ['expression'] };
+    }
     if (request.operation === 'integral' && Boolean(request.lower) !== Boolean(request.upper)) return {
       message: 'Enter both integral bounds, or leave both blank.', fields: [request.lower ? 'upper' : 'lower']
     };
@@ -700,7 +956,7 @@
       showFormError(validationError.message, fields);
       showToast(validationError.message);
       elements.toast.dataset.formError = 'true';
-      (fields[0] || elements.expression).focus();
+      focusField(validationError.fields[0] || 'expression');
       return;
     }
     clearFormError();
@@ -739,14 +995,14 @@
     state.selectedMessageId = null;
     state.chatFilter = '';
     elements.chatSearch.value = '';
-    elements.expression.value = '';
-    elements.lower.value = '';
-    elements.upper.value = '';
-    elements.target.value = '';
+    setFieldValue('expression', '');
+    setFieldValue('lower', '');
+    setFieldValue('upper', '');
+    setFieldValue('target', '');
     clearFormError();
     updateOperationFields();
     renderMessages();
-    elements.expression.focus();
+    focusField('expression');
   }
 
   function closeMobileSidebar() {
@@ -820,14 +1076,14 @@
 
   function fillComposer(values) {
     elements.operation.value = values.operation;
-    elements.expression.value = values.expression;
-    elements.lower.value = values.lower || '';
-    elements.upper.value = values.upper || '';
-    elements.target.value = values.target || '';
+    setFieldValue('expression', values.expression);
+    setFieldValue('lower', values.lower || '');
+    setFieldValue('upper', values.upper || '');
+    setFieldValue('target', values.target || '');
     elements.direction.value = values.direction || 'both';
     clearFormError();
     updateOperationFields();
-    elements.expression.focus();
+    focusField('expression');
   }
 
   function editQuestionButton(request) {
@@ -860,7 +1116,7 @@
       }
       if (!dialogOpen && shouldFocusComposer(event, document.activeElement && document.activeElement.tagName)) {
         event.preventDefault();
-        elements.expression.focus();
+        focusField('expression');
         return;
       }
       if (event.key !== 'Escape') return;
@@ -903,6 +1159,7 @@
     });
   }
 
+  setupMathFields();
   wireEvents();
   updateOperationFields();
   checkHealth();

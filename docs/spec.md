@@ -9,7 +9,7 @@ The user approved the current ChatGPT-style layout and the test boundaries on 29
 ## Scope
 
 - Derivatives, indefinite and definite integrals, limits, and real polynomial equations of degree at most four.
-- One real variable named `x`. Typed formulas first. LaTeX input, natural-language interpretation, matrices, plots, accounts, and durable storage are outside this implementation.
+- One real variable named `x`. The composer uses a visual equation editor with a bounded adapter for supported MathQuill constructs and offers plain typed formulas if the editor library is unavailable. Arbitrary pasted LaTeX, natural-language interpretation, matrices, plots, accounts, and durable storage are outside this implementation.
 - Chat-style dark website with a narrow sidebar, centered conversation, bottom composer, teal accent, and product name AI Math Assistant.
 - Exact answer, honest check status, collapsible route metrics, and optional Explain button. No automatic AI call on submit or error. An explicit Ask AI fallback action is available for a valid request the solver cannot finish.
 - Session-only conversation history, new chat, supported syntax help, mobile layout, keyboard submission, loading state, readable errors, and accessible labels.
@@ -18,7 +18,7 @@ The user approved the current ChatGPT-style layout and the test boundaries on 29
 
 Use FastAPI to serve static HTML, CSS, and JavaScript and a same-origin JSON API. No frontend build tool is required. Keep API keys on the server. SymPy runs in a bounded subprocess, with a wall-clock timeout, limited concurrent work, and strict input limits. Never use eval, exec, sympify on input strings, parse_expr, or arbitrary LaTeX parsers.
 
-Parse an allowlisted arithmetic AST. Accept integers and exact decimals, `x`, `pi`, `E`, parentheses, unary signs, `+ - * / ^ **`, and one-argument `sin cos tan exp log sqrt Abs asin acos atan sinh cosh tanh`. Require explicit multiplication. Reject attributes, strings, containers, subscripts, unknown names, keyword arguments, extra variables, excessive size/depth, and excessive numeric constants/exponents before expensive work. Limits and bounds accept constant expressions, with `oo` and `-oo` where appropriate. Equations accept one `=` or an expression equal to zero and share the same function grammar. The exact equation route solves real polynomials of degree at most four; other valid equations return unresolved so the explicit AI fallback can handle them. Variable denominators that simplification could hide remain rejected.
+Parse an allowlisted arithmetic AST. Accept integers and exact decimals, `x`, `pi`, `E`, parentheses, unary signs, `+ - * / ^ **`, and one-argument `sin cos tan exp log sqrt Abs asin acos atan sinh cosh tanh`. The server grammar requires explicit multiplication. The visual adapter inserts multiplication only between adjacent supported factor tokens, then submits the same typed grammar. Reject attributes, strings, containers, subscripts, unknown names, keyword arguments, extra variables, excessive size/depth, and excessive numeric constants/exponents before expensive work. Limits and bounds accept constant expressions, with `oo` and `-oo` where appropriate. Equations accept one `=` or an expression equal to zero and share the same function grammar. The exact equation route solves real polynomials of degree at most four; other valid equations return unresolved so the explicit AI fallback can handle them. Variable denominators that simplification could hide remain rejected.
 
 ## API contract
 

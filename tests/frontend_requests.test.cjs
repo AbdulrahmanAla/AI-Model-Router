@@ -5,23 +5,35 @@ const vm = require('node:vm');
 const path = require('node:path');
 const indexHtml = fs.readFileSync(path.join(__dirname, '../web/index.html'), 'utf8');
 
-function appHarness() {
+function appHarness({ withMathQuill = false } = {}) {
   const pending = [];
   const timers = new Map();
   const downloads = [];
+  const domNodes = new Map();
   let nextTimer = 0;
+  const createNode = () => ({ value: '', dataset: {}, style: {}, scrollHeight: 42, hidden: true, children: [], attributes: {}, focus() { this.focused = true; }, removeAttribute(name) { delete this.attributes[name]; }, setAttribute(name, value) { this.attributes[name] = value; }, addEventListener(event, callback) { this[event] = callback; }, classList: { add() {}, remove() {}, contains() { return false; } }, replaceChildren(...nodes) { this.children = nodes; }, append(...nodes) { this.children.push(...nodes); }, appendChild(node) { this.children.push(node); return node; }, querySelector() { return createNode(); } });
+  const mathFields = new Map();
+  const mathQuill = withMathQuill ? { getInterface: () => ({ MathField(node) {
+    let value = '';
+    const field = { latex(next) { if (next !== undefined) { value = next; return field; } return value; }, focus() { node.focused = true; } };
+    mathFields.set(node.id, field);
+    return field;
+  } }) } : undefined;
   const source = fs.readFileSync(path.join(__dirname, '../web/app.js'), 'utf8');
   const context = vm.createContext({
     AbortController,
     document: {
       createTextNode: (text) => ({ textContent: text }),
-      querySelector: () => ({ dataset: {}, style: {}, scrollHeight: 42, hidden: true, children: [], attributes: {}, focus() { this.focused = true; }, removeAttribute(name) { delete this.attributes[name]; }, setAttribute(name, value) { this.attributes[name] = value; }, classList: { add() {}, remove() {}, contains() { return false; } }, replaceChildren(...nodes) { this.children = nodes; }, append(...nodes) { this.children.push(...nodes); } }),
+      querySelector: (selector) => { if (!domNodes.has(selector)) { const node = createNode(); node.id = selector.startsWith('#') ? selector.slice(1) : ''; domNodes.set(selector, node); } return domNodes.get(selector); },
+      querySelectorAll: () => [],
+      addEventListener() {},
       body: { append(node) { downloads.push(node); } },
       createElement: () => ({ style: {}, dataset: {}, children: [], attributes: {}, appendChild(node) { this.children.push(node); return node; }, append(...nodes) { this.children.push(...nodes); }, setAttribute(name, value) { this.attributes[name] = value; }, addEventListener(event, callback) { this[event] = callback; }, click() { this.clicked = true; }, remove() { this.removed = true; } }),
     },
     window: {
       setTimeout: (callback) => { timers.set(++nextTimer, callback); return nextTimer; },
       clearTimeout: (id) => timers.delete(id),
+      MathQuill: mathQuill,
     },
     Blob: class Blob { constructor(parts, options) { this.parts = parts; this.options = options; } },
     URL: { createObjectURL: () => 'blob:test', revokeObjectURL: () => {} },
@@ -32,14 +44,89 @@ function appHarness() {
     renderMessages = () => {};
     copyText = (value) => { state.copiedEvidence = value; };
     setServiceStatus = (kind, label) => { state.serviceLabel = label; };
-    this.app = { state, elements, solve, cancelSolve, retrySolve, requestAi, cancelAi, copySessionEvidence, downloadSessionEvidence, sessionEvidenceText, addCopyActions, exampleValues, routeLabel, resultAriaLabel, shouldFocusComposer, shouldCloseSidebarOnEscape, shouldCloseChatSearchOnEscape, shouldFocusChatSearch, latestMessage, renderAiResponse, renderChatList, closeChatSearch, openChatSearch, fetchWithTimeout, submit, clearFormError, renderAssistant, renderConversation };
+    this.app = { state, elements, solve, cancelSolve, retrySolve, requestAi, cancelAi, copySessionEvidence, downloadSessionEvidence, sessionEvidenceText, addCopyActions, exampleValues, fillComposer, routeLabel, resultAriaLabel, shouldFocusComposer, shouldCloseSidebarOnEscape, shouldCloseChatSearchOnEscape, shouldFocusChatSearch, latestMessage, renderAiResponse, renderChatList, closeChatSearch, openChatSearch, fetchWithTimeout, submit, clearFormError, renderAssistant, renderConversation, latexToExpression, expressionToLatex, buildRequest, setFieldValue, validateRequest };
   })();`), context);
-  return { ...context.app, pending, timers, downloads };
+  return { ...context.app, pending, timers, downloads, mathFields };
 }
 
 const request = { operation: 'derivative', expression: 'x^2' };
 const result = { status: 'solved', operation: 'derivative', expression: 'x^2', request: { ...request, variable: 'x', lower: null, upper: null, target: null, direction: null }, result: '2*x', verification: { status: 'symbolic_check', detail: 'Checked.' }, steps: ['Read the function.', 'Apply the power rule.'] };
 const response = (body) => ({ ok: true, json: async () => body });
+
+test('visual math conversion preserves supported fractions, powers, products, and constants', () => {
+  const app = appHarness();
+  for (const [latex, expected] of [
+    ['\\frac{x+1}{x-1}', '((x+1)/(x-1))'],
+    ['\\frac{1}{\\frac{x}{2}}', '((1)/(((x)/(2))))'],
+    ['\\frac{1}{x}^{2}', '((1)/(x))^(2)'],
+    ['x^{x+1}', 'x^(x+1)'],
+    ['x^{12}', 'x^(12)'],
+    ['2x+3\\cdot\\pi', '2*x+3*pi'],
+    ['\\sin\\left(x\\right)+\\sqrt{x}', 'sin(x)+sqrt(x)'],
+    ['x+\\infty', 'x+oo'],
+  ]) assert.equal(app.latexToExpression(latex), expected, latex);
+});
+
+test('visual math conversion rejects unsupported commands and indexed roots', () => {
+  const app = appHarness();
+  assert.match(app.latexToExpression('\\theta+x'), /__unsupported_latex_command_theta__/);
+  assert.match(app.latexToExpression('\\sqrt[3]{x}'), /__unsupported_indexed_root__/);
+  assert.match(app.latexToExpression('\\frac{x+1'), /__unsupported_frac__/);
+  assert.match(app.latexToExpression('x'.repeat(4001)), /__unsupported_math_input__/);
+  assert.match(app.latexToExpression(`${'{'.repeat(17)}x${'}'.repeat(17)}`), /__unsupported_math_input__/);
+});
+
+test('MathQuill edit roundtrip keeps grouped and multidigit exponents intact', () => {
+  const app = appHarness({ withMathQuill: true });
+  for (const [expression, expected] of [
+    ['x^12', 'x^(12)'],
+    ['x^(x+1)', 'x^(x+1)'],
+    ['x**(-2)', 'x^(-2)'],
+    ['sin(x^2)', 'sin(x^(2))'],
+    ['(x+1)/(x-1)', '(x+1)/(x-1)'],
+  ]) {
+    app.setFieldValue('expression', expression);
+    assert.equal(app.buildRequest().expression, expected, expression);
+  }
+});
+
+test('visual editor request construction includes operation context while typed fallback remains usable', () => {
+  const visual = appHarness({ withMathQuill: true });
+  visual.elements.operation.value = 'integral';
+  visual.setFieldValue('expression', '\\frac{x+1}{2}');
+  visual.setFieldValue('lower', '0');
+  visual.setFieldValue('upper', '1');
+  assert.deepEqual(JSON.parse(JSON.stringify(visual.buildRequest())), {
+    operation: 'integral', expression: '((x+1)/(2))', variable: 'x', lower: '0', upper: '1', target: null, direction: null,
+  });
+
+  const typed = appHarness();
+  typed.elements.operation.value = 'limit';
+  typed.elements.expression.value = 'sin(x)/x';
+  typed.elements.target.value = '0';
+  typed.elements.direction.value = '+';
+  assert.deepEqual(JSON.parse(JSON.stringify(typed.buildRequest())), {
+    operation: 'limit', expression: 'sin(x)/x', variable: 'x', lower: null, upper: null, target: '0', direction: '+',
+  });
+});
+
+test('editing a visual limit and applying an example preserve fields and direction', () => {
+  const app = appHarness({ withMathQuill: true });
+  app.fillComposer({ operation: 'limit', expression: 'x^(x+1)', target: 'pi/2', direction: '+' });
+  assert.deepEqual(JSON.parse(JSON.stringify(app.buildRequest())), {
+    operation: 'limit', expression: 'x^(x+1)', variable: 'x', lower: null, upper: null, target: 'pi/2', direction: '+',
+  });
+  app.fillComposer(app.exampleValues({ dataset: { operation: 'limit', expression: 'sqrt(x)', target: '0', direction: '+' } }));
+  assert.deepEqual(JSON.parse(JSON.stringify(app.buildRequest())), {
+    operation: 'limit', expression: 'sqrt(x)', variable: 'x', lower: null, upper: null, target: '0', direction: '+',
+  });
+});
+
+test('unsupported visual notation is stopped at the editor boundary', () => {
+  const app = appHarness();
+  const error = app.validateRequest({ operation: 'derivative', expression: app.latexToExpression('\\theta*x') });
+  assert.match(error.message, /not supported yet/i);
+});
 
 for (const [position, force, expected] of [[200, false, 200], [580, false, 1400], [200, true, 1400]]) {
   test(`conversation render preserves reading position ${position}, force latest ${force}`, () => {
