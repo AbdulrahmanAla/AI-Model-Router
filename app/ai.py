@@ -87,14 +87,18 @@ def _provider_config() -> ProviderConfig | None:
         return None
     if not base_url or not model or (provider == "openai" and not api_key):
         return None
+    timeout_default = 120.0 if provider == "ollama" else _DEFAULT_TIMEOUT_SECONDS
+    if provider == "ollama" and "AI_TIMEOUT_SECONDS" in os.environ:
+        timeout_default = _number_setting(
+            "AI_TIMEOUT_SECONDS", timeout_default, minimum=0.1, maximum=120.0
+        )
+    timeout_name = "OLLAMA_TIMEOUT_SECONDS" if provider == "ollama" else "AI_TIMEOUT_SECONDS"
     return ProviderConfig(
         provider=provider,
         base_url=base_url.rstrip("/"),
         api_key=api_key,
         model=model,
-        timeout_seconds=_number_setting(
-            "AI_TIMEOUT_SECONDS", _DEFAULT_TIMEOUT_SECONDS, minimum=0.1, maximum=120.0
-        ),
+        timeout_seconds=_number_setting(timeout_name, timeout_default, minimum=0.1, maximum=120.0),
         max_tokens=_integer_setting("AI_MAX_TOKENS", _DEFAULT_MAX_TOKENS, minimum=1, maximum=4000),
     )
 
@@ -432,6 +436,7 @@ async def _call_provider(
             "model": config.model,
             "messages": _messages(action, payload, exact),
             "stream": False,
+            "think": False,
             "options": {"num_predict": config.max_tokens},
         }
         endpoint = _ollama_url(config.base_url)
@@ -610,6 +615,7 @@ async def call_ollama(
             {"role": "user", "content": prompt.strip() + context},
         ],
         "stream": False,
+        "think": False,
         "options": {"num_predict": config.max_tokens},
     }
     headers = {"Content-Type": "application/json"}

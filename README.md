@@ -59,6 +59,7 @@ ollama pull qwen3.5:4b
 $env:AI_PROVIDER = "ollama"
 $env:OLLAMA_MODEL = "qwen3.5:4b"
 $env:OLLAMA_BASE_URL = "http://127.0.0.1:11434"
+$env:OLLAMA_TIMEOUT_SECONDS = "120"
 \.venv\Scripts\python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8000
 ```
 
