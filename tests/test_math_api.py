@@ -419,3 +419,4 @@ def test_root_serves_the_chat_shell() -> None:
     assert response.status_code == 200
     assert "AI Math Assistant" in response.text
     assert 'id="session-download"' in response.text
+    assert "Ctrl+K or Cmd+K" in response.text
