@@ -16,6 +16,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from .ai import AIServiceError, AIValidationBusy, _validate_grammar_bounded, ai_configured, call_text_prompt, handle_ai
+from .chat import parse_freeform
 from .router import choose_route
 from .solver import GrammarError, SolveTimeout, SolveUnresolved, SolverBusy, _unresolved_steps, run_bounded
 
@@ -45,6 +46,15 @@ class RouteRequest(BaseModel):
     mode: Literal["deterministic", "jev", "ai_only"] = "deterministic"
     request: dict[str, Any] | None = None
     prompt: str | None = Field(default=None, min_length=1, max_length=2000)
+
+
+class ChatRequest(BaseModel):
+    """One free-form browser message at the chat boundary."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    message: str = Field(min_length=1, max_length=2000)
+    mode: Literal["deterministic", "jev", "ai_only"] = "deterministic"
 
 
 app = FastAPI(title="AI Math Assistant", version="0.1.0")
@@ -207,6 +217,23 @@ async def route(request: RouteRequest, http_request: Request) -> dict[str, objec
             raise HTTPException(status_code=503, detail=str(exc)) from exc
         except GrammarError as exc:
             raise HTTPException(status_code=422, detail=str(exc)) from exc
+    elif request.prompt is not None:
+        # Recognize only a small, explicit phrase boundary. Every extracted
+        # payload still passes the same structured validation and bounded
+        # grammar checks as /api/solve before it can reach SymPy.
+        extracted = parse_freeform(request.prompt)
+        if extracted is not None:
+            try:
+                parsed_request = SolveRequest.model_validate(extracted)
+            except ValidationError as exc:
+                raise HTTPException(status_code=422, detail="The extracted math request is invalid.") from exc
+            validated_payload = validate_solve_request(parsed_request)
+            try:
+                await asyncio.to_thread(_validate_grammar_bounded, validated_payload)
+            except AIValidationBusy as exc:
+                raise HTTPException(status_code=503, detail=str(exc)) from exc
+            except GrammarError as exc:
+                raise HTTPException(status_code=422, detail=str(exc)) from exc
 
     routing = await choose_route(
         http_request.app,
@@ -245,6 +272,20 @@ async def route(request: RouteRequest, http_request: Request) -> dict[str, objec
             content={"error": exc.code, "detail": exc.detail, "metrics": exc.metrics, "routing": routing},
         )
     return {"status": "routed", "answer": ai_answer, "routing": routing}
+
+
+@app.post("/api/chat", response_model=None)
+async def chat(request: ChatRequest, http_request: Request) -> dict[str, object] | JSONResponse:
+    """Handle one free-form conversation turn through the route boundary.
+
+    The response keeps the existing ``/api/route`` answer and routing shape so
+    the browser can migrate without changing the structured compatibility API.
+    """
+    route_request = RouteRequest(mode=request.mode, prompt=request.message)
+    result = await route(route_request, http_request)
+    if isinstance(result, JSONResponse):
+        return result
+    return {**result, "message": request.message}
 
 
 static_root = Path(__file__).resolve().parent.parent / "web"

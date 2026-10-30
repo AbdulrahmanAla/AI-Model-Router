@@ -47,7 +47,7 @@ function appHarness({ withMathQuill = false, staticMathFailure = false, liveRend
     ${liveRender ? '' : 'renderMessages = () => {};'}
     copyText = (value) => { state.copiedEvidence = value; };
     setServiceStatus = (kind, label) => { state.serviceLabel = label; };
-    this.app = { state, elements, solve, route, cancelSolve, retrySolve, retryRoute, requestAi, cancelAi, copySessionEvidence, downloadSessionEvidence, sessionEvidenceText, addCopyActions, exampleValues, fillComposer, routeLabel, resultAriaLabel, shouldFocusComposer, shouldCloseSidebarOnEscape, shouldCloseChatSearchOnEscape, shouldFocusChatSearch, latestMessage, renderAiResponse, renderChatList, closeChatSearch, openChatSearch, fetchWithTimeout, submit, clearFormError, renderAssistant, renderConversation, latexToExpression, expressionToLatex, buildRequest, buildRoutePayload, setFieldValue, validateRequest, validateRoutePayload };
+    this.app = { state, elements, solve, route, cancelSolve, retrySolve, retryRoute, requestAi, cancelAi, copySessionEvidence, downloadSessionEvidence, sessionEvidenceText, addCopyActions, exampleValues, fillComposer, freeformRequest, routeLabel, resultAriaLabel, shouldFocusComposer, shouldCloseSidebarOnEscape, shouldCloseChatSearch, shouldFocusChatSearch, latestMessage, renderAiResponse, renderChatList, closeChatSearch, openChatSearch, fetchWithTimeout, submit, clearFormError, renderAssistant, renderConversation, latexToExpression, expressionToLatex, buildRequest, buildRoutePayload, setFieldValue, validateRequest, validateRoutePayload };
   })();`), context);
   return { ...context.app, pending, timers, downloads, mathFields };
 }
@@ -55,6 +55,24 @@ function appHarness({ withMathQuill = false, staticMathFailure = false, liveRend
 const request = { operation: 'derivative', expression: 'x^2' };
 const result = { status: 'solved', operation: 'derivative', expression: 'x^2', request: { ...request, variable: 'x', lower: null, upper: null, target: null, direction: null }, result: '2*x', verification: { status: 'symbolic_check', detail: 'Checked.' }, steps: ['Read the function.', 'Apply the power rule.'] };
 const response = (body) => ({ ok: true, json: async () => body });
+
+test('free form math messages become validated structured requests', () => {
+  const app = appHarness();
+  assert.deepEqual(app.freeformRequest('Differentiate x^3 + sin(x)'), {
+    request: { operation: 'derivative', expression: 'x^3 + sin(x)', variable: 'x', lower: null, upper: null, target: null, direction: null }, prompt: ''
+  });
+  assert.deepEqual(app.freeformRequest('Find the limit of sin(x)/x as x approaches 0 from the right').request, {
+    operation: 'limit', expression: 'sin(x)/x', variable: 'x', lower: null, upper: null, target: '0', direction: '+'
+  });
+  assert.deepEqual(app.freeformRequest('Solve x^2 - 4 = 0').request.operation, 'equation');
+});
+
+test('free form prose stays a prompt and is never treated as a formula', () => {
+  const app = appHarness();
+  const parsed = app.freeformRequest('Can you explain why the power rule works?');
+  assert.equal(parsed.request, null);
+  assert.equal(parsed.prompt, 'Can you explain why the power rule works');
+});
 
 function descendants(node) {
   return (node.children || []).flatMap((child) => [child, ...descendants(child)]);
