@@ -635,6 +635,14 @@ def _integral_rule_step(expression: sp.Expr | None) -> str:
     if expression is None:
         return "Find an antiderivative with respect to x."
     if expression.is_Add:
+        components = []
+        for term in expression.args:
+            antiderivative = sp.integrate(term, _X)
+            if antiderivative.has(sp.Integral):
+                return "Use linearity: integrate each term and add the results."
+            components.append(f"Integrate {_sstr(term)}: {_sstr(antiderivative)}.")
+        if len(components) <= 3:
+            return "Use linearity: " + " ".join(components)
         return "Use linearity: integrate each term and add the results."
     if expression.is_Mul and any(not factor.has(_X) for factor in expression.args):
         return "Pull constant factors outside the integral, then integrate the remaining expression."

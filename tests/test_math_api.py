@@ -39,6 +39,7 @@ def test_solution_steps_name_the_integral_rule_family() -> None:
     body = response.json()
     assert response.status_code == 200
     assert any("linearity" in step.lower() for step in body["steps"])
+    assert any("integrate 2*x" in step.lower() and "integrate cos(x)" in step.lower() for step in body["steps"])
 
 
 def test_product_derivative_step_shows_the_intermediate_rule() -> None:
