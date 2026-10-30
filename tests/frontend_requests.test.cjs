@@ -29,7 +29,7 @@ function appHarness() {
     renderMessages = () => {};
     copyText = (value) => { state.copiedEvidence = value; };
     setServiceStatus = (kind, label) => { state.serviceLabel = label; };
-    this.app = { state, elements, solve, cancelSolve, retrySolve, requestAi, cancelAi, copySessionEvidence, downloadSessionEvidence, sessionEvidenceText, addCopyActions, exampleValues, routeLabel, shouldFocusComposer, shouldCloseSidebarOnEscape };
+    this.app = { state, elements, solve, cancelSolve, retrySolve, requestAi, cancelAi, copySessionEvidence, downloadSessionEvidence, sessionEvidenceText, addCopyActions, exampleValues, routeLabel, shouldFocusComposer, shouldCloseSidebarOnEscape, latestMessage };
   })();`), context);
   return { ...context.app, pending, timers, downloads };
 }
@@ -64,6 +64,12 @@ test('escape gives an open sidebar priority', () => {
   const app = appHarness();
   assert.equal(app.shouldCloseSidebarOnEscape({ key: 'Escape' }, true), true);
   assert.equal(app.shouldCloseSidebarOnEscape({ key: 'Escape' }, false), false);
+});
+
+test('latest question navigation selects the newest session message', () => {
+  const app = appHarness();
+  assert.equal(app.latestMessage([]), null);
+  assert.equal(app.latestMessage([{ id: '1' }, { id: '2' }]).id, '2');
 });
 
 for (const [question, expected] of [

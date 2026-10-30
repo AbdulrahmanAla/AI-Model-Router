@@ -689,6 +689,21 @@
     return event.key === 'Escape' && sidebarOpen;
   }
 
+  function latestMessage(messages) {
+    return Array.isArray(messages) && messages.length ? messages[messages.length - 1] : null;
+  }
+
+  function scrollToLatest() {
+    const latest = latestMessage(state.messages);
+    closeMobileSidebar();
+    if (!latest) {
+      showToast('Solve a question before jumping to the latest result.');
+      return;
+    }
+    const target = elements.messages.querySelector(`[data-message-id="${latest.id}"]`);
+    if (target) target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
   function applyExample(button) {
     const values = exampleValues(button);
     elements.operation.value = values.operation;
@@ -733,6 +748,7 @@
     $('#route-help').addEventListener('click', () => { closeMobileSidebar(); elements.routeHelp.showModal(); });
     $('#session-copy').addEventListener('click', () => { closeMobileSidebar(); copySessionEvidence(); });
     $('#session-download').addEventListener('click', () => { closeMobileSidebar(); downloadSessionEvidence(); });
+    $('#latest-question').addEventListener('click', scrollToLatest);
     $('#open-help-inline').addEventListener('click', () => elements.help.showModal());
     $('#close-help').addEventListener('click', () => elements.help.close());
     $('#close-route').addEventListener('click', () => elements.routeHelp.close());
