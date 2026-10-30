@@ -15,7 +15,7 @@ function appHarness() {
     document: {
       querySelector: () => ({ dataset: {}, hidden: true, classList: { add() {}, remove() {}, contains() { return false; } } }),
       body: { append(node) { downloads.push(node); } },
-      createElement: () => ({ style: {}, children: [], append(...nodes) { this.children.push(...nodes); }, addEventListener(event, callback) { this[event] = callback; }, click() { this.clicked = true; }, remove() { this.removed = true; } }),
+      createElement: () => ({ style: {}, children: [], attributes: {}, append(...nodes) { this.children.push(...nodes); }, setAttribute(name, value) { this.attributes[name] = value; }, addEventListener(event, callback) { this[event] = callback; }, click() { this.clicked = true; }, remove() { this.removed = true; } }),
     },
     window: {
       setTimeout: (callback) => { timers.set(++nextTimer, callback); return nextTimer; },

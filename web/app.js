@@ -400,6 +400,7 @@
     visible.forEach((message) => {
       const button = element('button', message.id === state.selectedMessageId ? 'chat-row active' : 'chat-row', requestTitle(message.request));
       button.type = 'button';
+      if (message.id === state.selectedMessageId) button.setAttribute('aria-current', 'true');
       button.addEventListener('click', () => {
         closeMobileSidebar();
         state.selectedMessageId = message.id;
