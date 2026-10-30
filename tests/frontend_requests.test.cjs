@@ -111,7 +111,7 @@ test('retry recovers from an invalid response with the same question', async () 
 
 test('session export includes all explanation calls and reported tokens', () => {
   const app = appHarness();
-  app.state.messages.push({ display: 'Derivative x^2', response: { ...result, metrics: { ai_calls: 0 } }, aiAttempts: [
+  app.state.messages.push({ display: 'Derivative x^2', response: { ...result, metrics: { route: 'solver', ai_calls: 0, solver_ms: 12.5, elapsed_ms: 25.75 } }, aiAttempts: [
     { status: 'answered', action: 'explain', metrics: { ai_calls: 1, total_tokens: 40 } },
     { status: 'answered', action: 'explain', metrics: { ai_calls: 1, total_tokens: 60 } },
   ] });
@@ -119,6 +119,9 @@ test('session export includes all explanation calls and reported tokens', () => 
   assert.match(app.state.copiedEvidence, /General-model calls: 2/);
   assert.match(app.state.copiedEvidence, /Reported tokens: 100/);
   assert.match(app.state.copiedEvidence, /AI attempts: 2/);
+  assert.match(app.state.copiedEvidence, /Routes: solver \+ explain/);
+  assert.match(app.state.copiedEvidence, /Solver time: 12\.50 ms/);
+  assert.match(app.state.copiedEvidence, /Total solve time: 25\.75 ms/);
 });
 
 test('session export never treats interrupted AI usage as zero', () => {

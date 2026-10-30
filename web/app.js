@@ -407,7 +407,14 @@
       lines.push(`${index + 1}. ${message.display}`);
       lines.push(`Status: ${response.status || (message.loading ? 'loading' : 'error')}`);
       if (response.result !== null && response.result !== undefined) lines.push(`Result: ${response.result}`);
-      if (response.verification && response.verification.detail) lines.push(`Verification: ${response.verification.detail}`);
+      if (response.verification) {
+        const verification = response.verification.detail ? `${checkLabel(response.verification.status)}: ${response.verification.detail}` : checkLabel(response.verification.status);
+        lines.push(`Verification: ${verification}`);
+      }
+      lines.push(`Routes: ${metrics.routes.join(' + ')}`);
+      lines.push(`Solver time: ${metricValue(metrics.solverMetrics.solver_ms, 'ms')}`);
+      lines.push(`Total solve time: ${metricValue(metrics.solverMetrics.elapsed_ms, 'ms')}`);
+      lines.push(`AI time: ${metricValue(metrics.aiLatency, 'ms')}`);
       lines.push(`General-model calls: ${Number.isFinite(metrics.aiCalls) ? metrics.aiCalls : 'not reported'}`);
       lines.push(`Reported tokens: ${Number.isFinite(metrics.totalTokens) ? metrics.totalTokens : 'not reported'}`);
       lines.push(`AI attempts: ${metrics.attempts}`);
