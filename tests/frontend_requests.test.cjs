@@ -13,7 +13,7 @@ function appHarness() {
   const context = vm.createContext({
     AbortController,
     document: {
-      querySelector: () => ({ dataset: {}, hidden: true, classList: { add() {}, remove() {}, contains() { return false; } } }),
+      querySelector: () => ({ dataset: {}, hidden: true, children: [], classList: { add() {}, remove() {}, contains() { return false; } }, replaceChildren(...nodes) { this.children = nodes; }, append(...nodes) { this.children.push(...nodes); } }),
       body: { append(node) { downloads.push(node); } },
       createElement: () => ({ style: {}, children: [], attributes: {}, append(...nodes) { this.children.push(...nodes); }, setAttribute(name, value) { this.attributes[name] = value; }, addEventListener(event, callback) { this[event] = callback; }, click() { this.clicked = true; }, remove() { this.removed = true; } }),
     },
@@ -29,7 +29,7 @@ function appHarness() {
     renderMessages = () => {};
     copyText = (value) => { state.copiedEvidence = value; };
     setServiceStatus = (kind, label) => { state.serviceLabel = label; };
-    this.app = { state, elements, solve, cancelSolve, retrySolve, requestAi, cancelAi, copySessionEvidence, downloadSessionEvidence, sessionEvidenceText, addCopyActions, exampleValues, routeLabel, shouldFocusComposer, shouldCloseSidebarOnEscape, shouldFocusChatSearch, latestMessage, renderAiResponse };
+    this.app = { state, elements, solve, cancelSolve, retrySolve, requestAi, cancelAi, copySessionEvidence, downloadSessionEvidence, sessionEvidenceText, addCopyActions, exampleValues, routeLabel, shouldFocusComposer, shouldCloseSidebarOnEscape, shouldFocusChatSearch, latestMessage, renderAiResponse, renderChatList };
   })();`), context);
   return { ...context.app, pending, timers, downloads };
 }
@@ -77,6 +77,14 @@ test('latest question navigation selects the newest session message', () => {
   const app = appHarness();
   assert.equal(app.latestMessage([]), null);
   assert.equal(app.latestMessage([{ id: '1' }, { id: '2' }]).id, '2');
+});
+
+test('selected chat row exposes aria-current', () => {
+  const app = appHarness();
+  app.state.messages = [{ id: '1', request: { operation: 'derivative', expression: 'x' } }];
+  app.state.selectedMessageId = '1';
+  app.renderChatList();
+  assert.equal(app.elements.chatList.children[0].attributes['aria-current'], 'true');
 });
 
 for (const [question, expected] of [
