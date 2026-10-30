@@ -444,7 +444,7 @@
     if (!['deterministic', 'jev', 'ai_only'].includes(mode)) return { message: 'Choose a supported route.', fields: [] };
     const prompt = String(payload.prompt || '').trim();
     if (prompt.length > 2000) return { message: 'That language question is too long. Shorten it and try again.', fields: ['routePrompt'] };
-    const requestError = payload.request.expression ? validateRequest(payload.request) : null;
+    const requestError = payload.request && payload.request.expression ? validateRequest(payload.request) : null;
     if (requestError) return requestError;
     if (!payload.request.expression && !prompt) return { message: 'Enter an expression or a language question before sending.', fields: ['expression', 'routePrompt'] };
     return null;

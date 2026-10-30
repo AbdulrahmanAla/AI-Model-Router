@@ -74,6 +74,12 @@ test('free form prose stays a prompt and is never treated as a formula', () => {
   assert.equal(parsed.prompt, 'Can you explain why the power rule works');
 });
 
+test('general chat prompts pass route validation without a structured request', () => {
+  const app = appHarness();
+  const payload = { mode: 'deterministic', request: null, prompt: 'hi' };
+  assert.equal(app.validateRoutePayload(payload), null);
+});
+
 function descendants(node) {
   return (node.children || []).flatMap((child) => [child, ...descendants(child)]);
 }
