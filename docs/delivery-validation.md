@@ -184,3 +184,11 @@ The local gate passed 87 Python tests, 105 frontend tests, syntax checks, and al
 The browser submitted `x*exp(x*x)`, displayed `exp(x**2)/2` with seven numbered steps, a symbolic residual check, and zero model calls. After waiting for the copy-success notification, reading the clipboard confirmed all seven steps, including the scaling and substitution back. Browser error/warning logs were empty.
 
 ![Worked nonlinear substitution in the result card](evidence/nonlinear-substitution.png)
+
+## Discoverable worked examples
+
+The welcome screen and sidebar open a native **Worked examples** dialog. Eight presets cover the existing math operations, recognized worked methods, and two safe stopping cases. Selection restores bounds and limit direction through the shared composer path and focuses the expression without submitting. The gallery header stays visible while the list scrolls.
+
+The local gate passed 87 Python tests, 106 frontend tests, syntax checks, and all 40 frozen HTTP evaluation cases. A frontend regression changes from a right-hand limit to a definite-integral example and verifies both bounds, cleared limit context, and no request. The browser exercised both gallery entrypoints, loaded that sequence, and submitted `x^2` from 0 to 1 to obtain `1/3` with zero model calls. Escape closed the dialog and returned focus to its opener. At an effective narrow CSS width of about 433 px, all eight choices were reachable and the close control stayed visible after scrolling. Selecting and submitting the real-domain example returned an unresolved result explaining that the square-root domain is outside the real interval, with zero model calls. The viewport override was reset.
+
+![Scrollable worked examples with a persistent close control](evidence/worked-examples-mobile.png)

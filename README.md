@@ -6,7 +6,7 @@ The check label describes the evidence available for each answer. Numerical samp
 
 ## Run locally
 
-Python 3.14 is the tested runtime. Node.js is used only to check JavaScript syntax.
+Python 3.14 is the tested runtime. Node.js runs the frontend behavior tests and JavaScript syntax checks.
 
 ```powershell
 python -m venv .venv
@@ -19,6 +19,16 @@ Open [AI Math Assistant locally](http://127.0.0.1:8000). Choose an operation, en
 Choose **Edit question** beneath an answer or error to restore that question to the composer, including integral bounds or limit direction. Change it and submit to create a new attempt while retaining the original in the session. Editing alone makes no solver or AI call.
 
 Useful demo shortcuts: press `/` from the page to focus the math composer, `Ctrl+K` on Windows or `Cmd+K` on macOS to search the session chats, and `Escape` to close the mobile sidebar or cancel an active request.
+
+## Try the worked examples
+
+1. Open **Worked examples** in the sidebar, or **Explore worked examples** on the welcome screen.
+2. Choose **Substitution** or **Integration by parts**. Selection fills the composer without making a request.
+3. Press **Solve**. Read the exact result, numbered steps, check status, and model-call count.
+4. Open **Worked examples** again and choose **Definite integral**. Both bounds are filled for you.
+5. Try **A limit that does not exist** or **Real-domain check** to see why the exact route stops safely.
+
+Explanations from an AI provider remain optional. The worked steps for recognized rules use deterministic calculations. These are educational derivations, not a trace of every internal SymPy operation.
 
 ## Check before a direct merge
 

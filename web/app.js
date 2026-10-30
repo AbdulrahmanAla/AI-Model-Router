@@ -17,7 +17,7 @@
     operationHint: $('#operation-hint'), inputHelp: $('#input-help'), send: $('#send-button'), messages: $('#messages'), welcome: $('#welcome'), sessionStats: $('#session-stats'),
     formError: $('#form-error'),
     chatList: $('#chat-list'), chatSearchWrap: $('#chat-search-wrap'), chatSearch: $('#chat-search'), chatSearchToggle: $('#search-toggle'), status: $('#service-status'), toast: $('#toast'),
-    appShell: document.querySelector('.app-shell'), sidebar: $('#sidebar'), openSidebar: $('#open-sidebar'), help: $('#help-dialog'), routeHelp: $('#route-dialog'), conversation: $('#conversation')
+    appShell: document.querySelector('.app-shell'), sidebar: $('#sidebar'), openSidebar: $('#open-sidebar'), help: $('#help-dialog'), examples: $('#examples-dialog'), routeHelp: $('#route-dialog'), conversation: $('#conversation')
   };
 
   const mathFields = {};
@@ -1085,8 +1085,8 @@
     return {
       operation: button.dataset.operation || 'derivative',
       expression: button.dataset.expression || '',
-      lower: '',
-      upper: '',
+      lower: button.dataset.lower || '',
+      upper: button.dataset.upper || '',
       target: button.dataset.target || '',
       direction: button.dataset.direction || 'both'
     };
@@ -1164,6 +1164,7 @@
 
   function applyExample(button) {
     elements.help.close();
+    elements.examples.close();
     fillComposer(exampleValues(button));
   }
 
@@ -1176,7 +1177,7 @@
       if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); elements.form.requestSubmit(); }
     });
     document.addEventListener('keydown', (event) => {
-      const dialogOpen = elements.help.open || elements.routeHelp.open;
+      const dialogOpen = elements.help.open || elements.examples.open || elements.routeHelp.open;
       if (!dialogOpen && shouldFocusChatSearch(event, document.activeElement && document.activeElement.tagName)) {
         event.preventDefault();
         closeMobileSidebar();
@@ -1189,7 +1190,7 @@
         return;
       }
       if (event.key !== 'Escape') return;
-      if (elements.help.open || elements.routeHelp.open) return;
+      if (elements.help.open || elements.examples.open || elements.routeHelp.open) return;
       if (shouldCloseSidebarOnEscape(event, elements.sidebar.classList.contains('open'))) {
         closeMobileSidebar();
         return;
@@ -1205,6 +1206,10 @@
     });
     $('#new-chat').addEventListener('click', () => { closeMobileSidebar(); resetChat(); });
     $('#syntax-help').addEventListener('click', () => { closeMobileSidebar(); elements.help.showModal(); });
+    ['#worked-examples', '#explore-examples'].forEach((selector) => {
+      $(selector).addEventListener('click', () => { closeMobileSidebar(); elements.examples.showModal(); });
+    });
+    $('#close-examples').addEventListener('click', () => elements.examples.close());
     $('#route-help').addEventListener('click', () => { closeMobileSidebar(); elements.routeHelp.showModal(); });
     $('#session-copy').addEventListener('click', () => { closeMobileSidebar(); copySessionEvidence(); });
     $('#session-download').addEventListener('click', () => { closeMobileSidebar(); downloadSessionEvidence(); });
@@ -1223,7 +1228,7 @@
     document.querySelectorAll('.starter-prompt').forEach((button) => {
       button.addEventListener('click', () => applyExample(button));
     });
-    document.querySelectorAll('.syntax-example').forEach((button) => {
+    document.querySelectorAll('.syntax-example, .worked-example').forEach((button) => {
       button.addEventListener('click', () => applyExample(button));
     });
   }

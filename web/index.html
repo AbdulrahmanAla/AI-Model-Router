@@ -17,6 +17,7 @@
       </div>
       <button class="new-chat" id="new-chat" type="button"><span class="new-icon" aria-hidden="true">+</span><span>New chat</span></button>
       <nav class="sidebar-nav" aria-label="Assistant tools">
+        <button class="nav-item" id="worked-examples" type="button"><span class="nav-icon" aria-hidden="true">∫</span><span>Worked examples</span></button>
         <button class="nav-item" id="syntax-help" type="button"><span class="nav-icon" aria-hidden="true">?</span><span>Syntax help</span></button>
         <button class="nav-item" id="route-help" type="button"><span class="nav-icon" aria-hidden="true">↯</span><span>Why this route?</span></button>
         <button class="nav-item" id="session-copy" type="button"><span class="nav-icon" aria-hidden="true">↗</span><span>Copy session evidence</span></button>
@@ -51,6 +52,7 @@
           <button type="button" class="starter-prompt" data-operation="limit" data-expression="sqrt(x)" data-target="0" data-direction="+">Right-hand limit √x</button>
           <button type="button" class="starter-prompt" data-operation="equation" data-expression="x^2 - 4 = 0">Solve x² − 4 = 0</button>
         </div>
+        <button class="explore-examples" id="explore-examples" type="button">Explore worked examples</button>
         </div>
         <div class="messages" id="messages"></div>
       </section>
@@ -90,6 +92,23 @@
       </section>
     </main>
   </div>
+
+  <dialog class="help-dialog" id="examples-dialog" aria-labelledby="examples-title">
+    <div class="dialog-header"><h2 id="examples-title">Worked examples</h2><button class="icon-button" id="close-examples" type="button" aria-label="Close worked examples">×</button></div>
+    <div class="dialog-body">
+      <p>Choose a question to fill the composer, then press <strong>Solve</strong>. Selecting an example makes no solver or AI request.</p>
+      <div class="worked-example-list">
+        <button type="button" class="worked-example" aria-label="Try chain rule" data-operation="derivative" data-expression="sin(x^2)"><strong>Chain rule</strong><code>sin(x^2)</code><span>Differentiate an outer and inner function.</span></button>
+        <button type="button" class="worked-example" aria-label="Try substitution" data-operation="integral" data-expression="x*exp(x^2)"><strong>Substitution</strong><code>x*exp(x^2)</code><span>Match the differential and integrate in u.</span></button>
+        <button type="button" class="worked-example" aria-label="Try integration by parts" data-operation="integral" data-expression="x*exp(x)"><strong>Integration by parts</strong><code>x*exp(x)</code><span>Choose u and dv, then evaluate the remaining integral.</span></button>
+        <button type="button" class="worked-example" aria-label="Try definite integral" data-operation="integral" data-expression="x^2" data-lower="0" data-upper="1"><strong>Definite integral</strong><code>x^2, from 0 to 1</code><span>Find an antiderivative and evaluate both bounds.</span></button>
+        <button type="button" class="worked-example" aria-label="Try one-sided limit" data-operation="limit" data-expression="sqrt(x)" data-target="0" data-direction="+"><strong>One-sided limit</strong><code>sqrt(x), x → 0 from the right</code><span>Approach a real-domain boundary from a valid side.</span></button>
+        <button type="button" class="worked-example" aria-label="Try a limit that does not exist" data-operation="limit" data-expression="1/x" data-target="0" data-direction="both"><strong>A limit that does not exist</strong><code>1/x, x → 0 from both sides</code><span>See why disagreeing sides stop the exact route.</span></button>
+        <button type="button" class="worked-example" aria-label="Try quadratic roots" data-operation="equation" data-expression="x^2-2=0"><strong>Quadratic roots</strong><code>x^2-2=0</code><span>Find exact real roots and check them by substitution.</span></button>
+        <button type="button" class="worked-example" aria-label="Try real-domain check" data-operation="integral" data-expression="sqrt(x)" data-lower="-1" data-upper="1"><strong>Real-domain check</strong><code>sqrt(x), from -1 to 1</code><span>See the solver stop when an interval leaves the real domain.</span></button>
+      </div>
+    </div>
+  </dialog>
 
   <dialog class="help-dialog" id="help-dialog" aria-labelledby="help-title">
     <div class="dialog-header"><h2 id="help-title">Supported syntax</h2><button class="icon-button" id="close-help" type="button" aria-label="Close syntax help">×</button></div>

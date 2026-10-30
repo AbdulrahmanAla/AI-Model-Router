@@ -391,6 +391,16 @@ test('examples carry their own limit direction', () => {
   assert.equal(app.exampleValues({ dataset: { operation: 'limit', expression: 'sin(x)/x', target: '0' } }).direction, 'both');
 });
 
+test('a definite-integral example restores both bounds and clears prior limit context without making a request', () => {
+  const app = appHarness({ withMathQuill: true });
+  app.fillComposer({ operation: 'limit', expression: 'sqrt(x)', target: '0', direction: '+' });
+  app.fillComposer(app.exampleValues({ dataset: { operation: 'integral', expression: 'x^2', lower: '0', upper: '1' } }));
+  assert.deepEqual(JSON.parse(JSON.stringify(app.buildRequest())), {
+    operation: 'integral', expression: 'x^(2)', variable: 'x', lower: '0', upper: '1', target: null, direction: null,
+  });
+  assert.equal(app.pending.length, 0);
+});
+
 test('route label makes the exact local path explicit', () => {
   const app = appHarness();
   assert.equal(app.routeLabel({ aiCalls: 0, routes: ['solver'] }), 'Exact local · 0 model calls');

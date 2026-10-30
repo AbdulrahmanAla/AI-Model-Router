@@ -15,6 +15,7 @@ The user approved the current ChatGPT-style layout and the test boundaries on 29
 - Display familiar exact-result notation with the bundled MathQuill static renderer, including fractions, ordinary roots, powers, and finite sets. Keep the authoritative typed answer for accessibility, copying, and session evidence. Unknown commands, indexed roots, excessive notation, or renderer failure retain the typed answer instead of risking a partial visual formula. No new network dependency or AI call is needed for formatting.
 - Session-only conversation history, new chat, supported syntax help, mobile layout, keyboard submission, loading state, readable errors, and accessible labels.
 - Submitting a question and receiving its result reveal the start of that question inside the conversation pane. Reveal a completed result only when the student is still following the conversation near its bottom; preserve their position if they scrolled up. Scrolling a new answer must not move the outer page or hide the header.
+- A worked-example gallery is available from the welcome screen and sidebar. Its eight presets demonstrate chain rule, substitution, integration by parts, definite bounds, a one-sided limit, a two-sided limit that does not exist, quadratic roots, and a real-domain refusal. Selection restores the complete operation context and focuses the composer without submitting or calling AI. The native dialog supports Escape, keeps its close control visible while scrolling, and participates in the modal shortcut guards.
 
 ## Runtime and grammar
 
