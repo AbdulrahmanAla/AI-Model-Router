@@ -95,6 +95,18 @@ test('exact result cards offer LaTeX copying without changing the typed result c
   assert.equal(app.state.copiedEvidence, '1/(2*sqrt(x))');
 });
 
+test('result cards copy the complete structured request including context fields', () => {
+  const app = appHarness();
+  const buttons = [];
+  const requestWithContext = { operation: 'limit', expression: 'sqrt(x)', variable: 'x', lower: null, upper: null, target: '0', direction: '+' };
+  app.addCopyActions({ result: '0', steps: [] }, { append: (button) => buttons.push(button) }, requestWithContext);
+  const copy = buttons.find((button) => button.textContent === 'Copy request JSON');
+  assert.ok(copy);
+  assert.equal(copy.attributes['aria-label'], 'Copy structured request JSON');
+  copy.click();
+  assert.equal(app.state.copiedEvidence, JSON.stringify(requestWithContext));
+});
+
 for (const [label, options, latex] of [
   ['missing library', {}, '\\frac{1}{x}'],
   ['renderer failure', { withMathQuill: true, staticMathFailure: true }, '\\frac{1}{x}'],

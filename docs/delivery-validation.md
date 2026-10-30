@@ -240,3 +240,7 @@ Solved cards now expose **Copy LaTeX** when the server's LaTeX result differs fr
 ## Reusing copied solutions
 
 The full solution copy now includes both `Result:` in the structured solver notation and `LaTeX:` when the server provides a distinct rendered form. Verification, route, timing, optional AI text, notes, and numbered steps remain in the same export. Browser verification of this text-only clipboard addition remains pending because browser controls are unavailable in this turn.
+
+## Reproducing a result request
+
+Result cards now include **Copy request JSON**. It preserves operation context such as integral bounds and limit direction, without making a new solver or AI call. The frontend contract test verifies the exact serialized request. Browser verification remains pending because browser controls are unavailable in this turn.

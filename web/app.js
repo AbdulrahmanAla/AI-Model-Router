@@ -532,6 +532,13 @@
   }
 
   function addCopyActions(response, card, request, message = null) {
+    if (request && typeof request === 'object') {
+      const copyRequest = element('button', '', 'Copy request JSON');
+      copyRequest.type = 'button';
+      copyRequest.setAttribute('aria-label', 'Copy structured request JSON');
+      copyRequest.addEventListener('click', () => copyText(JSON.stringify(request), 'Structured request copied.'));
+      card.append(copyRequest);
+    }
     if (response.result !== null && response.result !== undefined) {
       const copyResult = element('button', '', 'Copy exact result');
       copyResult.type = 'button';
