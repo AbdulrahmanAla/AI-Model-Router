@@ -85,10 +85,23 @@ for (const [question, expected] of [
     assert.ok(app.state.copiedEvidence.includes(`Question: ${expected}`));
     assert.match(app.state.copiedEvidence, /Verification \(Symbolic check\): Checked\./);
     assert.match(app.state.copiedEvidence, /Numerical samples are not a proof/);
-    assert.match(app.state.copiedEvidence, /Route: solver/);
-    assert.match(app.state.copiedEvidence, /Timing: solver 4\.50 ms; total 9\.25 ms/);
+    assert.match(app.state.copiedEvidence, /Routes: solver/);
+    assert.match(app.state.copiedEvidence, /Timing: solver 4\.50 ms; total 9\.25 ms; AI Not reported/);
   });
 }
+
+test('full-solution copy counts optional AI attempts', () => {
+  const app = appHarness();
+  const buttons = [];
+  const message = { display: 'Derivative x^2', response: { ...result, metrics: { route: 'solver', ai_calls: 0, solver_ms: 4, elapsed_ms: 8 }, steps: ['Compute the result.'] }, aiAttempts: [
+    { status: 'answered', action: 'explain', metrics: { route: 'ai', ai_calls: 1, latency_ms: 12, total_tokens: 20 } }
+  ] };
+  app.addCopyActions(message.response, { append: (button) => buttons.push(button) }, request, message);
+  buttons.find((button) => button.textContent === 'Copy full solution').click();
+  assert.match(app.state.copiedEvidence, /Routes: solver \+ ai/);
+  assert.match(app.state.copiedEvidence, /General-model calls: 1/);
+  assert.match(app.state.copiedEvidence, /AI 12\.00 ms/);
+});
 
 for (const body of [null, {}, [], { status: 'solved', result: { value: '2*x' } }, { status: 'solved', result: '2*x' }, { ...result, status: 'unresolved' }]) {
   test(`invalid solver response is retryable: ${JSON.stringify(body)}`, async () => {

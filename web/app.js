@@ -232,7 +232,7 @@
     }
   }
 
-  function addCopyActions(response, card, request) {
+  function addCopyActions(response, card, request, message = null) {
     if (response.result !== null && response.result !== undefined) {
       const copyResult = element('button', '', 'Copy exact result');
       copyResult.type = 'button';
@@ -250,10 +250,11 @@
       copyFull.type = 'button';
       copyFull.addEventListener('click', () => {
         const verification = response.verification && response.verification.detail ? `Verification (${checkLabel(response.verification.status)}): ${response.verification.detail}` : '';
-        const metrics = response.metrics || {};
-        const route = `Route: ${metrics.route || 'not reported'}`;
-        const calls = `General-model calls: ${Number.isFinite(metrics.ai_calls) ? metrics.ai_calls : 'not reported'}`;
-        const timing = `Timing: solver ${metricValue(metrics.solver_ms, 'ms')}; total ${metricValue(metrics.elapsed_ms, 'ms')}`;
+        const combined = message ? combinedMetrics(message) : null;
+        const metrics = combined ? combined.solverMetrics : (response.metrics || {});
+        const route = `Routes: ${combined ? combined.routes.join(' + ') : (metrics.route || 'not reported')}`;
+        const calls = `General-model calls: ${combined ? (Number.isFinite(combined.aiCalls) ? combined.aiCalls : 'not reported') : (Number.isFinite(metrics.ai_calls) ? metrics.ai_calls : 'not reported')}`;
+        const timing = `Timing: solver ${metricValue(metrics.solver_ms, 'ms')}; total ${metricValue(metrics.elapsed_ms, 'ms')}; AI ${metricValue(combined && combined.aiLatency, 'ms')}`;
         const steps = response.steps.map((step, index) => `${index + 1}. ${step}`).join('\n');
         const notes = Array.isArray(response.notes) && response.notes.length ? `Notes:\n${response.notes.join('\n')}` : '';
         copyText([`Question: ${displayRequest(request)}`, `Result: ${response.result}`, verification, route, calls, timing, notes, `Steps:\n${steps}`].filter(Boolean).join('\n'), 'Full solution copied.');
@@ -323,7 +324,7 @@
     }
     renderSteps(response, card);
     const copyActions = element('div', 'card-actions');
-    addCopyActions(response, copyActions, message.request);
+    addCopyActions(response, copyActions, message.request, message);
     if (copyActions.childElementCount) card.append(copyActions);
     const details = element('details', 'route-details');
     details.append(element('summary', '', 'Show route details'));
