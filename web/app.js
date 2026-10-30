@@ -337,7 +337,9 @@
     const cardClass = response.status === 'solved' ? 'answer-card' : 'answer-card unresolved-card';
     const card = element('div', cardClass);
     const heading = element('div', 'answer-heading');
-    heading.append(element('span', `verification-icon ${response.verification ? response.verification.status : 'not_checked'}`, verificationIcon(response.verification && response.verification.status)));
+    const verificationMark = element('span', `verification-icon ${response.verification ? response.verification.status : 'not_checked'}`, verificationIcon(response.verification && response.verification.status));
+    verificationMark.setAttribute('aria-hidden', 'true');
+    heading.append(verificationMark);
     heading.append(element('span', '', resultLabel(response)));
     heading.append(element('span', 'check-label', checkLabel(response.verification && response.verification.status)));
     const routeMetrics = combinedMetrics(message);

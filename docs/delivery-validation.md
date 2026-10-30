@@ -37,6 +37,7 @@ The actual website at `http://127.0.0.1:8000` was exercised through the in-app b
 - Result-card copy actions expose distinct accessible labels for the exact result, all derivation steps, and the complete verified or unresolved attempt.
 - Escape closes an open chat search and clears its filter before request cancellation is considered.
 - Exact formulas expose a semantic status role and an accessible label containing the computed result.
+- Verification icons are decorative and hidden from assistive technology while the adjacent status text remains available.
 - The composer hint documents Enter to solve, Shift+Enter for a new line, and Escape to cancel an active request.
 
 The wide and narrow viewport controls were set to 1366 by 900 and 390 by 844 respectively. Browser zoom and screenshot pixel scaling can make captured pixel dimensions differ from those requested values.
