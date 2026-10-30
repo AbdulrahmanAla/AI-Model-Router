@@ -540,6 +540,7 @@
     const solverMetrics = message.response && message.response.metrics ? message.response.metrics : {};
     const attempts = Array.isArray(message.aiAttempts) ? message.aiAttempts : (message.ai ? [message.ai] : []);
     const attemptMetrics = attempts.map((attempt) => attempt.metrics || {});
+    const routedAiAttempt = !attempts.length && solverMetrics.route && solverMetrics.route !== 'solver' && Number.isFinite(solverMetrics.ai_calls) && solverMetrics.ai_calls > 0 ? 1 : 0;
     const aiCalls = attempts.length
       ? sumKnown(attemptMetrics.map((metrics) => Number.isFinite(metrics.ai_calls) ? metrics.ai_calls : NaN))
       : (Number.isFinite(solverMetrics.ai_calls) ? solverMetrics.ai_calls : null);
@@ -550,7 +551,7 @@
     const models = [...new Set(attemptMetrics.map((metrics) => metrics.model).filter(Boolean))];
     const routes = [...new Set([solverMetrics.route || (message.routeMode === 'exact' ? 'solver' : message.routeMode) || 'solver', ...attempts.map((attempt) => (attempt.metrics && attempt.metrics.route) || attempt.action).filter(Boolean)])];
     const statuses = [...new Set(attempts.map((attempt) => (attempt.metrics && attempt.metrics.status) || attempt.status).filter(Boolean))];
-    return { aiCalls, aiLatency, attempts: attempts.length, totalTokens, solverMetrics, models, routes, statuses };
+    return { aiCalls, aiLatency, attempts: attempts.length || routedAiAttempt, totalTokens, solverMetrics, models, routes, statuses };
   }
 
   function answeredAiTexts(message) {
@@ -913,7 +914,10 @@
         const status = message.response.verification && message.response.verification.status;
         summary.checks[Object.hasOwn(summary.checks, status) ? status : 'not_checked'] += 1;
       } else if (message.response && message.response.status === 'unresolved') summary.unresolved += 1;
-      else summary.failed += 1;
+      else if (message.response && message.response.status === 'answered') {
+        const status = message.response.verification && message.response.verification.status;
+        summary.checks[Object.hasOwn(summary.checks, status) ? status : 'not_checked'] += 1;
+      } else summary.failed += 1;
     });
     const metrics = state.messages.map(combinedMetrics);
     const providerMetrics = metrics.filter((item) => item.attempts > 0);
@@ -1122,11 +1126,13 @@
       if (message.cancelled || error.status === 422) setServiceStatus('ready', 'Solver ready');
       else setServiceStatus('error', 'Solver unavailable');
     } finally {
-      if (!current()) return;
-      state.activeSolve = null;
-      state.solving = false;
-      elements.send.disabled = false;
-      renderMessages(false, message.id);
+      const ownsRequest = current();
+      if (state.activeSolve === controller) {
+        state.activeSolve = null;
+        state.solving = false;
+        elements.send.disabled = false;
+      }
+      if (ownsRequest) renderMessages(false, message.id);
     }
   }
 
@@ -1155,11 +1161,13 @@
       message.error = message.cancelled ? 'Route cancelled. You can retry this question.' : (error.message || 'The selected route is unavailable.');
       setServiceStatus(error.status === 422 ? 'ready' : 'error', error.status === 422 ? 'Solver ready' : 'Route unavailable');
     } finally {
-      if (!current()) return;
-      state.activeSolve = null;
-      state.solving = false;
-      elements.send.disabled = false;
-      renderMessages(false, message.id);
+      const ownsRequest = current();
+      if (state.activeSolve === controller) {
+        state.activeSolve = null;
+        state.solving = false;
+        elements.send.disabled = false;
+      }
+      if (ownsRequest) renderMessages(false, message.id);
     }
   }
 
