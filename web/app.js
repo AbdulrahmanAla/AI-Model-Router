@@ -333,7 +333,11 @@
     setText(elements.operationHint, operationCopy[operation].hint);
     if (elements.routeModeHint) setText(elements.routeModeHint, (routeCopy[routeMode] || routeCopy.exact).hint);
     const multiplicationHelp = mathFields.expression ? ' Visual entry accepts implicit multiplication such as 2x.' : ' Use explicit multiplication, such as 2*x.';
-    setText(elements.inputHelp, `${operationCopy[operation].help}${multiplicationHelp} Enter solves; Shift+Enter makes a new line; / focuses the composer; Escape cancels a running request.`);
+    if (elements.chatInput) {
+      setText(elements.inputHelp, 'Ask a math question or type anything you want help with. Enter sends; Shift+Enter adds a line; Escape cancels a running request.');
+    } else {
+      setText(elements.inputHelp, `${operationCopy[operation].help}${multiplicationHelp} Enter solves; Shift+Enter makes a new line; / focuses the composer; Escape cancels a running request.`);
+    }
     const placeholders = {
       derivative: 'For example: x^3*sin(x)',
       integral: 'For example: 2*x + cos(x)',
