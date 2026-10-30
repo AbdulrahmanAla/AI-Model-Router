@@ -70,3 +70,4 @@ The composer uses a bundled MathQuill editor for expressions, bounds, and limit 
 
 MathQuill is included under the Mozilla Public License. See `web/assets/LICENSES.txt` for third-party notices.
 Solved cards expose **Copy exact result** for the typed solver contract and **Copy LaTeX** for math-aware editors when a distinct LaTeX form is available. The two formats serve different uses and never replace one another.
+Full-solution copying includes the typed result and a LaTeX line when available, plus verification and steps.

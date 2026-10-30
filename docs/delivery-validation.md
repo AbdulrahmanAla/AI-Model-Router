@@ -236,3 +236,7 @@ The local gate passed 92 Python tests, 111 frontend tests, syntax checks, and al
 ## Reusing exact results
 
 Solved cards now expose **Copy LaTeX** when the server's LaTeX result differs from the typed result. **Copy exact result** remains the authoritative structured string used by the API and evidence. A frontend contract test checks both clipboard values and their labels, and confirms the feature is absent when no distinct LaTeX form exists. The full local gate passed 92 Python tests, 112 frontend tests, JavaScript checks, and all 40 frozen HTTP evaluation cases. Browser verification of this small card action remains pending because the browser-control runtime is unavailable in this turn.
+
+## Reusing copied solutions
+
+The full solution copy now includes both `Result:` in the structured solver notation and `LaTeX:` when the server provides a distinct rendered form. Verification, route, timing, optional AI text, notes, and numbered steps remain in the same export. Browser verification of this text-only clipboard addition remains pending because browser controls are unavailable in this turn.

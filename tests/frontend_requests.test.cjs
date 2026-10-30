@@ -574,7 +574,7 @@ for (const [question, expected] of [
   test(`full-solution copy preserves context: ${expected}`, () => {
     const app = appHarness();
     const buttons = [];
-    app.addCopyActions({ ...result, expression: question.expression, metrics: { route: 'solver', ai_calls: 0, solver_ms: 4.5, elapsed_ms: 9.25 }, steps: ['Compute the result.'],
+    app.addCopyActions({ ...result, expression: question.expression, latex: '\\frac{1}{2}x', metrics: { route: 'solver', ai_calls: 0, solver_ms: 4.5, elapsed_ms: 9.25 }, steps: ['Compute the result.'],
       notes: ['Numerical samples are not a proof.'] }, { append: (button) => buttons.push(button) }, question);
     assert.equal(buttons.find((button) => button.textContent === 'Copy exact result').attributes['aria-label'], 'Copy exact result');
     assert.equal(buttons.find((button) => button.textContent === 'Copy steps').attributes['aria-label'], 'Copy all solution steps');
@@ -582,6 +582,7 @@ for (const [question, expected] of [
     buttons.find((button) => button.textContent === 'Copy full solution').click();
     assert.ok(app.state.copiedEvidence.includes(`Question: ${expected}`));
     assert.match(app.state.copiedEvidence, /Verification \(Symbolic check\): Checked\./);
+    assert.match(app.state.copiedEvidence, /LaTeX: \\frac\{1\}\{2\}x/);
     assert.match(app.state.copiedEvidence, /Numerical samples are not a proof/);
     assert.match(app.state.copiedEvidence, /Routes: solver/);
     assert.match(app.state.copiedEvidence, /Timing: solver 4\.50 ms; total 9\.25 ms; AI Not reported/);

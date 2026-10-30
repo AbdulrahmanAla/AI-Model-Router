@@ -84,3 +84,4 @@ Pinned Python dependencies, `.env.example`, local run/check commands, Dockerfile
 
 Implementation units: bounded solver API, functional chat website, optional AI API contract, evaluation harness, and local/manual delivery. Each unit is implemented on a branch from `codex/ai-math-assistant`, checked locally, and merged directly. Final review compares against prototype commit `d75f7f9` and this spec.
 - Solved result cards offer a LaTeX copy action when the response includes a LaTeX form distinct from the typed result. The exact typed result copy remains available and unchanged. An unresolved result does not offer a misleading exact or LaTeX answer copy.
+- Full-solution exports include the typed result and, when distinct, the server's LaTeX result so a copied solution preserves both machine-friendly and math-editor-friendly forms.

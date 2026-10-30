@@ -568,7 +568,8 @@
         const steps = response.steps.map((step, index) => `${index + 1}. ${step}`).join('\n');
         const notes = Array.isArray(response.notes) && response.notes.length ? `Notes:\n${response.notes.join('\n')}` : '';
         const resultLine = response.result !== null && response.result !== undefined ? `Result: ${response.result}` : `Status: ${response.status || 'unresolved'}`;
-        copyText([`Question: ${displayRequest(request)}`, resultLine, verification, route, calls, timing, ...aiTexts, notes, `Steps:\n${steps}`].filter(Boolean).join('\n'), response.status === 'unresolved' ? 'Full attempt copied.' : 'Full solution copied.');
+        const latexLine = response.latex ? `LaTeX: ${response.latex}` : '';
+        copyText([`Question: ${displayRequest(request)}`, resultLine, latexLine, verification, route, calls, timing, ...aiTexts, notes, `Steps:\n${steps}`].filter(Boolean).join('\n'), response.status === 'unresolved' ? 'Full attempt copied.' : 'Full solution copied.');
       });
       card.append(copyFull);
     }
