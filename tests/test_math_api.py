@@ -100,6 +100,16 @@ def test_definite_integral_reports_independent_quadrature() -> None:
     assert body["verification"]["status"] == "numerical_evidence"
 
 
+def test_improper_integrals_accept_infinite_bounds_with_honest_check_status() -> None:
+    for expression, lower, upper in [("exp(x)", "-oo", "0"), ("exp(-x)", "0", "oo")]:
+        response = client.post("/api/solve", json={"operation": "integral", "expression": expression, "lower": lower, "upper": upper})
+        body = response.json()
+        assert response.status_code == 200
+        assert body["status"] == "solved"
+        assert body["result"] == "1"
+        assert body["verification"]["status"] == "not_checked"
+
+
 def test_limit_uses_both_sides_when_direction_is_omitted() -> None:
     response = client.post("/api/solve", json={"operation": "limit", "expression": "sin(x)/x", "target": "0"})
     body = response.json()
