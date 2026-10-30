@@ -90,6 +90,13 @@ test('MathQuill edit roundtrip keeps grouped and multidigit exponents intact', (
   }
 });
 
+test('restoring a square-root example keeps the radicand inside the root', () => {
+  const app = appHarness({ withMathQuill: true });
+  assert.equal(app.expressionToLatex('sqrt(x)'), '\\sqrt x');
+  app.setFieldValue('expression', 'sqrt(x)');
+  assert.equal(app.buildRequest().expression, 'sqrt(x)');
+});
+
 test('visual editor request construction includes operation context while typed fallback remains usable', () => {
   const visual = appHarness({ withMathQuill: true });
   visual.elements.operation.value = 'integral';

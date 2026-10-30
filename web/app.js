@@ -80,9 +80,14 @@
             cursor = skipLatexSpace(source, rootIndex.end);
           }
         }
+        if (source.startsWith('\\left', cursor)) cursor = skipLatexSpace(source, cursor + 5);
         let radicand = readLatexGroup(source, cursor);
         if (!radicand && source[cursor] === '(') {
           radicand = readLatexGroup(source, cursor, '(', ')');
+        }
+        if (!radicand) {
+          const atom = source.slice(cursor).match(/^[A-Za-z_][A-Za-z_0-9]*|^\d+(?:\.\d+)?/);
+          if (atom) radicand = { content: atom[0], end: cursor + atom[0].length };
         }
         if (!radicand) { output += '__unsupported_sqrt__'; index += 5; continue; }
         output += indexedRoot ? '__unsupported_indexed_root__' : `sqrt(${convertLatexSegment(radicand.content, depth + 1)})`;
@@ -198,8 +203,23 @@
         if (/[A-Za-z_]/.test(char)) {
           const identifier = source.slice(index).match(/^[A-Za-z_][A-Za-z_0-9]*/)[0];
           const commands = { sin: '\\sin', cos: '\\cos', tan: '\\tan', log: '\\log', exp: '\\exp', sqrt: '\\sqrt', Abs: 'Abs', pi: '\\pi', oo: '\\infty' };
-          output += commands[identifier] || identifier;
-          index += identifier.length;
+          const command = commands[identifier] || identifier;
+          const afterIdentifier = index + identifier.length;
+          // MathQuill's square-root command takes a braced radicand. Sending
+          // `\\sqrt(` leaves the opening parenthesis as an empty radicand and
+          // turns the following expression into a product (for example,
+          // `sqrt(x)` became `sqrt(()*x)`). Preserve the function call as one
+          // grouped atom when restoring a saved question or starter example.
+          if (identifier === 'sqrt' && source[afterIdentifier] === '(') {
+            const radicand = convert(afterIdentifier + 1, true);
+            if (radicand.end > afterIdentifier + 1 && source[radicand.end - 1] === ')') {
+              output += `\\sqrt ${radicand.output}`;
+              index = radicand.end;
+              continue;
+            }
+          }
+          output += command;
+          index = afterIdentifier;
           continue;
         }
         output += char === '*' ? '\\cdot ' : char;
