@@ -57,3 +57,27 @@ Solve validation and grammar rejections report `route: "validation"` and `ai_cal
 ## Reading a report
 
 The solver claim is supported only when the supported solved cases are correct and the default exact route records zero model calls. Unresolved and rejected cases are reported separately. A live AI comparison is pending when no provider key is configured. A solver-only report is evidence about the exact route and its local latency, not an AI speed or token comparison.
+
+## Routed comparison
+
+`benchmarks.route_benchmark` is a separate opt-in runner for the resolved routing contract. Its default is still solver-only:
+
+```text
+python -m benchmarks.route_benchmark --base-url http://127.0.0.1:8000 --output routed-results.json
+```
+
+Provider routes require an explicit opt-in. Jev also requires a separate paid-call opt-in:
+
+```text
+python -m benchmarks.route_benchmark --base-url http://127.0.0.1:8000 \
+  --live-routes --allow-paid-jev --routes solver,deterministic,jev,ai_only \
+  --repeats 5 --latency-budget-ms 5000 --output routed-results-live.json
+```
+
+Routes alternate order on each repeat. The report records the first-run or subsequent-run measurement state, route choice, raw response, correctness score, deadline failures, model identifiers, provider call counts, and token counters. A latency budget is explicit input. A correct response past that budget is a deadline failure.
+
+Use `--pid server=PID --pid ollama=PID` to sample only explicitly named local processes. The sampler reports process CPU seconds and peak RSS when the optional `psutil` package is installed. Without it, those fields stay unknown. Client CPU is never presented as model compute. Hosted CPU and GPU are unknown, and GPU work is not inferred from CPU time.
+
+`psutil` is pinned in the development requirements because it is used only by this benchmark. Use repeated `--case-id` options for a small provider iteration, for example `--case-id derivative-01 --case-id integral-08`. The frozen fixture file and its expected scoring remain unchanged; omit the filter for the full 40-case comparison.
+
+The routed summary reports successful tasks, solved-answer accuracy, model calls, separate prompt and completion token totals, wall latency, local resource observations, and failed outcomes. Resource totals include failed attempts. The report divides known additive totals by successful tasks only when the full total is known; missing usage keeps the per-successful-task value unknown. Usage is also split by provider and model attempt. It never treats different models' token totals as equal FLOPs. Explanation prose requires a separate manual rubric; a valid JSON shape is not an explanation-quality score. The runner does not make live provider claims unless the command actually reaches that provider.
