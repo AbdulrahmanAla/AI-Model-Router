@@ -287,6 +287,7 @@
     if (response.status === 'answered' && response.text) {
       const copy = element('button', 'ai-copy-button', 'Copy AI explanation');
       copy.type = 'button';
+      copy.setAttribute('aria-label', 'Copy unverified AI explanation');
       copy.addEventListener('click', () => copyText(response.text, 'AI explanation copied.'));
       box.append(copy);
     }

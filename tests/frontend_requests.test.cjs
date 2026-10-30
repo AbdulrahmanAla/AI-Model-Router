@@ -138,6 +138,7 @@ test('answered AI text has an independent copy action', () => {
   const box = children[0];
   const copy = box.children.find((child) => child.textContent === 'Copy AI explanation');
   assert.ok(copy);
+  assert.equal(copy.attributes['aria-label'], 'Copy unverified AI explanation');
   copy.click();
   assert.equal(app.state.copiedEvidence, 'Use the power rule here.');
 });
