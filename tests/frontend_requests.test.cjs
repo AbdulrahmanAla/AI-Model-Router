@@ -186,13 +186,13 @@ test('retry recovers from an invalid response with the same question', async () 
 
 test('session export includes all explanation calls and reported tokens', () => {
   const app = appHarness();
-  app.state.messages.push({ display: 'Derivative x^2', response: { ...result, metrics: { route: 'solver', ai_calls: 0, solver_ms: 12.5, elapsed_ms: 25.75 } }, ai: { status: 'answered', text: 'Explain the power rule.' }, aiAttempts: [
+  app.state.messages.push({ display: 'Derivative x^2', response: { ...result, metrics: { route: 'solver', ai_calls: 0, solver_ms: 12.5, elapsed_ms: 25.75 } }, ai: { status: 'error', message: 'Provider unavailable.' }, aiAttempts: [
     { status: 'answered', action: 'explain', text: 'Explain the power rule.', metrics: { ai_calls: 1, total_tokens: 40 } },
-    { status: 'answered', action: 'explain', metrics: { ai_calls: 1, total_tokens: 60 } },
+    { status: 'error', action: 'explain' },
   ] });
   app.copySessionEvidence();
-  assert.match(app.state.copiedEvidence, /General-model calls: 2/);
-  assert.match(app.state.copiedEvidence, /Reported tokens: 100/);
+  assert.match(app.state.copiedEvidence, /General-model calls: not reported/);
+  assert.match(app.state.copiedEvidence, /Reported tokens: not reported/);
   assert.match(app.state.copiedEvidence, /AI attempts: 2/);
   assert.match(app.state.copiedEvidence, /Routes: solver \+ explain/);
   assert.match(app.state.copiedEvidence, /Solver time: 12\.50 ms/);
