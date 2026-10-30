@@ -551,6 +551,9 @@
       if (url === '/api/ai' && (body.status !== 'answered' || typeof body.text !== 'string' || !body.text.trim() || body.text.length > MAX_AI_TEXT_LENGTH)) {
         throw new Error('The server returned an invalid response. Please retry.');
       }
+      if (url === '/api/health' && (body.status !== 'ok' || typeof body.ai_configured !== 'boolean')) {
+        throw new Error('The server returned an invalid health response.');
+      }
       return body;
     } catch (error) {
       if (error && error.name === 'AbortError') {

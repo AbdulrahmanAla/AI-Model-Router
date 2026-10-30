@@ -29,7 +29,7 @@ function appHarness() {
     renderMessages = () => {};
     copyText = (value) => { state.copiedEvidence = value; };
     setServiceStatus = (kind, label) => { state.serviceLabel = label; };
-    this.app = { state, elements, solve, cancelSolve, retrySolve, requestAi, cancelAi, copySessionEvidence, downloadSessionEvidence, sessionEvidenceText, addCopyActions, exampleValues, routeLabel, resultAriaLabel, shouldFocusComposer, shouldCloseSidebarOnEscape, shouldCloseChatSearchOnEscape, shouldFocusChatSearch, latestMessage, renderAiResponse, renderChatList, closeChatSearch };
+    this.app = { state, elements, solve, cancelSolve, retrySolve, requestAi, cancelAi, copySessionEvidence, downloadSessionEvidence, sessionEvidenceText, addCopyActions, exampleValues, routeLabel, resultAriaLabel, shouldFocusComposer, shouldCloseSidebarOnEscape, shouldCloseChatSearchOnEscape, shouldFocusChatSearch, latestMessage, renderAiResponse, renderChatList, closeChatSearch, fetchWithTimeout };
   })();`), context);
   return { ...context.app, pending, timers, downloads };
 }
@@ -58,6 +58,15 @@ test('exact results expose a spoken result label', () => {
   assert.equal(app.resultAriaLabel(result), 'Exact result: 2*x');
   assert.equal(app.resultAriaLabel({ result: null }), 'Exact result unavailable');
 });
+
+for (const body of [null, {}, { status: 'ok' }, { status: 'ok', ai_configured: 'false' }]) {
+  test(`malformed health response is rejected: ${JSON.stringify(body)}`, async () => {
+    const app = appHarness();
+    const running = app.fetchWithTimeout('/api/health', {}, 5000);
+    app.pending[0].resolve(response(body));
+    await assert.rejects(running, /invalid (health )?response/i);
+  });
+}
 
 test('slash shortcut only focuses the composer outside text fields', () => {
   const app = appHarness();
