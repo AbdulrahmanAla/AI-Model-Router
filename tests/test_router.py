@@ -16,11 +16,13 @@ client = TestClient(app)
 
 @pytest.fixture(autouse=True)
 def clear_router_configuration(monkeypatch):
-    for name in ("TYPESAFE_API_KEY", "JEV_BASE_URL", "JEV_MODEL", "JEV_TIMEOUT_SECONDS"):
+    for name in ("TYPESAFE_API_KEY", "JEV_BASE_URL", "JEV_MODEL", "JEV_TIMEOUT_SECONDS", "AI_PROVIDER", "OLLAMA_MODEL", "OLLAMA_BASE_URL"):
         monkeypatch.delenv(name, raising=False)
     app.state.jev_transport = None
+    app.state.ai_transport = None
     yield
     app.state.jev_transport = None
+    app.state.ai_transport = None
 
 
 def jev_response(choice: str = "solver", usage: dict | None = None) -> httpx.Response:
@@ -103,6 +105,53 @@ def test_jev_malformed_response_falls_back_and_counts_attempt(monkeypatch) -> No
     assert body["routing"]["attempts"][0]["status"] == "failed"
     assert body["routing"]["attempts"][0]["total_tokens"] is None
     assert "jev-secret" not in result.text
+
+
+def test_unsafe_structured_request_is_rejected_before_jev_call(monkeypatch) -> None:
+    calls = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        calls.append(request)
+        return jev_response()
+
+    monkeypatch.setenv("TYPESAFE_API_KEY", "jev-secret")
+    app.state.jev_transport = httpx.MockTransport(handler)
+    result = client.post(
+        "/api/route",
+        json={"mode": "jev", "request": {"operation": "derivative", "expression": "__import__('os')"}},
+    )
+    assert result.status_code == 422
+    assert calls == []
+    assert "jev-secret" not in result.text
+
+
+def test_ai_only_structured_route_uses_existing_machine_answer_contract(monkeypatch) -> None:
+    monkeypatch.setenv("AI_PROVIDER", "ollama")
+    monkeypatch.setenv("OLLAMA_MODEL", "qwen3.5:4b")
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json={
+                "message": {"content": json.dumps({"status": "solved", "result": "2*x"})},
+                "prompt_eval_count": 11,
+                "eval_count": 5,
+            },
+        )
+
+    app.state.ai_transport = httpx.MockTransport(handler)
+    result = client.post(
+        "/api/route",
+        json={"mode": "ai_only", "request": {"operation": "derivative", "expression": "x^2"}},
+    )
+    assert result.status_code == 200
+    body = result.json()
+    assert body["status"] == "routed"
+    assert json.loads(body["answer"]["text"]) == {"status": "solved", "result": "2*x"}
+    assert body["answer"]["metrics"]["input_tokens"] == 11
+    assert body["answer"]["metrics"]["output_tokens"] == 5
+    assert body["answer"]["metrics"]["total_tokens"] == 16
+    assert body["routing"]["source"] == "ai_only"
 
 
 def test_route_requires_exactly_one_input() -> None:

@@ -15,7 +15,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
-from .ai import AIServiceError, AIValidationBusy, ai_configured, handle_ai
+from .ai import AIServiceError, AIValidationBusy, _validate_grammar_bounded, ai_configured, call_ollama, handle_ai
 from .router import choose_route
 from .solver import GrammarError, SolveTimeout, SolveUnresolved, SolverBusy, _unresolved_steps, run_bounded
 
@@ -201,6 +201,12 @@ async def route(request: RouteRequest, http_request: Request) -> dict[str, objec
         except ValidationError as exc:
             raise HTTPException(status_code=422, detail="The structured request is invalid.") from exc
         validated_payload = validate_solve_request(parsed_request)
+        try:
+            await asyncio.to_thread(_validate_grammar_bounded, validated_payload)
+        except AIValidationBusy as exc:
+            raise HTTPException(status_code=503, detail=str(exc)) from exc
+        except GrammarError as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
 
     routing = await choose_route(
         http_request.app,
@@ -210,7 +216,11 @@ async def route(request: RouteRequest, http_request: Request) -> dict[str, objec
     )
     choice = routing["choice"]
     if choice == "solver" and parsed_request is not None:
-        answer = await solve_request(parsed_request)
+        try:
+            answer = await solve_request(parsed_request)
+        except HTTPException as exc:
+            detail = exc.detail if isinstance(exc.detail, str) else "The exact route could not finish safely."
+            return JSONResponse(status_code=exc.status_code, content={"error": "route_solver_error", "detail": detail, "routing": routing})
         return {"status": "routed", "answer": answer, "routing": routing}
     if choice == "solver":
         routing = dict(routing)
@@ -221,18 +231,14 @@ async def route(request: RouteRequest, http_request: Request) -> dict[str, objec
         return {"status": "refused", "answer": None, "routing": routing}
 
     try:
-        from .ai import call_ollama
-
-        ai_answer = await call_ollama(
-            http_request.app,
-            request.prompt or json.dumps(validated_payload, sort_keys=True, separators=(",", ":")),
-            structured_payload=validated_payload,
-        )
-    except ImportError:
-        return JSONResponse(
-            status_code=503,
-            content={"error": "ai_unavailable", "detail": "The local Ollama adapter is unavailable.", "routing": routing},
-        )
+        if parsed_request is not None and validated_payload is not None:
+            ai_answer = await handle_ai(http_request.app, "baseline", parsed_request, validated_payload)
+        else:
+            ai_answer = await call_ollama(
+                http_request.app,
+                request.prompt or json.dumps(validated_payload, sort_keys=True, separators=(",", ":")),
+                structured_payload=validated_payload,
+            )
     except AIServiceError as exc:
         return JSONResponse(
             status_code=exc.status_code,
