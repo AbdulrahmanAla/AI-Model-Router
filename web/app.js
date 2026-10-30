@@ -719,15 +719,17 @@
     });
   }
 
-  function renderMessages(scrollToLatest = false) {
+  function renderMessages(scrollToLatest = false, revealMessageId = null) {
     const previousScrollTop = elements.conversation.scrollTop;
     const followLatest = scrollToLatest || elements.conversation.scrollHeight
       - elements.conversation.clientHeight - previousScrollTop <= 48;
     elements.messages.replaceChildren();
     elements.welcome.hidden = state.messages.length > 0;
+    let revealTarget = null;
     state.messages.forEach((message) => {
       const wrapper = element('div', 'message');
       wrapper.dataset.messageId = message.id;
+      if (message.id === revealMessageId) revealTarget = wrapper;
       const user = element('div', 'user-message');
       user.append(element('div', 'user-bubble', message.display));
       wrapper.append(user, renderAssistant(message));
@@ -736,7 +738,11 @@
     typesetResults();
     renderChatList();
     renderSessionStats();
-    elements.conversation.scrollTop = followLatest ? elements.conversation.scrollHeight : previousScrollTop;
+    if (followLatest && revealTarget) {
+      const top = revealTarget.getBoundingClientRect().top - elements.conversation.getBoundingClientRect().top
+        + elements.conversation.scrollTop - 18;
+      elements.conversation.scrollTop = Math.max(0, top);
+    } else elements.conversation.scrollTop = followLatest ? elements.conversation.scrollHeight : previousScrollTop;
   }
 
   function renderChatList() {
@@ -942,7 +948,7 @@
       state.activeSolve = null;
       state.solving = false;
       elements.send.disabled = false;
-      renderMessages();
+      renderMessages(false, message.id);
     }
   }
 
@@ -1028,7 +1034,7 @@
     const message = { id: String(state.nextMessageId++), generation: state.solveGeneration, request, display: displayRequest(request), loading: true };
     state.selectedMessageId = message.id;
     state.messages.push(message);
-    renderMessages(true);
+    renderMessages(true, message.id);
     solve(request, message);
   }
 

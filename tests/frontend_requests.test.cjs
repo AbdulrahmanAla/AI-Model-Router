@@ -5,13 +5,13 @@ const vm = require('node:vm');
 const path = require('node:path');
 const indexHtml = fs.readFileSync(path.join(__dirname, '../web/index.html'), 'utf8');
 
-function appHarness({ withMathQuill = false, staticMathFailure = false } = {}) {
+function appHarness({ withMathQuill = false, staticMathFailure = false, liveRender = false } = {}) {
   const pending = [];
   const timers = new Map();
   const downloads = [];
   const domNodes = new Map();
   let nextTimer = 0;
-  const createNode = () => ({ value: '', dataset: {}, style: {}, scrollHeight: 42, hidden: true, children: [], get childElementCount() { return this.children.length; }, attributes: {}, focus() { this.focused = true; }, removeAttribute(name) { delete this.attributes[name]; }, setAttribute(name, value) { this.attributes[name] = value; }, addEventListener(event, callback) { this[event] = callback; }, classList: { add() {}, remove() {}, contains() { return false; } }, replaceChildren(...nodes) { this.children = nodes; }, append(...nodes) { this.children.push(...nodes); }, appendChild(node) { this.children.push(node); return node; }, querySelector() { return createNode(); }, querySelectorAll(selector) { return descendants(this).filter((node) => String(node.className || '').split(' ').includes(selector.slice(1))); } });
+  const createNode = () => ({ value: '', dataset: {}, style: {}, scrollHeight: 42, hidden: true, children: [], get childElementCount() { return this.children.length; }, attributes: {}, focus() { this.focused = true; }, getBoundingClientRect() { return { top: this.rectTop ?? 200 }; }, removeAttribute(name) { delete this.attributes[name]; }, setAttribute(name, value) { this.attributes[name] = value; }, addEventListener(event, callback) { this[event] = callback; }, classList: { add() {}, remove() {}, contains() { return false; } }, replaceChildren(...nodes) { this.children = nodes; }, append(...nodes) { this.children.push(...nodes); }, appendChild(node) { this.children.push(node); return node; }, querySelector() { return createNode(); }, querySelectorAll(selector) { return descendants(this).filter((node) => String(node.className || '').split(' ').includes(selector.slice(1))); } });
   const mathFields = new Map();
   const mathQuill = withMathQuill ? { getInterface: () => ({ MathField(node) {
     let value = '';
@@ -44,7 +44,7 @@ function appHarness({ withMathQuill = false, staticMathFailure = false } = {}) {
   });
   vm.runInContext(source.replace(/  wireEvents\(\);[\s\S]*$/, `
     const renderConversation = renderMessages;
-    renderMessages = () => {};
+    ${liveRender ? '' : 'renderMessages = () => {};'}
     copyText = (value) => { state.copiedEvidence = value; };
     setServiceStatus = (kind, label) => { state.serviceLabel = label; };
     this.app = { state, elements, solve, cancelSolve, retrySolve, requestAi, cancelAi, copySessionEvidence, downloadSessionEvidence, sessionEvidenceText, addCopyActions, exampleValues, fillComposer, routeLabel, resultAriaLabel, shouldFocusComposer, shouldCloseSidebarOnEscape, shouldCloseChatSearchOnEscape, shouldFocusChatSearch, latestMessage, renderAiResponse, renderChatList, closeChatSearch, openChatSearch, fetchWithTimeout, submit, clearFormError, renderAssistant, renderConversation, latexToExpression, expressionToLatex, buildRequest, setFieldValue, validateRequest };
@@ -170,6 +170,45 @@ test('visual editor request construction includes operation context while typed 
     operation: 'limit', expression: 'sin(x)/x', variable: 'x', lower: null, upper: null, target: '0', direction: '+',
   });
 });
+
+test('a completed solve reveals the start of its result when following the conversation', async () => {
+  const app = appHarness({ liveRender: true });
+  const message = { id: '1', request, display: 'Derivative x^2', generation: 0, loading: true };
+  app.state.messages.push(message);
+  Object.assign(app.elements.conversation, { scrollTop: 580, scrollHeight: 1000, clientHeight: 400, rectTop: 58 });
+  const running = app.solve(request, message);
+  app.pending[0].resolve(response(result));
+  await running;
+  assert.equal(app.elements.conversation.scrollTop, 704, 'Reveal the start of the answer within the conversation pane');
+});
+
+test('a solve completing while the student reads earlier work keeps their reading position', async () => {
+  const app = appHarness({ liveRender: true });
+  const message = { id: '2', request, display: 'Derivative x^2', generation: 0, loading: true };
+  app.state.messages.push({ id: '1', request, display: 'Previous question', response: result }, message);
+  Object.assign(app.elements.conversation, { scrollTop: 200, scrollHeight: 1000, clientHeight: 400 });
+  const running = app.solve(request, message);
+  app.pending[0].resolve(response(result));
+  await running;
+  assert.equal(app.elements.conversation.scrollTop, 200);
+});
+
+for (const [outcome, payload] of [
+  ['unresolved', { ...result, status: 'unresolved', result: null, verification: { status: 'not_checked', detail: 'Unsupported exact calculation.' } }],
+  ['invalid response', {}],
+]) {
+  test(`a completed ${outcome} reveals its stopping reason`, async () => {
+    const app = appHarness({ liveRender: true });
+    const message = { id: '1', request, display: 'Question', generation: 0, loading: true };
+    app.state.messages.push(message);
+    Object.assign(app.elements.conversation, { scrollTop: 580, scrollHeight: 1000, clientHeight: 400, rectTop: 58 });
+    const running = app.solve(request, message);
+    app.pending[0].resolve(response(payload));
+    await running;
+    assert.equal(app.elements.conversation.scrollTop, 704);
+    assert.ok(message.response?.status === 'unresolved' || message.error);
+  });
+}
 
 test('editing a visual limit and applying an example preserve fields and direction', () => {
   const app = appHarness({ withMathQuill: true });

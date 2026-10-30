@@ -162,3 +162,15 @@ The local gate passed 85 Python tests, 101 frontend tests, JavaScript syntax che
 Actual browser checks separately submitted the derivative of `sqrt(x+1)` and the equation `x*x-2`, confirming the grouped radical fraction and a set of radical roots. Integrating `exp(-x*x)` returned `sqrt(pi)*erf(x)/2` as readable text because its special-function notation is outside the display subset. The narrow preview had an effective CSS width of about 433 px, with no page-width overflow and the result fraction fitting inside its card. The viewport override was reset. Browser error/warning logs were empty. No live-provider evaluation or compute-reduction claim follows from these formatting checks.
 
 ![Typeset exact fraction and grouped root](evidence/typeset-result.png)
+
+## Reading a new worked answer
+
+New questions and completed solves now align the start of their question inside the conversation pane instead of scrolling past the answer to the bottom of a long steps list. Completion only reveals the result if the student is still following the bottom of the conversation. Someone reading earlier work keeps their scroll position. Successful, unresolved, and failed solves use the same rule.
+
+The local gate passed 85 Python tests, 105 frontend tests, syntax checks, and all 40 frozen HTTP evaluation cases. A subsequent frontend-only correction replaced `scrollIntoView` with a conversation-local scroll calculation after the narrow browser check showed the browser moving the outer page. The latest frontend suite passed all 105 checks after that correction. New public frontend checks drive the asynchronous solve flow and cover answer reveal, preservation of an earlier reading position, unresolved results, and invalid responses.
+
+The final live browser check submitted `x*exp(x)` repeatedly. At an effective narrow CSS width of about 433 px, the second result was above the fixed composer, the header remained at top 0, and outer page scroll stayed 0. The desktop third result also left the header at top 0 and outer scroll at 0. These checks used the final conversation-local calculation. Temporary viewport overrides were reset.
+
+![New answer starts at the question and exact result](evidence/result-reading-position.png)
+
+![Narrow answer reading keeps the header visible](evidence/result-reading-mobile.png)
