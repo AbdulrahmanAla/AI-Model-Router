@@ -100,7 +100,7 @@ for (const [question, expected] of [
 test('full-solution copy counts optional AI attempts', () => {
   const app = appHarness();
   const buttons = [];
-  const message = { display: 'Derivative x^2', response: { ...result, metrics: { route: 'solver', ai_calls: 0, solver_ms: 4, elapsed_ms: 8 }, steps: ['Compute the result.'] }, aiAttempts: [
+  const message = { display: 'Derivative x^2', response: { ...result, metrics: { route: 'solver', ai_calls: 0, solver_ms: 4, elapsed_ms: 8 }, steps: ['Compute the result.'] }, ai: { status: 'answered', text: 'Use the power rule here.' }, aiAttempts: [
     { status: 'answered', action: 'explain', metrics: { route: 'ai', ai_calls: 1, latency_ms: 12, total_tokens: 20 } }
   ] };
   app.addCopyActions(message.response, { append: (button) => buttons.push(button) }, request, message);
@@ -108,6 +108,7 @@ test('full-solution copy counts optional AI attempts', () => {
   assert.match(app.state.copiedEvidence, /Routes: solver \+ ai/);
   assert.match(app.state.copiedEvidence, /General-model calls: 1/);
   assert.match(app.state.copiedEvidence, /AI 12\.00 ms/);
+  assert.match(app.state.copiedEvidence, /AI explanation \(unverified\):\nUse the power rule here\./);
 });
 
 test('answered AI text has an independent copy action', () => {

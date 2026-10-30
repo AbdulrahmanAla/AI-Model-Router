@@ -255,9 +255,10 @@
         const route = `Routes: ${combined ? combined.routes.join(' + ') : (metrics.route || 'not reported')}`;
         const calls = `General-model calls: ${combined ? (Number.isFinite(combined.aiCalls) ? combined.aiCalls : 'not reported') : (Number.isFinite(metrics.ai_calls) ? metrics.ai_calls : 'not reported')}`;
         const timing = `Timing: solver ${metricValue(metrics.solver_ms, 'ms')}; total ${metricValue(metrics.elapsed_ms, 'ms')}; AI ${metricValue(combined && combined.aiLatency, 'ms')}`;
+        const aiText = message && message.ai && message.ai.status === 'answered' && message.ai.text ? `AI explanation (unverified):\n${message.ai.text}` : '';
         const steps = response.steps.map((step, index) => `${index + 1}. ${step}`).join('\n');
         const notes = Array.isArray(response.notes) && response.notes.length ? `Notes:\n${response.notes.join('\n')}` : '';
-        copyText([`Question: ${displayRequest(request)}`, `Result: ${response.result}`, verification, route, calls, timing, notes, `Steps:\n${steps}`].filter(Boolean).join('\n'), 'Full solution copied.');
+        copyText([`Question: ${displayRequest(request)}`, `Result: ${response.result}`, verification, route, calls, timing, aiText, notes, `Steps:\n${steps}`].filter(Boolean).join('\n'), 'Full solution copied.');
       });
       card.append(copyFull);
     }
