@@ -685,6 +685,10 @@
     return event.key === '/' && !event.ctrlKey && !event.metaKey && !event.altKey && !['INPUT', 'TEXTAREA', 'SELECT'].includes(activeTagName || '');
   }
 
+  function shouldCloseSidebarOnEscape(event, sidebarOpen) {
+    return event.key === 'Escape' && sidebarOpen;
+  }
+
   function applyExample(button) {
     const values = exampleValues(button);
     elements.operation.value = values.operation;
@@ -715,6 +719,10 @@
       }
       if (event.key !== 'Escape') return;
       if (elements.help.open || elements.routeHelp.open) return;
+      if (shouldCloseSidebarOnEscape(event, elements.sidebar.classList.contains('open'))) {
+        closeMobileSidebar();
+        return;
+      }
       const solving = state.messages.find((message) => message.loading);
       if (solving) cancelSolve(solving);
       const aiRequest = state.messages.find((message) => message.aiLoading);

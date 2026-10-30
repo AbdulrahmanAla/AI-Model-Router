@@ -13,7 +13,7 @@ function appHarness() {
   const context = vm.createContext({
     AbortController,
     document: {
-      querySelector: () => ({ dataset: {}, hidden: true, classList: { add() {}, remove() {} } }),
+      querySelector: () => ({ dataset: {}, hidden: true, classList: { add() {}, remove() {}, contains() { return false; } } }),
       body: { append(node) { downloads.push(node); } },
       createElement: () => ({ style: {}, addEventListener(event, callback) { this[event] = callback; }, click() { this.clicked = true; }, remove() { this.removed = true; } }),
     },
@@ -29,7 +29,7 @@ function appHarness() {
     renderMessages = () => {};
     copyText = (value) => { state.copiedEvidence = value; };
     setServiceStatus = (kind, label) => { state.serviceLabel = label; };
-    this.app = { state, elements, solve, cancelSolve, retrySolve, requestAi, cancelAi, copySessionEvidence, downloadSessionEvidence, sessionEvidenceText, addCopyActions, exampleValues, routeLabel, shouldFocusComposer };
+    this.app = { state, elements, solve, cancelSolve, retrySolve, requestAi, cancelAi, copySessionEvidence, downloadSessionEvidence, sessionEvidenceText, addCopyActions, exampleValues, routeLabel, shouldFocusComposer, shouldCloseSidebarOnEscape };
   })();`), context);
   return { ...context.app, pending, timers, downloads };
 }
@@ -58,6 +58,12 @@ test('slash shortcut only focuses the composer outside text fields', () => {
   assert.equal(app.shouldFocusComposer({ key: '/', ctrlKey: false, metaKey: false, altKey: false }, 'BODY'), true);
   assert.equal(app.shouldFocusComposer({ key: '/', ctrlKey: false, metaKey: false, altKey: false }, 'TEXTAREA'), false);
   assert.equal(app.shouldFocusComposer({ key: '/', ctrlKey: true, metaKey: false, altKey: false }, 'BODY'), false);
+});
+
+test('escape gives an open sidebar priority', () => {
+  const app = appHarness();
+  assert.equal(app.shouldCloseSidebarOnEscape({ key: 'Escape' }, true), true);
+  assert.equal(app.shouldCloseSidebarOnEscape({ key: 'Escape' }, false), false);
 });
 
 for (const [question, expected] of [
