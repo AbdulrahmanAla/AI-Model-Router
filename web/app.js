@@ -525,10 +525,12 @@
       if (url === '/api/solve') {
         const check = body.verification;
         const validCheck = check && ['symbolic_check', 'numerical_evidence', 'not_checked', 'failed'].includes(check.status) && typeof check.detail === 'string';
+        const validSteps = Array.isArray(body.steps) && body.steps.length >= 1 && body.steps.length <= 8
+          && body.steps.every((step) => typeof step === 'string' && step.trim().length > 0 && step.length <= 500);
         const validResult = body.status === 'solved'
           ? typeof body.result === 'string' && body.result.trim().length > 0
           : body.status === 'unresolved' && body.result === null && check && check.status === 'not_checked';
-        if (!validCheck || !validResult) throw new Error('The server returned an invalid response. Please retry.');
+        if (!validCheck || !validSteps || !validResult) throw new Error('The server returned an invalid response. Please retry.');
       }
       if (url === '/api/ai' && (body.status !== 'answered' || typeof body.text !== 'string' || !body.text.trim() || body.text.length > MAX_AI_TEXT_LENGTH)) {
         throw new Error('The server returned an invalid response. Please retry.');

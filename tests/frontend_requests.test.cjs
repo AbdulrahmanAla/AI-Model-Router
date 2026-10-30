@@ -35,7 +35,7 @@ function appHarness() {
 }
 
 const request = { operation: 'derivative', expression: 'x^2' };
-const result = { status: 'solved', result: '2*x', verification: { status: 'symbolic_check', detail: 'Checked.' } };
+const result = { status: 'solved', result: '2*x', verification: { status: 'symbolic_check', detail: 'Checked.' }, steps: ['Read the function.', 'Apply the power rule.'] };
 const response = (body) => ({ ok: true, json: async () => body });
 
 test('examples carry their own limit direction', () => {
@@ -188,12 +188,28 @@ test('oversized AI success is a recoverable invalid response', async () => {
   assert.match(message.ai.message, /invalid response/i);
 });
 
+for (const body of [
+  { ...result, steps: [] },
+  { ...result, steps: ['x'.repeat(501)] },
+  { ...result, steps: Array.from({ length: 9 }, () => 'Compute safely.') },
+]) {
+  test(`malformed solver steps are retryable: ${body.steps.length} entries`, async () => {
+    const app = appHarness();
+    const message = { request, generation: 0, loading: true };
+    const running = app.solve(request, message);
+    app.pending[0].resolve(response(body));
+    await running;
+    assert.equal(message.response, undefined);
+    assert.match(message.error, /invalid response/i);
+  });
+}
+
 test('valid unresolved response remains available for explicit fallback', async () => {
   const app = appHarness();
   const message = { request, generation: 0, loading: true };
   const running = app.solve(request, message);
   app.pending[0].resolve(response({ status: 'unresolved', result: null,
-    verification: { status: 'not_checked', detail: 'The exact solver reached its time limit.' } }));
+    verification: { status: 'not_checked', detail: 'The exact solver reached its time limit.' }, steps: ['Stop before returning an exact answer.'] }));
   await running;
   assert.equal(message.response.status, 'unresolved');
   assert.equal(message.error, undefined);
