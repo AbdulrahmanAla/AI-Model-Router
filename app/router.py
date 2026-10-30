@@ -207,7 +207,17 @@ async def choose_route(app: Any, *, mode: Literal["deterministic", "jev", "ai_on
     config = _jev_config()
     if config is None:
         metadata["reason"] = "Jev is not configured; deterministic fallback selected"
-        metadata["attempts"].append({"provider": "jev", "status": "missing_config", "ai_calls": 0})
+        metadata["attempts"].append({
+            "provider": "jev",
+            "status": "missing_config",
+            "ai_calls": 0,
+            "model_calls": 0,
+            "input_tokens": None,
+            "output_tokens": None,
+            "total_tokens": None,
+            "model": None,
+            "elapsed_ms": 0.0,
+        })
         return metadata
     try:
         choice, attempt = await _jev_call(app, payload=payload, prompt=prompt, config=config)
