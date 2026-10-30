@@ -78,10 +78,12 @@
   }
 
   function validateRequest(request) {
-    if (!request.expression) return 'Enter an expression before solving.';
-    if (request.operation === 'integral' && Boolean(request.lower) !== Boolean(request.upper)) return 'Enter both integral bounds, or leave both blank.';
-    if (request.operation === 'limit' && !request.target) return 'Enter the value that x approaches.';
-    return '';
+    if (!request.expression) return { message: 'Enter an expression before solving.', fields: ['expression'] };
+    if (request.operation === 'integral' && Boolean(request.lower) !== Boolean(request.upper)) return {
+      message: 'Enter both integral bounds, or leave both blank.', fields: [request.lower ? 'upper' : 'lower']
+    };
+    if (request.operation === 'limit' && !request.target) return { message: 'Enter the value that x approaches.', fields: ['target'] };
+    return null;
   }
 
   function clearFormError() {
@@ -91,6 +93,7 @@
       field.removeAttribute('aria-invalid');
       field.removeAttribute('aria-describedby');
     });
+    elements.expression.setAttribute('aria-describedby', 'input-help');
     if (elements.toast.dataset.formError === 'true') {
       elements.toast.hidden = true;
       delete elements.toast.dataset.formError;
@@ -102,7 +105,7 @@
     elements.formError.hidden = false;
     fields.forEach((field) => {
       field.setAttribute('aria-invalid', 'true');
-      field.setAttribute('aria-describedby', 'form-error');
+      field.setAttribute('aria-describedby', field === elements.expression ? 'input-help form-error' : 'form-error');
     });
   }
 
@@ -666,9 +669,10 @@
     const request = buildRequest();
     const validationError = validateRequest(request);
     if (validationError) {
-      const fields = request.operation === 'integral' ? [elements.lower, elements.upper] : request.operation === 'limit' ? [elements.target] : [elements.expression];
-      showFormError(validationError, fields);
-      showToast(validationError);
+      const fields = validationError.fields.map((name) => elements[name]);
+      clearFormError();
+      showFormError(validationError.message, fields);
+      showToast(validationError.message);
       elements.toast.dataset.formError = 'true';
       (fields[0] || elements.expression).focus();
       return;

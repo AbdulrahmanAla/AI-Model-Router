@@ -41,6 +41,7 @@ The actual website at `http://127.0.0.1:8000` was exercised through the in-app b
 - The mobile sidebar toggle exposes `aria-expanded` and keeps it synchronized when the sidebar opens or closes.
 - Navigation toggles also expose `aria-controls` relationships to the sidebar and chat-search regions.
 - The operation selector is explicitly described by its dynamic hint so users receive the current operation guidance through assistive technology.
+- Submission validation focuses and marks the actual missing field: expression errors take priority across operations, incomplete integral bounds focus the missing bound, and missing limit targets focus the target. Clearing errors preserves the expression's syntax-help description. Six frontend submission scenarios cover these paths without issuing API calls.
 - Result-card copy actions expose distinct accessible labels for the exact result, all derivation steps, and the complete verified or unresolved attempt.
 - Escape closes an open chat search and clears its filter before request cancellation is considered.
 - Exact formulas expose a semantic status role and an accessible label containing the computed result.

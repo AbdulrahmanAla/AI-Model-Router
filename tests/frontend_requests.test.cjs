@@ -14,7 +14,7 @@ function appHarness() {
   const context = vm.createContext({
     AbortController,
     document: {
-      querySelector: () => ({ dataset: {}, hidden: true, children: [], attributes: {}, focus() { this.focused = true; }, setAttribute(name, value) { this.attributes[name] = value; }, classList: { add() {}, remove() {}, contains() { return false; } }, replaceChildren(...nodes) { this.children = nodes; }, append(...nodes) { this.children.push(...nodes); } }),
+      querySelector: () => ({ dataset: {}, hidden: true, children: [], attributes: {}, focus() { this.focused = true; }, removeAttribute(name) { delete this.attributes[name]; }, setAttribute(name, value) { this.attributes[name] = value; }, classList: { add() {}, remove() {}, contains() { return false; } }, replaceChildren(...nodes) { this.children = nodes; }, append(...nodes) { this.children.push(...nodes); } }),
       body: { append(node) { downloads.push(node); } },
       createElement: () => ({ style: {}, children: [], attributes: {}, append(...nodes) { this.children.push(...nodes); }, setAttribute(name, value) { this.attributes[name] = value; }, addEventListener(event, callback) { this[event] = callback; }, click() { this.clicked = true; }, remove() { this.removed = true; } }),
     },
@@ -30,7 +30,7 @@ function appHarness() {
     renderMessages = () => {};
     copyText = (value) => { state.copiedEvidence = value; };
     setServiceStatus = (kind, label) => { state.serviceLabel = label; };
-    this.app = { state, elements, solve, cancelSolve, retrySolve, requestAi, cancelAi, copySessionEvidence, downloadSessionEvidence, sessionEvidenceText, addCopyActions, exampleValues, routeLabel, resultAriaLabel, shouldFocusComposer, shouldCloseSidebarOnEscape, shouldCloseChatSearchOnEscape, shouldFocusChatSearch, latestMessage, renderAiResponse, renderChatList, closeChatSearch, openChatSearch, fetchWithTimeout };
+    this.app = { state, elements, solve, cancelSolve, retrySolve, requestAi, cancelAi, copySessionEvidence, downloadSessionEvidence, sessionEvidenceText, addCopyActions, exampleValues, routeLabel, resultAriaLabel, shouldFocusComposer, shouldCloseSidebarOnEscape, shouldCloseChatSearchOnEscape, shouldFocusChatSearch, latestMessage, renderAiResponse, renderChatList, closeChatSearch, openChatSearch, fetchWithTimeout, submit, clearFormError };
   })();`), context);
   return { ...context.app, pending, timers, downloads };
 }
@@ -38,6 +38,33 @@ function appHarness() {
 const request = { operation: 'derivative', expression: 'x^2' };
 const result = { status: 'solved', operation: 'derivative', expression: 'x^2', result: '2*x', verification: { status: 'symbolic_check', detail: 'Checked.' }, steps: ['Read the function.', 'Apply the power rule.'] };
 const response = (body) => ({ ok: true, json: async () => body });
+
+for (const [operation, expression, lower, upper, target, invalidField] of [
+  ['derivative', '', '', '', '', 'expression'],
+  ['integral', '', '0', '', '', 'expression'],
+  ['limit', '', '', '', '', 'expression'],
+  ['integral', 'x', '0', '', '', 'upper'],
+  ['integral', 'x', '', '1', '', 'lower'],
+  ['limit', 'x', '', '', '', 'target'],
+]) {
+  test(`invalid ${operation} submission focuses ${invalidField} (${expression || 'empty expression'}, ${lower}, ${upper})`, () => {
+    const app = appHarness();
+    Object.entries({ operation, expression, lower, upper, target, direction: 'both' }).forEach(([name, value]) => { app.elements[name].value = value; });
+    app.submit({ preventDefault() {} });
+    assert.equal(app.elements[invalidField].focused, true);
+    assert.equal(app.elements[invalidField].attributes['aria-invalid'], 'true');
+    for (const name of ['expression', 'lower', 'upper', 'target']) {
+      if (name !== invalidField) assert.equal(app.elements[name].attributes['aria-invalid'], undefined);
+    }
+    assert.equal(app.pending.length, 0);
+    assert.equal(app.state.messages.length, 0);
+    assert.equal(app.elements.formError.hidden, false);
+    app.clearFormError();
+    assert.equal(app.elements.formError.hidden, true);
+    assert.equal(app.elements.expression.attributes['aria-describedby'], 'input-help');
+    assert.equal(app.elements[invalidField].attributes['aria-invalid'], undefined);
+  });
+}
 
 test('chat search opening and closing synchronizes name, state, filter and focus', () => {
   const app = appHarness();
