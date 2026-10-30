@@ -10,9 +10,15 @@
     limit: { hint: 'Evaluate a limit as x approaches a value', help: 'Use a number, pi, or oo as the target.' },
     equation: { hint: 'Find the real roots of a polynomial', help: 'Write an equation such as x^2 - 4 = 0.' }
   };
+  const routeCopy = {
+    exact: { label: 'Exact solver', hint: 'No model call for supported math' },
+    deterministic: { label: 'Deterministic router', hint: 'Solver for structured math, local AI for language' },
+    jev: { label: 'Jev router', hint: 'Jev chooses solver or local AI; fallback is deterministic' },
+    ai_only: { label: 'AI only', hint: 'Send the task to the configured AI provider' }
+  };
 
   const elements = {
-    form: $('#solve-form'), operation: $('#operation'), expression: $('#expression'), lower: $('#lower'), upper: $('#upper'),
+    form: $('#solve-form'), operation: $('#operation'), routeMode: $('#route-mode'), routeModeHint: $('#route-mode-hint'), routePromptField: $('#route-prompt-field'), routePrompt: $('#route-prompt'), expression: $('#expression'), lower: $('#lower'), upper: $('#upper'),
     target: $('#target'), direction: $('#direction'), integralOptions: $('#integral-options'), limitOptions: $('#limit-options'),
     operationHint: $('#operation-hint'), inputHelp: $('#input-help'), send: $('#send-button'), messages: $('#messages'), welcome: $('#welcome'), sessionStats: $('#session-stats'),
     formError: $('#form-error'), sessionSummary: $('#session-summary'), sessionChecks: $('#session-checks'),
@@ -26,6 +32,11 @@
     sin: 'sin', cos: 'cos', tan: 'tan', log: 'log', ln: 'log', exp: 'exp', sqrt: 'sqrt', Abs: 'Abs',
     asin: 'asin', acos: 'acos', atan: 'atan', sinh: 'sinh', cosh: 'cosh', tanh: 'tanh'
   };
+
+  function selectedRouteMode() {
+    const value = elements.routeMode && elements.routeMode.value;
+    return routeCopy[value] ? value : 'exact';
+  }
 
   function readLatexGroup(source, start, open = '{', close = '}') {
     if (source[start] !== open) return null;
@@ -315,9 +326,12 @@
 
   function updateOperationFields() {
     const operation = elements.operation.value;
+    const routeMode = selectedRouteMode();
     elements.integralOptions.hidden = operation !== 'integral';
     elements.limitOptions.hidden = operation !== 'limit';
+    if (elements.routePromptField) elements.routePromptField.hidden = routeMode === 'exact';
     setText(elements.operationHint, operationCopy[operation].hint);
+    if (elements.routeModeHint) setText(elements.routeModeHint, (routeCopy[routeMode] || routeCopy.exact).hint);
     const multiplicationHelp = mathFields.expression ? ' Visual entry accepts implicit multiplication such as 2x.' : ' Use explicit multiplication, such as 2*x.';
     setText(elements.inputHelp, `${operationCopy[operation].help}${multiplicationHelp} Enter solves; Shift+Enter makes a new line; / focuses the composer; Escape cancels a running request.`);
     const placeholders = {
@@ -350,6 +364,13 @@
     return request;
   }
 
+  function buildRoutePayload() {
+    const mode = selectedRouteMode();
+    const request = buildRequest();
+    const prompt = elements.routePrompt ? String(elements.routePrompt.value || '').trim() : '';
+    return { mode, request, prompt };
+  }
+
   function validateRequest(request) {
     if (!request.expression) return { message: 'Enter an expression before solving.', fields: ['expression'] };
     if (request.expression.length > 400 || ['lower', 'upper', 'target'].some((name) => request[name] && request[name].length > 100)) {
@@ -362,6 +383,18 @@
       message: 'Enter both integral bounds, or leave both blank.', fields: [request.lower ? 'upper' : 'lower']
     };
     if (request.operation === 'limit' && !request.target) return { message: 'Enter the value that x approaches.', fields: ['target'] };
+    return null;
+  }
+
+  function validateRoutePayload(payload) {
+    const mode = payload.mode || 'exact';
+    if (mode === 'exact') return validateRequest(payload.request);
+    if (!['deterministic', 'jev', 'ai_only'].includes(mode)) return { message: 'Choose a supported route.', fields: [] };
+    const prompt = String(payload.prompt || '').trim();
+    if (prompt.length > 2000) return { message: 'That language question is too long. Shorten it and try again.', fields: ['routePrompt'] };
+    const requestError = payload.request.expression ? validateRequest(payload.request) : null;
+    if (requestError) return requestError;
+    if (!payload.request.expression && !prompt) return { message: 'Enter an expression or a language question before sending.', fields: ['expression', 'routePrompt'] };
     return null;
   }
 
@@ -393,11 +426,13 @@
   }
 
   function requestTitle(request) {
+    if (!request || typeof request !== 'object') return 'Language question';
     const shortExpression = request.expression.length > 42 ? `${request.expression.slice(0, 39)}...` : request.expression;
     return `${prettyOperation(request.operation)}: ${shortExpression}`;
   }
 
   function displayRequest(request) {
+    if (!request || typeof request !== 'object') return 'Language question';
     if (request.operation === 'integral' && request.lower !== null) return `${prettyOperation(request.operation)} ${request.expression} from ${request.lower} to ${request.upper}`;
     if (request.operation === 'limit') return `Limit of ${request.expression} as x approaches ${request.target}${request.direction === 'both' ? '' : ` from the ${request.direction === '+' ? 'right' : 'left'}`}`;
     return `${prettyOperation(request.operation)} ${request.expression}`;
@@ -457,7 +492,7 @@
       : (Number.isFinite(solverMetrics.total_tokens) ? solverMetrics.total_tokens : null);
     const aiLatency = sumKnown(attemptMetrics.map((metrics) => Number.isFinite(metrics.latency_ms) ? metrics.latency_ms : (Number.isFinite(metrics.ai_latency_ms) ? metrics.ai_latency_ms : NaN)));
     const models = [...new Set(attemptMetrics.map((metrics) => metrics.model).filter(Boolean))];
-    const routes = [...new Set([solverMetrics.route || 'solver', ...attempts.map((attempt) => (attempt.metrics && attempt.metrics.route) || attempt.action).filter(Boolean)])];
+    const routes = [...new Set([solverMetrics.route || (message.routeMode === 'exact' ? 'solver' : message.routeMode) || 'solver', ...attempts.map((attempt) => (attempt.metrics && attempt.metrics.route) || attempt.action).filter(Boolean)])];
     const statuses = [...new Set(attempts.map((attempt) => (attempt.metrics && attempt.metrics.status) || attempt.status).filter(Boolean))];
     return { aiCalls, aiLatency, attempts: attempts.length, totalTokens, solverMetrics, models, routes, statuses };
   }
@@ -474,6 +509,9 @@
     const metrics = combinedMetrics(message);
     const grid = element('div', 'route-grid');
     grid.append(metricCard('Routes', metrics.routes.join(' + ')));
+    if (metrics.solverMetrics.source) grid.append(metricCard('Route source', metrics.solverMetrics.source));
+    if (metrics.solverMetrics.choice) grid.append(metricCard('Route choice', metrics.solverMetrics.choice));
+    if (metrics.solverMetrics.reason) grid.append(metricCard('Route note', metrics.solverMetrics.reason));
     grid.append(metricCard('General-model calls', metricValue(metrics.aiCalls)));
     grid.append(metricCard('AI attempts', String(metrics.attempts)));
     grid.append(metricCard('Solver time', metricValue(metrics.solverMetrics.solver_ms, 'ms')));
@@ -636,14 +674,28 @@
       const actions = element('div', 'message-actions');
       const retry = element('button', '', 'Retry solve');
       retry.type = 'button';
-      retry.addEventListener('click', () => retrySolve(message));
+      retry.addEventListener('click', () => (message.routeMode && message.routeMode !== 'exact' ? retryRoute(message) : retrySolve(message)));
       actions.append(retry);
-      actions.append(editQuestionButton(message.request));
+      if (message.request) actions.append(editQuestionButton(message.request));
       body.append(actions);
       row.append(body);
       return row;
     }
     const response = message.response || {};
+    if (response.status === 'answered' && typeof response.text === 'string') {
+      body.append(element('p', 'assistant-copy', 'The selected route returned an unverified AI response.'));
+      const aiBox = aiResponseBox(response, true);
+      body.append(aiBox);
+      const details = element('details', 'route-details');
+      details.open = message.routeExpanded === true;
+      details.addEventListener('toggle', () => { message.routeExpanded = details.open; });
+      details.append(element('summary', '', 'Show route details'));
+      renderMetrics(message, details);
+      body.append(details);
+      if (message.request) body.append(editQuestionButton(message.request));
+      row.append(body);
+      return row;
+    }
     const intro = response.status === 'solved' ? 'I solved this with the exact path and recorded the check below.' : (response.notes && response.notes[0]) || 'The exact path could not safely answer this request.';
     body.append(element('p', 'assistant-copy', intro));
     const cardClass = response.status === 'solved' ? 'answer-card' : 'answer-card unresolved-card';
@@ -682,7 +734,7 @@
     card.append(details);
     body.append(card);
     const actions = element('div', 'message-actions');
-    actions.append(editQuestionButton(message.request));
+    if (message.request) actions.append(editQuestionButton(message.request));
     if (response.status === 'solved') {
       const explain = element('button', '', message.aiLoading ? 'Generating explanation...' : (message.ai && message.ai.action === 'explain' ? 'Explain again' : 'Explain this result'));
       explain.type = 'button';
@@ -858,6 +910,9 @@
         lines.push(`Verification: ${verification}`);
       }
       lines.push(`Routes: ${metrics.routes.join(' + ')}`);
+      if (metrics.solverMetrics.source) lines.push(`Route source: ${metrics.solverMetrics.source}`);
+      if (metrics.solverMetrics.choice) lines.push(`Route choice: ${metrics.solverMetrics.choice}`);
+      if (metrics.solverMetrics.reason) lines.push(`Route note: ${metrics.solverMetrics.reason}`);
       lines.push(`Solver time: ${metricValue(metrics.solverMetrics.solver_ms, 'ms')}`);
       lines.push(`Total solve time: ${metricValue(metrics.solverMetrics.elapsed_ms, 'ms')}`);
       lines.push(`AI time: ${metricValue(metrics.aiLatency, 'ms')}`);
@@ -963,6 +1018,12 @@
           : body.status === 'unresolved' && body.result === null && check && check.status === 'not_checked';
         if (!matchesRequest || !validCheck || !validSteps || !validResult) throw new Error('The server returned an invalid response. Please retry.');
       }
+      if (url === '/api/route') {
+        const validStatus = ['routed', 'refused'].includes(body.status);
+        const validRouting = body.routing && typeof body.routing === 'object' && !Array.isArray(body.routing);
+        const validAnswer = body.answer === null || (body.answer && typeof body.answer === 'object' && !Array.isArray(body.answer));
+        if (!validStatus || !validRouting || !validAnswer) throw new Error('The server returned an invalid route response. Please retry.');
+      }
       const validAiVerification = body.verification
         && body.verification.status === 'not_checked'
         && typeof body.verification.method === 'string'
@@ -1013,6 +1074,39 @@
     }
   }
 
+  async function route(payload, message) {
+    message.cancelled = false;
+    const controller = new AbortController();
+    message.controller = controller;
+    state.activeSolve = controller;
+    const current = () => message.controller === controller && state.activeSolve === controller && message.generation === state.solveGeneration;
+    try {
+      const body = { mode: payload.mode };
+      if (payload.request && payload.request.expression) body.request = payload.request;
+      else body.prompt = payload.prompt;
+      const response = await fetchWithTimeout('/api/route', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }, 45000, controller);
+      if (!current()) return;
+      message.loading = false;
+      const answer = response.answer && typeof response.answer === 'object' ? response.answer : {};
+      const routeMetrics = { ...(answer.metrics || {}), ...(response.routing || {}), route: (response.routing && (response.routing.choice || response.routing.source)) || (answer.metrics && answer.metrics.route) || payload.mode };
+      message.response = response.status === 'refused'
+        ? { status: 'unresolved', result: null, text: null, notes: [response.routing.reason || 'The selected route refused this request.'], steps: [], verification: { status: 'not_checked', method: 'route', detail: 'No answer was returned.' }, metrics: routeMetrics, routing: response.routing }
+        : { ...answer, status: answer.status || (answer.text ? 'answered' : 'unresolved'), result: answer.result === undefined ? null : answer.result, steps: Array.isArray(answer.steps) ? answer.steps : [], notes: Array.isArray(answer.notes) ? answer.notes : [], verification: answer.verification || { status: 'not_checked', method: 'route', detail: 'The selected route did not provide an independent check.' }, metrics: routeMetrics, routing: response.routing };
+      setServiceStatus('ready', routeMetrics.route ? `Route ready · ${routeMetrics.route}` : 'Route ready');
+    } catch (error) {
+      if (!current()) return;
+      message.loading = false;
+      message.error = message.cancelled ? 'Route cancelled. You can retry this question.' : (error.message || 'The selected route is unavailable.');
+      setServiceStatus(error.status === 422 ? 'ready' : 'error', error.status === 422 ? 'Solver ready' : 'Route unavailable');
+    } finally {
+      if (!current()) return;
+      state.activeSolve = null;
+      state.solving = false;
+      elements.send.disabled = false;
+      renderMessages(false, message.id);
+    }
+  }
+
   function cancelSolve(message) {
     if (!message.loading) return;
     message.cancelled = true;
@@ -1034,6 +1128,17 @@
     message.loading = true;
     renderMessages();
     solve(message.request, message);
+  }
+
+  function retryRoute(message) {
+    if (state.solving) return;
+    const payload = { mode: message.routeMode || 'deterministic', request: message.request || buildRequest(), prompt: message.prompt || '' };
+    state.solving = true;
+    elements.send.disabled = true;
+    message.error = null;
+    message.loading = true;
+    renderMessages();
+    route(payload, message);
   }
 
   async function requestAi(message, action) {
@@ -1078,25 +1183,30 @@
   function submit(event) {
     event.preventDefault();
     if (state.solving) return;
-    const request = buildRequest();
-    const validationError = validateRequest(request);
+    const payload = buildRoutePayload();
+    const request = payload.request;
+    const validationError = validateRoutePayload(payload);
     if (validationError) {
-      const fields = validationError.fields.map((name) => elements[name]);
+      const fields = validationError.fields.map((name) => elements[name]).filter(Boolean);
       clearFormError();
       showFormError(validationError.message, fields);
       showToast(validationError.message);
       elements.toast.dataset.formError = 'true';
-      focusField(validationError.fields[0] || 'expression');
+      if (validationError.fields[0] === 'routePrompt') elements.routePrompt.focus();
+      else focusField(validationError.fields[0] || 'expression');
       return;
     }
     clearFormError();
     state.solving = true;
     elements.send.disabled = true;
-    const message = { id: String(state.nextMessageId++), generation: state.solveGeneration, request, display: displayRequest(request), loading: true };
+    const structuredRequest = request.expression ? request : null;
+    const display = structuredRequest ? displayRequest(structuredRequest) : payload.prompt;
+    const message = { id: String(state.nextMessageId++), generation: state.solveGeneration, request: structuredRequest, prompt: payload.prompt || null, routeMode: payload.mode, display, loading: true };
     state.selectedMessageId = message.id;
     state.messages.push(message);
     renderMessages(true, message.id);
-    solve(request, message);
+    if (payload.mode === 'exact') solve(request, message);
+    else route(payload, message);
   }
 
   async function checkHealth() {
@@ -1124,6 +1234,8 @@
     state.nextMessageId = 1;
     state.selectedMessageId = null;
     state.chatFilter = '';
+    if (elements.routeMode) elements.routeMode.value = 'exact';
+    if (elements.routePrompt) elements.routePrompt.value = '';
     elements.chatSearch.value = '';
     setFieldValue('expression', '');
     setFieldValue('lower', '');
@@ -1205,6 +1317,8 @@
   }
 
   function fillComposer(values) {
+    if (elements.routeMode) elements.routeMode.value = 'exact';
+    if (elements.routePrompt) elements.routePrompt.value = '';
     elements.operation.value = values.operation;
     setFieldValue('expression', values.expression);
     setFieldValue('lower', values.lower || '');
@@ -1232,7 +1346,9 @@
   function wireEvents() {
     elements.form.addEventListener('submit', submit);
     elements.operation.addEventListener('change', () => { updateOperationFields(); clearFormError(); });
+    if (elements.routeMode) elements.routeMode.addEventListener('change', () => { updateOperationFields(); clearFormError(); });
     elements.expression.addEventListener('input', () => { resizeExpression(); clearFormError(); });
+    if (elements.routePrompt) elements.routePrompt.addEventListener('input', clearFormError);
     [elements.lower, elements.upper, elements.target].forEach((field) => field.addEventListener('input', clearFormError));
     elements.expression.addEventListener('keydown', (event) => {
       if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); elements.form.requestSubmit(); }

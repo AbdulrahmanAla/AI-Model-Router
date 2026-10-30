@@ -67,11 +67,20 @@
               <option value="limit">Limit</option>
               <option value="equation">Equation</option>
             </select>
+            <label class="operation-label" for="route-mode">Route</label>
+            <select id="route-mode" aria-label="Route" aria-describedby="route-mode-hint">
+              <option value="exact">Exact solver</option>
+              <option value="deterministic">Deterministic router</option>
+              <option value="jev">Jev router</option>
+              <option value="ai_only">AI only</option>
+            </select>
             <span class="operation-hint" id="operation-hint">Find d/dx of an expression</span>
+            <span class="operation-hint" id="route-mode-hint">No model call for supported math</span>
           </div>
           <form id="solve-form" novalidate>
             <div class="input-grid">
               <label class="field expression-field" for="expression"><span>Expression</span><span id="expression" class="math-field" role="textbox" aria-label="Expression" tabindex="0" data-placeholder="For example: x^3 sin(x)" aria-describedby="input-help" aria-keyshortcuts="Enter Shift+Enter Escape /"></span><textarea id="expression-typed" class="typed-math-field" rows="1" hidden spellcheck="false" placeholder="For example: x^3*sin(x)" aria-describedby="input-help"></textarea></label>
+              <label class="field route-prompt-field" id="route-prompt-field" for="route-prompt" hidden><span>Language question <small>(optional when an expression is provided)</small></span><textarea id="route-prompt" rows="2" maxlength="2000" placeholder="For example: Explain why the derivative of x squared is 2x."></textarea><span class="operation-hint">Sent as data to the selected route. It is never executed as a formula.</span></label>
               <div class="option-fields" id="integral-options" hidden>
                 <label class="field" for="lower"><span>Lower bound</span><span id="lower" class="math-field compact-math-field" role="textbox" aria-label="Lower bound" tabindex="0" data-placeholder="0"></span><input id="lower-typed" class="typed-math-field" type="text" hidden placeholder="0"></label>
                 <label class="field" for="upper"><span>Upper bound</span><span id="upper" class="math-field compact-math-field" role="textbox" aria-label="Upper bound" tabindex="0" data-placeholder="1"></span><input id="upper-typed" class="typed-math-field" type="text" hidden placeholder="1"></label>
