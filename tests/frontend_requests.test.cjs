@@ -15,7 +15,7 @@ function appHarness() {
     document: {
       querySelector: () => ({ dataset: {}, hidden: true, classList: { add() {}, remove() {}, contains() { return false; } } }),
       body: { append(node) { downloads.push(node); } },
-      createElement: () => ({ style: {}, addEventListener(event, callback) { this[event] = callback; }, click() { this.clicked = true; }, remove() { this.removed = true; } }),
+      createElement: () => ({ style: {}, children: [], append(...nodes) { this.children.push(...nodes); }, addEventListener(event, callback) { this[event] = callback; }, click() { this.clicked = true; }, remove() { this.removed = true; } }),
     },
     window: {
       setTimeout: (callback) => { timers.set(++nextTimer, callback); return nextTimer; },
@@ -29,7 +29,7 @@ function appHarness() {
     renderMessages = () => {};
     copyText = (value) => { state.copiedEvidence = value; };
     setServiceStatus = (kind, label) => { state.serviceLabel = label; };
-    this.app = { state, elements, solve, cancelSolve, retrySolve, requestAi, cancelAi, copySessionEvidence, downloadSessionEvidence, sessionEvidenceText, addCopyActions, exampleValues, routeLabel, shouldFocusComposer, shouldCloseSidebarOnEscape, latestMessage };
+    this.app = { state, elements, solve, cancelSolve, retrySolve, requestAi, cancelAi, copySessionEvidence, downloadSessionEvidence, sessionEvidenceText, addCopyActions, exampleValues, routeLabel, shouldFocusComposer, shouldCloseSidebarOnEscape, latestMessage, renderAiResponse };
   })();`), context);
   return { ...context.app, pending, timers, downloads };
 }
@@ -101,6 +101,17 @@ test('full-solution copy counts optional AI attempts', () => {
   assert.match(app.state.copiedEvidence, /Routes: solver \+ ai/);
   assert.match(app.state.copiedEvidence, /General-model calls: 1/);
   assert.match(app.state.copiedEvidence, /AI 12\.00 ms/);
+});
+
+test('answered AI text has an independent copy action', () => {
+  const app = appHarness();
+  const children = [];
+  app.renderAiResponse({ ai: { status: 'answered', text: 'Use the power rule here.' } }, { append: (node) => children.push(node) });
+  const box = children[0];
+  const copy = box.children.find((child) => child.textContent === 'Copy AI explanation');
+  assert.ok(copy);
+  copy.click();
+  assert.equal(app.state.copiedEvidence, 'Use the power rule here.');
 });
 
 for (const body of [null, {}, [], { status: 'solved', result: { value: '2*x' } }, { status: 'solved', result: '2*x' }, { ...result, status: 'unresolved' }]) {

@@ -271,6 +271,12 @@
     const label = response.status === 'answered' ? 'AI text · unverified' : (response.status === 'loading' ? 'AI request in progress' : 'AI response unavailable');
     box.append(element('span', 'ai-label', label));
     box.append(element('span', 'ai-copy', response.status === 'answered' ? (response.text || 'The provider returned no explanation text.') : (response.message || 'The AI response is unavailable.')));
+    if (response.status === 'answered' && response.text) {
+      const copy = element('button', 'ai-copy-button', 'Copy AI explanation');
+      copy.type = 'button';
+      copy.addEventListener('click', () => copyText(response.text, 'AI explanation copied.'));
+      box.append(copy);
+    }
     body.append(box);
   }
 

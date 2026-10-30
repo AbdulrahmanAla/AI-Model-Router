@@ -13,6 +13,7 @@
 @media (min-width:761px){.app-shell.sidebar-collapsed .sidebar{display:none}.app-shell.sidebar-collapsed .mobile-menu{display:grid}.app-shell.sidebar-collapsed .composer-area{left:0}}
 .app-shell{height:100dvh;min-height:0;overflow:hidden}.main-content{height:100%;min-height:0}.topbar{flex-shrink:0}.sidebar{min-height:0;overflow-y:auto}
 .solution-steps{margin-top:13px;border-top:1px solid var(--line-soft)}
+.ai-copy-button{justify-self:start;padding:5px 8px;border:1px solid var(--line);border-radius:6px;background:transparent;color:var(--muted);font-size:11px}.ai-copy-button:hover{border-color:rgba(0,184,156,.6);background:var(--teal-soft);color:var(--text)}
 .solution-steps summary{padding-top:11px;color:var(--muted);cursor:pointer;font-size:12px}
 .step-list{display:grid;gap:7px;margin:10px 0 0;padding:0 0 0 24px;color:var(--muted);font-size:12px;line-height:1.55}
 .step-list li::marker{color:var(--teal-bright);font-weight:600}
