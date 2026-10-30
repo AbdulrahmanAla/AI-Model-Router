@@ -16,7 +16,7 @@ python -m venv .venv
 
 Open [AI Math Assistant locally](http://127.0.0.1:8000). Choose an operation, enter a typed formula such as `x^3*sin(x)`, and submit. Use explicit multiplication. Help in the website lists the grammar.
 
-Useful demo shortcuts: press `/` from the page to focus the math composer, `Ctrl+K` on Windows or `Cmd+K` on macOS to search the session chats, and `Escape` to close the mobile sidebar or cancel an active request.
+Useful demo shortcuts: press `/` from the page to focus the math composer, `Ctrl+K` on Windows or `Cmd+K` on macOS to search the session chats, and `Escape` to close the mobile sidebar or cancel an active request. Completed questions are also kept in a bounded local browser history, so refreshing the page preserves the current demo session; New chat clears it.
 
 ## Check before a direct merge
 
