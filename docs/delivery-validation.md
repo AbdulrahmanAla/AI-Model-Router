@@ -192,3 +192,15 @@ The welcome screen and sidebar open a native **Worked examples** dialog. Eight p
 The local gate passed 87 Python tests, 106 frontend tests, syntax checks, and all 40 frozen HTTP evaluation cases. A frontend regression changes from a right-hand limit to a definite-integral example and verifies both bounds, cleared limit context, and no request. The browser exercised both gallery entrypoints, loaded that sequence, and submitted `x^2` from 0 to 1 to obtain `1/3` with zero model calls. Escape closed the dialog and returned focus to its opener. At an effective narrow CSS width of about 433 px, all eight choices were reachable and the close control stayed visible after scrolling. Selecting and submitting the real-domain example returned an unresolved result explaining that the square-root domain is outside the real interval, with zero model calls. The viewport override was reset.
 
 ![Scrollable worked examples with a persistent close control](evidence/worked-examples-mobile.png)
+
+## Exact classification of real polynomial roots
+
+The scaled cubic `x^3+1e-24*x+1e-36=0` previously returned unresolved. Its two complex roots have imaginary parts smaller than the old admission tolerance, so they entered the candidate list before the real-only sort failed. Rational-coefficient equations now use exact real-root isolation. Other coefficient domains use symbolic realness checks and stop if classification remains indeterminate. No numerical tolerance admits a root into the exact real solution set.
+
+Familiar rational and quadratic results remain unchanged. Some irreducible cubic and quartic results now use `CRootOf` notation instead of large radical expressions. A result note explains that this is an exact indexed algebraic root, not a rounded approximation. Root substitution checks and empty-set verification labels retain their existing meaning.
+
+The local gate passed 91 Python tests, 106 frontend tests, syntax checks, and all 40 frozen HTTP evaluation cases. An additional public API regression for `x^2-pi=0` and `x^2+pi=0` passed after the gate, bringing the verified Python tests to 92. Regressions cover the scaled cubic, tiny positive and negative discriminants, a cubic with three real roots, a quartic with two real roots, and a positive quartic with no real roots. Both reviews found no material issue.
+
+The actual browser submitted the scaled cubic using `x*x*x+1e-24*x+1e-36=0`. It displayed one exact real root, the explanatory notation note, a symbolic substitution check, and zero model calls. Browser error/warning logs were empty.
+
+![Exact real-root classification for a scaled cubic](evidence/exact-real-root-isolation.png)

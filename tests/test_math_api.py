@@ -315,6 +315,70 @@ def test_equation_returns_real_roots_and_checks_substitution() -> None:
     assert body["verification"]["status"] == "symbolic_check"
 
 
+def test_equation_distinguishes_tiny_complex_roots_from_tiny_real_roots() -> None:
+    for expression, expected in (
+        ('x^2+1e-24=0', '{}'),
+        ('x^2-1e-24=0', '{-1/1000000000000, 1/1000000000000}'),
+    ):
+        response = client.post('/api/solve', json={'operation': 'equation', 'expression': expression})
+        assert response.status_code == 200
+        body = response.json()
+        assert body['status'] == 'solved', body
+        assert body['result'] == expected
+        assert body['metrics']['ai_calls'] == 0
+
+
+def test_scaled_cubic_does_not_mistake_nearby_complex_roots_for_real_roots() -> None:
+    response = client.post('/api/solve', json={'operation': 'equation', 'expression': 'x^3+1e-24*x+1e-36=0'})
+    body = response.json()
+    assert response.status_code == 200
+    assert body['status'] == 'solved', body
+    # Multiplying by 10^36 gives this integer polynomial. Its derivative is
+    # positive everywhere, so it has exactly one real root.
+    assert body['result'] == '{CRootOf(1000000000000000000000000000000000000*x**3 + 1000000000000*x + 1, 0)}'
+    assert body['verification']['status'] == 'symbolic_check'
+    assert body['metrics']['ai_calls'] == 0
+
+
+def test_exact_root_isolation_keeps_all_real_roots_of_irreducible_polynomials() -> None:
+    for expression, polynomial, indices in (
+        ('x^3-3*x+1=0', 'x**3 - 3*x + 1', (0, 1, 2)),
+        ('x^4-x-1=0', 'x**4 - x - 1', (0, 1)),
+    ):
+        response = client.post('/api/solve', json={'operation': 'equation', 'expression': expression})
+        body = response.json()
+        assert response.status_code == 200
+        assert body['status'] == 'solved'
+        expected = '{' + ', '.join(f'CRootOf({polynomial}, {index})' for index in indices) + '}'
+        assert body['result'] == expected
+        assert body['verification']['status'] == 'symbolic_check'
+        assert any('not a rounded approximation' in note for note in body['notes'])
+        assert body['metrics']['ai_calls'] == 0
+
+
+def test_exact_root_isolation_does_not_invent_real_roots_of_a_positive_quartic() -> None:
+    # Its minimum occurs at x = 4^(-1/3), where x^4-x+1 = 1-3*x/4 > 0.
+    response = client.post('/api/solve', json={'operation': 'equation', 'expression': 'x^4-x+1=0'})
+    body = response.json()
+    assert response.status_code == 200
+    assert body['status'] == 'solved'
+    assert body['result'] == '{}'
+    assert body['verification']['status'] == 'not_checked'
+
+
+def test_nonrational_polynomial_coefficients_keep_exact_real_classification() -> None:
+    for expression, expected in (
+        ('x^2-pi=0', '{-sqrt(pi), sqrt(pi)}'),
+        ('x^2+pi=0', '{}'),
+    ):
+        response = client.post('/api/solve', json={'operation': 'equation', 'expression': expression})
+        body = response.json()
+        assert response.status_code == 200
+        assert body['status'] == 'solved'
+        assert body['result'] == expected
+        assert body['metrics']['ai_calls'] == 0
+
+
 def test_equation_allows_whitespace_around_equals() -> None:
     response = client.post("/api/solve", json={"operation": "equation", "expression": "x^2 = 1"})
     assert response.status_code == 200

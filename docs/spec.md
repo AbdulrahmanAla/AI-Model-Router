@@ -63,6 +63,7 @@ Unresolved responses have a null result and latex, a helpful note, and `verifica
 - Definite integrals: reject interior singularities and uncertain real-domain intervals. Do not present a Cauchy principal value as an ordinary integral. Independently compare numerical quadrature where safe. Mark absence of independent evidence honestly.
 - Limits: compare left and right for a two-sided finite-point limit. A disagreement means the two-sided limit does not exist. Numerical samples are evidence only. Infinity and oscillation are not finite numerical success.
 - Equations: real polynomial roots only. Substitute every root. State whether the returned set is the solver's complete real solution set and distinguish that from substitution checks. Identity and inconsistent equations have explicit results.
+- Rational-coefficient polynomials use exact real-root isolation, with repeated roots returned once. Other coefficient domains require exact symbolic realness classification; indeterminate classification stops the route rather than using a floating-point imaginary-part tolerance. Irreducible cubics and quartics may display `CRootOf(p(x), k)` as an exact indexed algebraic root, with an explanatory note. This output notation does not extend the accepted input grammar.
 
 ## Local verification boundaries
 

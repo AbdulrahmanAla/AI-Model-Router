@@ -911,6 +911,22 @@ def _unresolved_steps(payload: dict[str, Any], note: str) -> list[str]:
     ])
 
 
+def _real_polynomial_roots(polynomial: sp.Poly) -> list[sp.Expr]:
+    if polynomial.domain.is_ZZ or polynomial.domain.is_QQ:
+        return [root for root, _multiplicity in polynomial.real_roots(multiple=False)]
+    roots = []
+    for candidate in sp.solve(polynomial.as_expr(), _X):
+        if candidate.is_real is True:
+            roots.append(candidate)
+        elif candidate.is_real is None:
+            imaginary = sp.simplify(sp.im(candidate))
+            if imaginary.is_zero is True:
+                roots.append(sp.simplify(sp.re(candidate)))
+            elif imaginary.is_zero is not False:
+                raise RuntimeError("The solver could not establish the complete real root set exactly.")
+    return sorted(roots, key=lambda root: sp.N(root, 30))
+
+
 def _compute(payload: dict[str, Any]) -> dict[str, Any]:
     operation = payload["operation"]
     source = payload["expression"]
@@ -955,25 +971,20 @@ def _compute(payload: dict[str, Any]) -> dict[str, Any]:
             verification = {"status": "symbolic_check", "method": "constant equation", "detail": "The constant equation has no real root."}
         else:
             try:
-                candidates = sp.solve(equation, _X)
+                roots = _real_polynomial_roots(polynomial)
             except Exception as exc:
-                raise RuntimeError("The equation solver could not finish.") from exc
-            roots = []
-            for candidate in candidates:
-                try:
-                    if candidate.is_real is True or abs(complex(sp.N(candidate, 16)).imag) < 1e-10:
-                        roots.append(candidate)
-                except Exception:
-                    continue
-            roots.sort(key=lambda item: float(sp.N(item)))
+                raise RuntimeError("The equation solver could not establish the complete real root set exactly.") from exc
             result = "{" + ", ".join(_sstr(root) for root in roots) + "}"
             verification = _verify_equation(equation, roots)
         latex = result if result.startswith("all ") or result.startswith("no ") else _latex(sp.FiniteSet(*roots))
+        notes = ["The returned set is the complete real polynomial solution set."]
+        if any(root.has(sp.CRootOf) for root in roots):
+            notes.append("CRootOf(p(x), k) denotes an exact indexed algebraic root of p(x), not a rounded approximation. Only real roots are included here.")
         return {
             "result": result,
             "latex": latex,
             "verification": verification,
-            "notes": ["The returned set is the complete real polynomial solution set."],
+            "notes": notes,
             "steps": _solved_steps(
                 operation,
                 source,
