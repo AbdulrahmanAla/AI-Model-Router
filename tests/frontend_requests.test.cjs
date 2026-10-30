@@ -105,6 +105,17 @@ for (const [question, expected] of [
   });
 }
 
+test('unresolved results can be copied as a full attempt', () => {
+  const app = appHarness();
+  const buttons = [];
+  const unresolved = { status: 'unresolved', result: null, verification: { status: 'not_checked', detail: 'The exact route stopped safely.' }, steps: ['Stop before returning an exact answer.'] };
+  app.addCopyActions(unresolved, { append: (button) => buttons.push(button) }, request);
+  buttons.find((button) => button.textContent === 'Copy full attempt').click();
+  assert.match(app.state.copiedEvidence, /Question: Derivative x\^2/);
+  assert.match(app.state.copiedEvidence, /Status: unresolved/);
+  assert.match(app.state.copiedEvidence, /Stop before returning/);
+});
+
 test('full-solution copy counts optional AI attempts', () => {
   const app = appHarness();
   const buttons = [];

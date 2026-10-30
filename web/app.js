@@ -254,8 +254,8 @@
       copySteps.addEventListener('click', () => copyText(response.steps.map((step, index) => `${index + 1}. ${step}`).join('\n'), 'Solution steps copied.'));
       card.append(copySteps);
     }
-    if (response.result !== null && response.result !== undefined && Array.isArray(response.steps) && response.steps.length) {
-      const copyFull = element('button', '', 'Copy full solution');
+    if (Array.isArray(response.steps) && response.steps.length && ((response.result !== null && response.result !== undefined) || response.status === 'unresolved')) {
+      const copyFull = element('button', '', response.status === 'unresolved' ? 'Copy full attempt' : 'Copy full solution');
       copyFull.type = 'button';
       copyFull.addEventListener('click', () => {
         const verification = response.verification && response.verification.detail ? `Verification (${checkLabel(response.verification.status)}): ${response.verification.detail}` : '';
@@ -267,7 +267,8 @@
         const aiTexts = answeredAiTexts(message).map((text) => `AI explanation (unverified):\n${text}`);
         const steps = response.steps.map((step, index) => `${index + 1}. ${step}`).join('\n');
         const notes = Array.isArray(response.notes) && response.notes.length ? `Notes:\n${response.notes.join('\n')}` : '';
-        copyText([`Question: ${displayRequest(request)}`, `Result: ${response.result}`, verification, route, calls, timing, ...aiTexts, notes, `Steps:\n${steps}`].filter(Boolean).join('\n'), 'Full solution copied.');
+        const resultLine = response.result !== null && response.result !== undefined ? `Result: ${response.result}` : `Status: ${response.status || 'unresolved'}`;
+        copyText([`Question: ${displayRequest(request)}`, resultLine, verification, route, calls, timing, ...aiTexts, notes, `Steps:\n${steps}`].filter(Boolean).join('\n'), response.status === 'unresolved' ? 'Full attempt copied.' : 'Full solution copied.');
       });
       card.append(copyFull);
     }
