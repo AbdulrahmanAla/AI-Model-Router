@@ -165,6 +165,15 @@ def test_cancelled_nonpolynomial_equation_does_not_claim_all_real_x() -> None:
     assert response.json()["status"] == "unresolved"
 
 
+def test_equation_identity_and_constant_cases_skip_factorization_claims() -> None:
+    for expression in ("x=x", "1=2"):
+        response = client.post("/api/solve", json={"operation": "equation", "expression": expression})
+        body = response.json()
+        assert response.status_code == 200
+        assert body["status"] == "solved"
+        assert not any("factor the polynomial" in step.lower() for step in body["steps"])
+
+
 def test_real_constant_function_coefficients_remain_polynomial() -> None:
     response = client.post("/api/solve", json={"operation": "equation", "expression": "sqrt(2)*x=1"})
     assert response.status_code == 200
