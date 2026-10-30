@@ -123,6 +123,12 @@
   <dialog class="help-dialog route-dialog" id="route-dialog" aria-labelledby="route-title">
     <div class="dialog-header"><h2 id="route-title">Why this route?</h2><button class="icon-button" id="close-route" type="button" aria-label="Close route explanation">×</button></div>
     <div class="dialog-body">
+      <section aria-labelledby="session-summary-title">
+        <h3 class="examples-heading" id="session-summary-title">This session</h3>
+        <div class="route-grid" id="session-summary"></div>
+        <p class="muted-copy" id="session-checks"></p>
+        <p class="muted-copy">Session activity only; not a benchmark or an AI comparison. Unknown usage stays unreported. Energy and FLOPs are not measured.</p>
+      </section>
       <p><strong>AI Math Assistant starts with an exact local solver.</strong> Supported formulas are parsed with a bounded grammar, solved symbolically, and checked before any optional model request.</p>
       <div class="route-explanation-grid">
         <div><span class="route-explanation-mark">1</span><p><strong>Compute locally</strong><br>Derivatives, integrals, limits, and polynomial roots use the deterministic route.</p></div>

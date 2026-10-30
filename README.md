@@ -30,6 +30,8 @@ Useful demo shortcuts: press `/` from the page to focus the math composer, `Ctrl
 
 Explanations from an AI provider remain optional. The worked steps for recognized rules use deterministic calculations. These are educational derivations, not a trace of every internal SymPy operation.
 
+Open **Why this route?** to inspect this session's question outcomes, check types, and model usage. **Copy session evidence** and **Download session evidence** include the same summary before the detailed answers. The counts describe session activity and current question outcomes, rather than benchmark accuracy. Unknown provider usage stays unreported.
+
 ## Check before a direct merge
 
 ```powershell

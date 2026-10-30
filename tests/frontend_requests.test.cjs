@@ -401,6 +401,62 @@ test('a definite-integral example restores both bounds and clears prior limit co
   assert.equal(app.pending.length, 0);
 });
 
+test('session evidence starts with observed outcomes and labels its measurement limits', () => {
+  const app = appHarness();
+  app.state.messages.push(
+    { display: 'Derivative x^2', request, response: { ...result, metrics: { route: 'solver', ai_calls: 0 } } },
+    { display: 'Limit 1/x', request: { operation: 'limit', expression: '1/x', target: '0', direction: 'both' }, response: { status: 'unresolved', result: null, verification: { status: 'not_checked', detail: 'The sides disagree.' }, metrics: { route: 'solver', ai_calls: 0 } } },
+  );
+  const evidence = app.sessionEvidenceText();
+  assert.match(evidence, /Session outcomes: 1 solved; 1 unresolved; 0 failed; 0 pending/);
+  assert.match(evidence, /Solved-result checks: 1 symbolic; 0 numerical; 0 not independently checked; 0 failed/);
+  assert.match(evidence, /Session general-model calls: 0/);
+  assert.match(evidence, /Session reported tokens: not reported/);
+  assert.match(evidence, /Session activity only; not a benchmark or an AI comparison/);
+});
+
+test('session summary never turns partially reported AI attempts into known usage totals', () => {
+  const app = appHarness();
+  app.state.messages.push({ id: '1', request, display: 'Derivative x^2', response: { ...result, metrics: { route: 'solver', ai_calls: 0 } }, aiAttempts: [
+    { status: 'answered', action: 'explain', metrics: { ai_calls: 1, total_tokens: 20 } },
+    { status: 'error', action: 'explain' },
+  ] });
+  app.renderConversation();
+  const cards = Object.fromEntries(app.elements.sessionSummary.children.map((card) => [card.children[0].textContent, card.children[1].textContent]));
+  assert.equal(cards['AI attempts'], '2');
+  assert.equal(cards['General-model calls'], 'Not reported');
+  assert.equal(cards['Reported AI tokens'], 'Not reported');
+  assert.match(app.elements.sessionStats.textContent, /model calls not reported/);
+  assert.match(app.sessionEvidenceText(), /Session general-model calls: not reported/);
+  assert.match(app.sessionEvidenceText(), /Session reported tokens: not reported/);
+});
+
+test('session token totals include measured AI usage without treating solver-only questions as missing provider usage', () => {
+  const app = appHarness();
+  app.state.messages.push(
+    { display: 'First question', request, error: 'Server unavailable; no AI action requested.' },
+    { display: 'Second question', request, response: { ...result, metrics: { route: 'solver', ai_calls: 0 } }, aiAttempts: [
+      { status: 'answered', action: 'explain', metrics: { ai_calls: 1, total_tokens: 20 } },
+    ] },
+  );
+  assert.match(app.sessionEvidenceText(), /Session general-model calls: 1/);
+  assert.match(app.sessionEvidenceText(), /Session reported tokens: 20/);
+});
+
+test('session evidence separates failed checks from failed requests and pending work', () => {
+  const app = appHarness();
+  for (const status of ['numerical_evidence', 'not_checked', 'failed']) {
+    app.state.messages.push({ request, display: 'Question', response: { ...result, verification: { status, detail: 'Recorded check status.' }, metrics: { ai_calls: 0 } } });
+  }
+  app.state.messages.push({ request, display: 'Failed request', error: 'Server unavailable.' }, { request, display: 'Pending request', loading: true });
+  const evidence = app.sessionEvidenceText();
+  assert.match(evidence, /Session outcomes: 3 solved; 0 unresolved; 1 failed; 1 pending/);
+  assert.match(evidence, /Solved-result checks: 0 symbolic; 1 numerical; 1 not independently checked; 1 failed/);
+  assert.match(evidence, /Session general-model calls: 0/);
+  app.renderConversation();
+  assert.match(app.elements.sessionChecks.textContent, /^Pending requests: 1/);
+});
+
 test('route label makes the exact local path explicit', () => {
   const app = appHarness();
   assert.equal(app.routeLabel({ aiCalls: 0, routes: ['solver'] }), 'Exact local · 0 model calls');

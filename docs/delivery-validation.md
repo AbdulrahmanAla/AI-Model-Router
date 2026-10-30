@@ -204,3 +204,13 @@ The local gate passed 91 Python tests, 106 frontend tests, syntax checks, and al
 The actual browser submitted the scaled cubic using `x*x*x+1e-24*x+1e-36=0`. It displayed one exact real root, the explanatory notation note, a symbolic substitution check, and zero model calls. Browser error/warning logs were empty.
 
 ![Exact real-root classification for a scaled cubic](evidence/exact-real-root-isolation.png)
+
+## Session evidence summary
+
+The route dialog and evidence export now start with observed session outcomes, solved-result check types, explicit AI attempts, and reported model usage. The header uses the same calculation. Question counts reflect each question's current outcome, including its latest retry. AI call and token totals use recorded AI attempts; a missing counter on an AI attempt keeps the corresponding total unknown. Solver-only questions and solver failures do not invalidate separately reported provider usage. The summary labels its scope as session activity and makes no benchmark, live-comparison, energy, or FLOPs claim.
+
+The local gate passed 92 Python tests, 110 frontend tests, syntax checks, and all 40 frozen HTTP evaluation cases. Review identified a missing-metrics aggregation issue; a regression reproduced it, and the corrected frontend suite passed all 110 checks. The cases cover interrupted AI usage, known usage alongside a solver failure, solver-only questions, and separation of failed checks, failed questions, and pending work. Review confirmed the fix with no further material findings.
+
+The final browser session solved the chain-rule and substitution examples, then declined the real-domain example. The dialog displayed two solved questions, one unresolved question, one symbolic check, one numerical check, zero model calls, and unreported tokens. After the specific copy-success notification, clipboard inspection confirmed the same summary ahead of the detailed evidence. At an effective narrow CSS width of about 433 px, the dialog fit within the viewport and used two metric columns. The viewport override was reset. Browser error/warning logs were empty. No live provider was configured or invoked during these checks.
+
+![Observed session outcomes and model-usage summary](evidence/session-summary.png)

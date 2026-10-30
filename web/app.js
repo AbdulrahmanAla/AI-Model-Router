@@ -15,7 +15,7 @@
     form: $('#solve-form'), operation: $('#operation'), expression: $('#expression'), lower: $('#lower'), upper: $('#upper'),
     target: $('#target'), direction: $('#direction'), integralOptions: $('#integral-options'), limitOptions: $('#limit-options'),
     operationHint: $('#operation-hint'), inputHelp: $('#input-help'), send: $('#send-button'), messages: $('#messages'), welcome: $('#welcome'), sessionStats: $('#session-stats'),
-    formError: $('#form-error'),
+    formError: $('#form-error'), sessionSummary: $('#session-summary'), sessionChecks: $('#session-checks'),
     chatList: $('#chat-list'), chatSearchWrap: $('#chat-search-wrap'), chatSearch: $('#chat-search'), chatSearchToggle: $('#search-toggle'), status: $('#service-status'), toast: $('#toast'),
     appShell: document.querySelector('.app-shell'), sidebar: $('#sidebar'), openSidebar: $('#open-sidebar'), help: $('#help-dialog'), examples: $('#examples-dialog'), routeHelp: $('#route-dialog'), conversation: $('#conversation')
   };
@@ -767,20 +767,53 @@
     });
   }
 
+  function sessionSummary() {
+    const summary = { solved: 0, unresolved: 0, failed: 0, pending: 0,
+      checks: { symbolic_check: 0, numerical_evidence: 0, not_checked: 0, failed: 0 } };
+    state.messages.forEach((message) => {
+      if (message.loading) summary.pending += 1;
+      else if (message.response && message.response.status === 'solved') {
+        summary.solved += 1;
+        const status = message.response.verification && message.response.verification.status;
+        summary.checks[Object.hasOwn(summary.checks, status) ? status : 'not_checked'] += 1;
+      } else if (message.response && message.response.status === 'unresolved') summary.unresolved += 1;
+      else summary.failed += 1;
+    });
+    const metrics = state.messages.map(combinedMetrics);
+    const providerMetrics = metrics.filter((item) => item.attempts > 0);
+    summary.calls = providerMetrics.length ? sumKnown(providerMetrics.map((item) => item.aiCalls)) : 0;
+    summary.attempts = metrics.reduce((total, item) => total + item.attempts, 0);
+    summary.tokens = sumKnown(providerMetrics.map((item) => item.totalTokens));
+    return summary;
+  }
+
+  function sessionCheckSummary(summary) {
+    return `Solved-result checks: ${summary.checks.symbolic_check} symbolic; ${summary.checks.numerical_evidence} numerical; ${summary.checks.not_checked} not independently checked; ${summary.checks.failed} failed`;
+  }
+
   function renderSessionStats() {
-    const completed = state.messages.filter((message) => message.response && message.response.status === 'solved').length;
-    const unresolved = state.messages.filter((message) => message.response && message.response.status === 'unresolved').length;
-    const attempts = state.messages.flatMap((message) => Array.isArray(message.aiAttempts) ? message.aiAttempts : []);
-    const unknownCalls = attempts.some((attempt) => !(attempt.metrics && Number.isFinite(attempt.metrics.ai_calls)));
-    const knownCalls = attempts.reduce((total, attempt) => total + (attempt.metrics && Number.isFinite(attempt.metrics.ai_calls) ? attempt.metrics.ai_calls : 0), 0);
-    const calls = unknownCalls ? 'model calls not reported' : `${knownCalls} model call${knownCalls === 1 ? '' : 's'}`;
-    const unresolvedLabel = unresolved ? ` · ${unresolved} unresolved` : '';
-    setText(elements.sessionStats, `${completed} exact solve${completed === 1 ? '' : 's'}${unresolvedLabel} · ${calls}`);
+    const summary = sessionSummary();
+    const calls = summary.calls === null ? 'model calls not reported' : `${summary.calls} model call${summary.calls === 1 ? '' : 's'}`;
+    const other = [summary.unresolved ? `${summary.unresolved} unresolved` : '', summary.failed ? `${summary.failed} failed` : '', summary.pending ? `${summary.pending} pending` : ''].filter(Boolean);
+    setText(elements.sessionStats, [`${summary.solved} exact solve${summary.solved === 1 ? '' : 's'}`, ...other, calls].join(' · '));
+    elements.sessionSummary.replaceChildren(
+      metricCard('Solved by solver', String(summary.solved)), metricCard('Unresolved', String(summary.unresolved)),
+      metricCard('Solver errors', String(summary.failed)), metricCard('AI attempts', String(summary.attempts)),
+      metricCard('General-model calls', metricValue(summary.calls)), metricCard('Reported AI tokens', metricValue(summary.tokens))
+    );
+    setText(elements.sessionChecks, `Pending requests: ${summary.pending}. ${sessionCheckSummary(summary)}`);
   }
 
   function sessionEvidenceText() {
     if (!state.messages.length) return '';
-    const lines = ['AI Math Assistant session evidence', ''];
+    const summary = sessionSummary();
+    const lines = ['AI Math Assistant session evidence', '',
+      `Session outcomes: ${summary.solved} solved; ${summary.unresolved} unresolved; ${summary.failed} failed; ${summary.pending} pending`,
+      sessionCheckSummary(summary),
+      `Session AI attempts: ${summary.attempts}`,
+      `Session general-model calls: ${summary.calls === null ? 'not reported' : summary.calls}`,
+      `Session reported tokens: ${summary.tokens === null ? 'not reported' : summary.tokens}`,
+      'Session activity only; not a benchmark or an AI comparison. Energy and FLOPs are not measured.', ''];
     state.messages.forEach((message, index) => {
       const response = message.response || {};
       const metrics = combinedMetrics(message);
@@ -1210,7 +1243,7 @@
       $(selector).addEventListener('click', () => { closeMobileSidebar(); elements.examples.showModal(); });
     });
     $('#close-examples').addEventListener('click', () => elements.examples.close());
-    $('#route-help').addEventListener('click', () => { closeMobileSidebar(); elements.routeHelp.showModal(); });
+    $('#route-help').addEventListener('click', () => { closeMobileSidebar(); renderSessionStats(); elements.routeHelp.showModal(); });
     $('#session-copy').addEventListener('click', () => { closeMobileSidebar(); copySessionEvidence(); });
     $('#session-download').addEventListener('click', () => { closeMobileSidebar(); downloadSessionEvidence(); });
     $('#latest-question').addEventListener('click', scrollToLatest);
