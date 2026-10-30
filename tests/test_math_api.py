@@ -31,6 +31,14 @@ def test_derivative_uses_exact_route_and_independent_numeric_evidence() -> None:
     assert body["metrics"]["solver_ms"] is not None
     assert body["steps"]
     assert any("derivative" in step.lower() for step in body["steps"])
+    assert any("power rule" in step.lower() for step in body["steps"])
+
+
+def test_solution_steps_name_the_integral_rule_family() -> None:
+    response = client.post("/api/solve", json={"operation": "integral", "expression": "2*x + cos(x)"})
+    body = response.json()
+    assert response.status_code == 200
+    assert any("linearity" in step.lower() for step in body["steps"])
 
 
 def test_each_supported_operation_returns_bounded_deterministic_steps() -> None:

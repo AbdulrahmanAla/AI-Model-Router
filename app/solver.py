@@ -601,6 +601,44 @@ def _verification_step(verification: dict[str, str]) -> str:
     return f"Verification ({status}): {detail}" if detail else f"Verification status: {status}."
 
 
+def _derivative_rule_step(expression: sp.Expr | None) -> str:
+    if expression is None:
+        return "Apply the supported differentiation rules with respect to x."
+    if expression.is_Add:
+        return "Use linearity: differentiate each term and add the results."
+    if expression.is_Mul:
+        return "Apply the product rule to the factors that depend on x."
+    if expression.is_Pow:
+        if expression.base.has(_X) and not expression.exp.has(_X):
+            return "Apply the power rule, including the chain rule for the base."
+        return "Apply the supported power rule to the expression in x."
+    rules = {
+        sp.sin: "Use d/dx sin(u) = cos(u)·u'.",
+        sp.cos: "Use d/dx cos(u) = -sin(u)·u'.",
+        sp.tan: "Use d/dx tan(u) = sec(u)^2·u'.",
+        sp.exp: "Use d/dx exp(u) = exp(u)·u'.",
+        sp.log: "Use d/dx log(u) = u'/u.",
+        sp.Abs: "Differentiate the absolute-value branch where the real derivative is defined.",
+    }
+    return rules.get(expression.func, "Apply the supported differentiation rules with respect to x.")
+
+
+def _integral_rule_step(expression: sp.Expr | None) -> str:
+    if expression is None:
+        return "Find an antiderivative with respect to x."
+    if expression.is_Add:
+        return "Use linearity: integrate each term and add the results."
+    if expression.is_Mul and any(not factor.has(_X) for factor in expression.args):
+        return "Pull constant factors outside the integral, then integrate the remaining expression."
+    rules = {
+        sp.sin: "Use ∫sin(u) du = -cos(u) when the argument is x.",
+        sp.cos: "Use ∫cos(u) du = sin(u) when the argument is x.",
+        sp.exp: "Use ∫exp(u) du = exp(u) when the argument is x.",
+        sp.log: "Use the real logarithm antiderivative and preserve its domain restriction.",
+    }
+    return rules.get(expression.func, "Find an antiderivative with respect to x.")
+
+
 def _solved_steps(
     operation: str,
     source: str,
@@ -619,21 +657,14 @@ def _solved_steps(
     """Describe the bounded exact route in language suitable for the result card."""
     if operation == "derivative":
         steps = [f"Read the function as f(x) = {source}."]
-        if expression is not None and expression.is_Add:
-            steps.append("Differentiate each term and combine the derivatives.")
-        elif expression is not None and expression.is_Mul:
-            steps.append("Apply the product rule to the factors that depend on x.")
-        elif expression is not None and expression.is_Pow:
-            steps.append("Apply the power rule to the expression in x.")
-        else:
-            steps.append("Apply the supported differentiation rules with respect to x.")
+        steps.append(_derivative_rule_step(expression))
         steps.extend([f"Simplify the derivative to {result}.", _verification_step(verification)])
         return _bounded_steps(steps)
 
     if operation == "integral":
         steps = [f"Read the integrand as {source}."]
         if lower is None and upper is None:
-            steps.append("Find an antiderivative with respect to x.")
+            steps.append(_integral_rule_step(expression))
             if branch_sensitive:
                 steps.append("Use the real logarithmic branch log(Abs(...)) and keep its nonzero-domain restriction.")
             steps.append(f"Display the antiderivative as {result}; the arbitrary constant C is omitted.")
