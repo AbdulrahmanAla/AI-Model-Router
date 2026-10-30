@@ -1,0 +1,34 @@
+{
+  "recorded_at_utc": "2026-10-30T21:19:49.214293+00:00",
+  "provider": "ollama",
+  "model": "llama3.2:1b",
+  "base_url": "http://127.0.0.1:11434",
+  "prompt": "Explain in one short sentence why the derivative of x squared is 2x",
+  "http_status": 200,
+  "answer_status": "answered",
+  "text_present": true,
+  "reported_metrics": {
+    "route": "ollama",
+    "ai_calls": 1,
+    "solver_ms": null,
+    "ai_latency_ms": 357.837,
+    "elapsed_ms": 360.411,
+    "model": "llama3.2:1b",
+    "input_tokens": 65,
+    "output_tokens": 49,
+    "total_tokens": 114,
+    "prompt_eval_count": 65,
+    "eval_count": 49,
+    "total_duration_ns": 304680100,
+    "load_duration_ns": 3595000,
+    "prompt_eval_duration_ns": 6779000,
+    "eval_duration_ns": 292194000,
+    "ai_status": "ok"
+  },
+  "request_wall_ms": 380.552,
+  "limitations": [
+    "One warm local request, not a benchmark or quality study.",
+    "CPU/GPU utilization and energy were not measured.",
+    "AI text remains unverified; exact math stays on the solver route."
+  ]
+}

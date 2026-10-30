@@ -14,7 +14,7 @@ python -m venv .venv
 .\.venv\Scripts\python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8000
 ```
 
-Open [AI Math Assistant locally](http://127.0.0.1:8000). Choose an operation, enter a formula in the visual editor, and submit. If the editor library is unavailable, the page provides a plain typed formula field, where multiplication must be explicit, such as `2*x`. Help in the website lists the supported grammar.
+Open [AI Math Assistant locally](http://127.0.0.1:8000). Write a question in the chat composer and submit it. Supported phrases are routed to the exact solver; other text stays at the optional AI boundary. If the visual editor is unavailable, the chat composer still accepts typed formulas, where multiplication must be explicit, such as `2*x`. Help in the website lists the supported grammar.
 
 Choose **Edit question** beneath an answer or error to restore that question to the composer, including integral bounds or limit direction. Change it and submit to create a new attempt while retaining the original in the session. Editing alone makes no solver or AI call.
 
@@ -52,12 +52,12 @@ Keep `.env` out of Git. Exact math works without this configuration. Explain and
 
 ### Run a local Ollama model
 
-Install Ollama, download a small model, and keep the model server on the loopback interface. For example, the Ollama API exposes `http://127.0.0.1:11434/api/chat` and reports native prompt and generation counts plus nanosecond durations when the response includes them:
+Install Ollama, download a small model, and keep the model server on the loopback interface. The validated local setup uses Ollama `0.40.13` with `llama3.2:1b` (1.3 GB). The Ollama API exposes `http://127.0.0.1:11434/api/chat` and reports native prompt and generation counts plus nanosecond durations when the response includes them:
 
 ```powershell
-ollama pull qwen3.5:4b
+ollama pull llama3.2:1b
 $env:AI_PROVIDER = "ollama"
-$env:OLLAMA_MODEL = "qwen3.5:4b"
+$env:OLLAMA_MODEL = "llama3.2:1b"
 $env:OLLAMA_BASE_URL = "http://127.0.0.1:11434"
 $env:OLLAMA_TIMEOUT_SECONDS = "120"
 \.venv\Scripts\python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8000
@@ -71,7 +71,7 @@ On Windows, the official GUI installer is listed by `winget` as `Ollama.Ollama`.
 winget show --id Ollama.Ollama.Portable --exact
 ```
 
-Use the published `Installer SHA256` to verify the archive before extracting it. Do not run a partial download. Start `ollama.exe`, confirm `http://127.0.0.1:11434/api/tags` responds, and only then pull the model. Live model benchmarking remains pending until these checks pass.
+Use the published `Installer SHA256` to verify the archive before extracting it. Do not run a partial download. Start `ollama.exe`, confirm `http://127.0.0.1:11434/api/tags` responds, and only then pull the model. The live smoke evidence for the validated model is in [ollama-live-benchmark.md](docs/evidence/ollama-live-benchmark.md). It confirms one successful routed request with native usage fields; it is a runtime check, not a quality benchmark.
 
 To reproduce an explanation followed by a failed retry without a live model, run `python scripts/preview_ai_contract.py`. Open the printed local URL, solve a question, and request an explanation twice. The first response and its token counters are explicitly labeled synthetic fixtures; later provider attempts fail. This preview binds only to localhost and substitutes the external HTTP transport. It does not measure model quality, usage, or efficiency.
 
