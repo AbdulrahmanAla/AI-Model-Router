@@ -28,6 +28,7 @@ The actual website at `http://127.0.0.1:8000` was exercised through the in-app b
 - Each deterministic solution section displays its bounded step count while keeping the full numbered derivation visible.
 - The sidebar's Copy session evidence and Download session evidence actions package the current session's statuses, results, verification details, route call counts, timings, optional unverified AI text, and step counts for review.
 - A solved answer's full-solution copy preserves the same route proof and any answered AI explanations, even when a later AI retry fails.
+- Safely unresolved requests expose a Copy full attempt action that preserves the question, stop reason, verification state, and steps without inventing a result.
 - When an exact route stops safely, the scorecard reports the unresolved count separately instead of presenting it as a solve.
 - Escape cancels an active solver or optional AI request while preserving the retry path; dialog Escape behavior remains unchanged.
 - Optional AI loading and answered states expose busy and polite live-region semantics for assistive technology.
