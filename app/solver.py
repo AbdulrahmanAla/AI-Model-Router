@@ -923,7 +923,7 @@ def _compute(payload: dict[str, Any]) -> dict[str, Any]:
                 transformed, branch_sensitive = _real_log_antiderivative(result_expr)
                 if branch_sensitive:
                     verification = _verify_branch_antiderivative(expression, transformed)
-                    if verification["status"] != "numerical_evidence":
+                    if verification["status"] not in {"symbolic_check", "numerical_evidence"}:
                         raise RuntimeError("The real logarithmic branch is unresolved.")
                     result_expr = transformed
                 else:

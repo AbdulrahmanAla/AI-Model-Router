@@ -161,6 +161,11 @@ def test_real_logarithmic_antiderivative_uses_abs_and_states_domain() -> None:
     assert "nonzero" in body["notes"][1]
 
 
+def test_logarithmic_branch_accepts_a_symbolic_residual_check() -> None:
+    verification = solver._verify_branch_antiderivative(solver.sp.Integer(0), solver.sp.log(solver.sp.Integer(2)))
+    assert verification["status"] == "symbolic_check"
+
+
 def test_integral_linearity_steps_preserve_the_real_logarithmic_branch() -> None:
     for expression in ("x + 1/x", "x + 1/(x-1)"):
         response = client.post("/api/solve", json={"operation": "integral", "expression": expression})
