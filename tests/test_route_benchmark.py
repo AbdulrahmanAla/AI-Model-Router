@@ -95,6 +95,11 @@ def test_jev_failure_is_recorded_as_failed_without_inventing_usage():
     assert summary["resource_totals"]["cpu_seconds"]["total"] == 0.5
 
 
+def test_jev_aggregate_call_counter_is_used_when_attempt_details_are_omitted():
+    observation = {"body": {"routing": {"jev_calls": 1, "model": "jev-1", "input_tokens": 3, "output_tokens": 2, "total_tokens": 5}}}
+    assert _usage_records(observation) == [{"provider": "jev", "model": "jev-1", "model_calls": 1, "prompt_tokens": 3, "completion_tokens": 2, "total_tokens": 5}]
+
+
 def test_resource_cost_per_successful_task_includes_failed_attempt_costs():
     runs = [
         {"body": {"metrics": {"model_calls": 1, "total_tokens": 10}}, "elapsed_ms": 10.0, "score": {"passed": True, "counted": True, "deadline_failure": False}, "resources": {"total_cpu_seconds": 1.0, "peak_rss_bytes": 10}},

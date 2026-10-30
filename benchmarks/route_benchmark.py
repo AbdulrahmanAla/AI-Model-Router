@@ -221,6 +221,16 @@ def _usage_records(observation: dict[str, Any]) -> list[dict[str, Any]]:
         })
     if records:
         return records
+    jev_calls = routing.get("jev_calls")
+    if isinstance(jev_calls, int) and jev_calls > 0:
+        return [{
+            "provider": "jev",
+            "model": routing.get("model"),
+            "model_calls": jev_calls,
+            "prompt_tokens": routing.get("input_tokens"),
+            "completion_tokens": routing.get("output_tokens"),
+            "total_tokens": routing.get("total_tokens"),
+        }]
     calls = metrics.get("model_calls", metrics.get("ai_calls"))
     if isinstance(calls, int) and calls > 0:
         return [{

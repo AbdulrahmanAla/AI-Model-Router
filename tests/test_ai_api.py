@@ -17,7 +17,16 @@ client = TestClient(app)
 
 @pytest.fixture(autouse=True)
 def clear_ai_configuration(monkeypatch):
-    for name in ("AI_BASE_URL", "AI_API_KEY", "AI_MODEL", "AI_TIMEOUT_SECONDS", "AI_MAX_TOKENS"):
+    for name in (
+        "AI_PROVIDER",
+        "AI_BASE_URL",
+        "AI_API_KEY",
+        "AI_MODEL",
+        "AI_TIMEOUT_SECONDS",
+        "AI_MAX_TOKENS",
+        "OLLAMA_BASE_URL",
+        "OLLAMA_MODEL",
+    ):
         monkeypatch.delenv(name, raising=False)
     app.state.ai_transport = None
     yield
@@ -337,5 +346,126 @@ def test_provider_has_an_outer_wall_clock_deadline(monkeypatch) -> None:
         json={"action": "baseline", "request": {"operation": "derivative", "expression": "x^2"}},
     )
 
+    assert result.status_code == 504
+    assert result.json()["metrics"]["ai_calls"] == 1
+
+
+def configure_ollama(monkeypatch, handler):
+    monkeypatch.setenv("AI_PROVIDER", "ollama")
+    monkeypatch.setenv("OLLAMA_MODEL", "qwen3.5:4b")
+    monkeypatch.setenv("OLLAMA_BASE_URL", "http://127.0.0.1:11434")
+    app.state.ai_transport = httpx.MockTransport(handler)
+
+
+def test_ollama_explanation_uses_native_endpoint_without_auth_and_maps_usage(monkeypatch):
+    seen = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen["url"] = str(request.url)
+        seen["authorization"] = request.headers.get("authorization")
+        seen["body"] = json.loads(request.content)
+        return httpx.Response(
+            200,
+            json={
+                "model": "qwen3.5:4b",
+                "message": {"role": "assistant", "content": "The power rule gives 2*x."},
+                "done": True,
+                "total_duration": 123456789,
+                "load_duration": 1000000,
+                "prompt_eval_count": 31,
+                "prompt_eval_duration": 2000000,
+                "eval_count": 12,
+                "eval_duration": 3000000,
+            },
+        )
+
+    configure_ollama(monkeypatch, handler)
+    result = client.post(
+        "/api/ai",
+        json={"action": "explain", "request": {"operation": "derivative", "expression": "x^2"}},
+    )
+
+    assert result.status_code == 200
+    body = result.json()
+    assert body["metrics"]["ai_calls"] == 1
+    assert body["metrics"]["input_tokens"] == 31
+    assert body["metrics"]["output_tokens"] == 12
+    assert body["metrics"]["total_tokens"] == 43
+    assert body["metrics"]["prompt_eval_count"] == 31
+    assert body["metrics"]["eval_count"] == 12
+    assert body["metrics"]["total_duration_ns"] == 123456789
+    assert body["metrics"]["load_duration_ns"] == 1000000
+    assert body["metrics"]["prompt_eval_duration_ns"] == 2000000
+    assert body["metrics"]["eval_duration_ns"] == 3000000
+    assert seen["url"] == "http://127.0.0.1:11434/api/chat"
+    assert seen["authorization"] is None
+    assert seen["body"]["stream"] is False
+    assert seen["body"]["model"] == "qwen3.5:4b"
+
+
+def test_ollama_baseline_accepts_native_machine_readable_response(monkeypatch):
+    configure_ollama(
+        monkeypatch,
+        lambda request: httpx.Response(
+            200,
+            json={
+                "message": {"role": "assistant", "content": '{"status":"solved","result":"2*x"}'},
+                "done": True,
+                "prompt_eval_count": 5,
+                "eval_count": 6,
+            },
+        ),
+    )
+    result = client.post(
+        "/api/ai",
+        json={"action": "baseline", "request": {"operation": "derivative", "expression": "x^2"}},
+    )
+    assert result.status_code == 200
+    assert json.loads(result.json()["text"]) == {"status": "solved", "result": "2*x"}
+    assert result.json()["metrics"]["total_tokens"] == 11
+
+
+def test_ollama_missing_model_does_not_call_provider(monkeypatch):
+    calls = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        calls.append(request)
+        return httpx.Response(200, json={})
+
+    monkeypatch.setenv("AI_PROVIDER", "ollama")
+    app.state.ai_transport = httpx.MockTransport(handler)
+    result = client.post(
+        "/api/ai",
+        json={"action": "baseline", "request": {"operation": "derivative", "expression": "x^2"}},
+    )
+    assert result.status_code == 503
+    assert result.json()["metrics"]["ai_calls"] == 0
+    assert calls == []
+
+
+def test_ollama_malformed_response_is_redacted_and_counts_attempt(monkeypatch):
+    configure_ollama(monkeypatch, lambda request: httpx.Response(200, json={"message": {"role": "assistant"}}))
+    result = client.post(
+        "/api/ai",
+        json={"action": "baseline", "request": {"operation": "derivative", "expression": "x^2"}},
+    )
+    assert result.status_code == 502
+    assert result.json()["metrics"]["ai_calls"] == 1
+
+
+def test_ollama_timeout_counts_attempt(monkeypatch):
+    class SlowTransport(httpx.AsyncBaseTransport):
+        async def handle_async_request(self, request: httpx.Request) -> httpx.Response:
+            await asyncio.sleep(1)
+            return httpx.Response(200, json={"message": {"content": "late"}})
+
+    monkeypatch.setenv("AI_PROVIDER", "ollama")
+    monkeypatch.setenv("OLLAMA_MODEL", "qwen3.5:4b")
+    monkeypatch.setenv("AI_TIMEOUT_SECONDS", "0.1")
+    app.state.ai_transport = SlowTransport()
+    result = client.post(
+        "/api/ai",
+        json={"action": "baseline", "request": {"operation": "derivative", "expression": "x^2"}},
+    )
     assert result.status_code == 504
     assert result.json()["metrics"]["ai_calls"] == 1
