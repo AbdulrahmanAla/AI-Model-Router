@@ -14,7 +14,7 @@ function appHarness() {
   const context = vm.createContext({
     AbortController,
     document: {
-      querySelector: () => ({ dataset: {}, hidden: true, children: [], classList: { add() {}, remove() {}, contains() { return false; } }, replaceChildren(...nodes) { this.children = nodes; }, append(...nodes) { this.children.push(...nodes); } }),
+      querySelector: () => ({ dataset: {}, hidden: true, children: [], attributes: {}, focus() { this.focused = true; }, setAttribute(name, value) { this.attributes[name] = value; }, classList: { add() {}, remove() {}, contains() { return false; } }, replaceChildren(...nodes) { this.children = nodes; }, append(...nodes) { this.children.push(...nodes); } }),
       body: { append(node) { downloads.push(node); } },
       createElement: () => ({ style: {}, children: [], attributes: {}, append(...nodes) { this.children.push(...nodes); }, setAttribute(name, value) { this.attributes[name] = value; }, addEventListener(event, callback) { this[event] = callback; }, click() { this.clicked = true; }, remove() { this.removed = true; } }),
     },
@@ -30,7 +30,7 @@ function appHarness() {
     renderMessages = () => {};
     copyText = (value) => { state.copiedEvidence = value; };
     setServiceStatus = (kind, label) => { state.serviceLabel = label; };
-    this.app = { state, elements, solve, cancelSolve, retrySolve, requestAi, cancelAi, copySessionEvidence, downloadSessionEvidence, sessionEvidenceText, addCopyActions, exampleValues, routeLabel, resultAriaLabel, shouldFocusComposer, shouldCloseSidebarOnEscape, shouldCloseChatSearchOnEscape, shouldFocusChatSearch, latestMessage, renderAiResponse, renderChatList, closeChatSearch, fetchWithTimeout };
+    this.app = { state, elements, solve, cancelSolve, retrySolve, requestAi, cancelAi, copySessionEvidence, downloadSessionEvidence, sessionEvidenceText, addCopyActions, exampleValues, routeLabel, resultAriaLabel, shouldFocusComposer, shouldCloseSidebarOnEscape, shouldCloseChatSearchOnEscape, shouldFocusChatSearch, latestMessage, renderAiResponse, renderChatList, closeChatSearch, openChatSearch, fetchWithTimeout };
   })();`), context);
   return { ...context.app, pending, timers, downloads };
 }
@@ -38,6 +38,24 @@ function appHarness() {
 const request = { operation: 'derivative', expression: 'x^2' };
 const result = { status: 'solved', operation: 'derivative', expression: 'x^2', result: '2*x', verification: { status: 'symbolic_check', detail: 'Checked.' }, steps: ['Read the function.', 'Apply the power rule.'] };
 const response = (body) => ({ ok: true, json: async () => body });
+
+test('chat search opening and closing synchronizes name, state, filter and focus', () => {
+  const app = appHarness();
+  app.openChatSearch();
+  assert.equal(app.elements.chatSearchWrap.hidden, false);
+  assert.equal(app.elements.chatSearchToggle.attributes['aria-expanded'], 'true');
+  assert.equal(app.elements.chatSearchToggle.attributes['aria-label'], 'Close chat search');
+  assert.equal(app.elements.chatSearch.focused, true);
+  app.state.chatFilter = 'missing';
+  app.elements.chatSearch.value = 'missing';
+  app.closeChatSearch();
+  assert.equal(app.elements.chatSearchWrap.hidden, true);
+  assert.equal(app.elements.chatSearchToggle.attributes['aria-expanded'], 'false');
+  assert.equal(app.elements.chatSearchToggle.attributes['aria-label'], 'Search chats (Ctrl+K or Cmd+K)');
+  assert.equal(app.elements.chatSearchToggle.focused, true);
+  assert.equal(app.state.chatFilter, '');
+  assert.equal(app.elements.chatSearch.value, '');
+});
 
 test('examples carry their own limit direction', () => {
   const app = appHarness();

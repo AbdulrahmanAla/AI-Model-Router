@@ -757,14 +757,22 @@
     return Array.isArray(messages) && messages.length ? messages[messages.length - 1] : null;
   }
 
+  function openChatSearch() {
+    elements.chatSearchWrap.hidden = false;
+    elements.chatSearchToggle.setAttribute('aria-expanded', 'true');
+    elements.chatSearchToggle.setAttribute('aria-label', 'Close chat search');
+    elements.chatSearch.focus();
+  }
+
   function closeChatSearch() {
     if (elements.chatSearchWrap.hidden) return;
     elements.chatSearchWrap.hidden = true;
     elements.chatSearchToggle.setAttribute('aria-expanded', 'false');
+    elements.chatSearchToggle.setAttribute('aria-label', 'Search chats (Ctrl+K or Cmd+K)');
     elements.chatSearch.value = '';
     state.chatFilter = '';
     renderChatList();
-    $('#search-toggle').focus();
+    elements.chatSearchToggle.focus();
   }
 
   function scrollToLatest() {
@@ -807,9 +815,7 @@
       if (!dialogOpen && shouldFocusChatSearch(event, document.activeElement && document.activeElement.tagName)) {
         event.preventDefault();
         closeMobileSidebar();
-        elements.chatSearchWrap.hidden = false;
-        elements.chatSearchToggle.setAttribute('aria-expanded', 'true');
-        elements.chatSearch.focus();
+        openChatSearch();
         return;
       }
       if (!dialogOpen && shouldFocusComposer(event, document.activeElement && document.activeElement.tagName)) {
@@ -845,9 +851,7 @@
     $('#open-sidebar').addEventListener('click', () => { elements.appShell.classList.remove('sidebar-collapsed'); elements.sidebar.classList.add('open'); elements.openSidebar.setAttribute('aria-expanded', 'true'); });
     $('#search-toggle').addEventListener('click', () => {
       if (elements.chatSearchWrap.hidden) {
-        elements.chatSearchWrap.hidden = false;
-        elements.chatSearchToggle.setAttribute('aria-expanded', 'true');
-        elements.chatSearch.focus();
+        openChatSearch();
       } else closeChatSearch();
     });
     elements.chatSearch.addEventListener('input', () => { state.chatFilter = elements.chatSearch.value; renderChatList(); });

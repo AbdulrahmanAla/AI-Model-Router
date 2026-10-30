@@ -37,6 +37,7 @@ The actual website at `http://127.0.0.1:8000` was exercised through the in-app b
 - Health responses must contain the expected ready status and boolean AI configuration flag before the UI reports service readiness.
 - Successful AI payloads must carry explicit `not_checked` verification metadata before their text is rendered as an unverified explanation.
 - The chat-search toggle exposes `aria-expanded` and keeps it synchronized for clicks, keyboard opening, and Escape closing.
+- Its accessible name changes to Close chat search while open and returns to Search chats when closed.
 - The mobile sidebar toggle exposes `aria-expanded` and keeps it synchronized when the sidebar opens or closes.
 - Navigation toggles also expose `aria-controls` relationships to the sidebar and chat-search regions.
 - The operation selector is explicitly described by its dynamic hint so users receive the current operation guidance through assistive technology.
