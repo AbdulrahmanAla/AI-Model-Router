@@ -36,7 +36,7 @@ function appHarness() {
 }
 
 const request = { operation: 'derivative', expression: 'x^2' };
-const result = { status: 'solved', operation: 'derivative', expression: 'x^2', result: '2*x', verification: { status: 'symbolic_check', detail: 'Checked.' }, steps: ['Read the function.', 'Apply the power rule.'] };
+const result = { status: 'solved', operation: 'derivative', expression: 'x^2', request: { ...request, variable: 'x', lower: null, upper: null, target: null, direction: null }, result: '2*x', verification: { status: 'symbolic_check', detail: 'Checked.' }, steps: ['Read the function.', 'Apply the power rule.'] };
 const response = (body) => ({ ok: true, json: async () => body });
 
 for (const question of [
@@ -365,12 +365,47 @@ for (const field of ['operation', 'expression']) {
   });
 }
 
+for (const [question, field, wrong] of [
+  [{ operation: 'integral', expression: 'x', lower: '0', upper: '1' }, 'lower', '-1'],
+  [{ operation: 'integral', expression: 'x', lower: '0', upper: '1' }, 'upper', '2'],
+  [{ operation: 'limit', expression: '1/x', target: '0', direction: '+' }, 'target', '1'],
+  [{ operation: 'limit', expression: '1/x', target: '0', direction: '+' }, 'direction', '-'],
+  [request, 'variable', 'y'],
+]) {
+  test(`solver rejects a mismatched echoed ${field} while accepting matching context`, async () => {
+    const app = appHarness();
+    const echoed = { variable: 'x', lower: null, upper: null, target: null, direction: null, ...question };
+    const payload = { ...result, operation: question.operation, expression: question.expression, request: { ...echoed, [field]: wrong } };
+    const message = { request: question, generation: 0, loading: true };
+    const running = app.solve(question, message);
+    app.pending[0].resolve(response(payload));
+    await running;
+    assert.equal(message.response, undefined);
+    assert.match(message.error, /invalid response/i);
+    app.retrySolve(message);
+    app.pending[1].resolve(response({ ...payload, request: echoed }));
+    await new Promise(setImmediate);
+    assert.equal(message.response.request[field], echoed[field]);
+    assert.equal(message.error, null);
+  });
+}
+
+test('solver rejects a response without the echoed request', async () => {
+  const app = appHarness();
+  const message = { request, generation: 0, loading: true };
+  const running = app.solve(request, message);
+  app.pending[0].resolve(response({ ...result, request: null }));
+  await running;
+  assert.equal(message.response, undefined);
+  assert.match(message.error, /invalid response/i);
+});
+
 test('valid unresolved response remains available for explicit fallback', async () => {
   const app = appHarness();
   const message = { request, generation: 0, loading: true };
   const running = app.solve(request, message);
   app.pending[0].resolve(response({ status: 'unresolved', result: null,
-    operation: request.operation, expression: request.expression,
+    operation: request.operation, expression: request.expression, request: result.request,
     verification: { status: 'not_checked', detail: 'The exact solver reached its time limit.' }, steps: ['Stop before returning an exact answer.'] }));
   await running;
   assert.equal(message.response.status, 'unresolved');

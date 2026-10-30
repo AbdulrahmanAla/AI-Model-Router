@@ -42,7 +42,9 @@ def main():
             cases = [
                 ({"operation": "derivative", "expression": "x^3"}, "3*x**2"),
                 ({"operation": "integral", "expression": "2*x"}, "x**2"),
+                ({"operation": "integral", "expression": "x", "lower": "0", "upper": "1"}, "1/2"),
                 ({"operation": "limit", "expression": "sin(x)/x", "target": "0"}, "1"),
+                ({"operation": "limit", "expression": "sqrt(x)", "target": "0", "direction": "+"}, "0"),
                 ({"operation": "equation", "expression": "x-2=0"}, "{2}"),
             ]
             for request, expected in cases:
@@ -52,6 +54,9 @@ def main():
                 assert data["status"] == "solved", data
                 assert data["metrics"]["ai_calls"] == 0, data
                 assert data["result"] == expected, (expected, data)
+                expected_request = {"variable": "x", "lower": None, "upper": None,
+                                    "target": None, "direction": None, **request}
+                assert data["request"] == expected_request, (expected_request, data)
                 print(f"PASS {request['operation']}: {data['result']}")
             rejected = client.post("/api/solve", json={"operation": "derivative", "expression": "__import__('os')"})
             assert rejected.status_code == 422, rejected.text

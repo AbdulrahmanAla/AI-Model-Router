@@ -36,7 +36,7 @@ The actual website at `http://127.0.0.1:8000` was exercised through the in-app b
 - Both explanation and fallback routes display a Cancel AI request button while waiting. Cancelling aborts the browser request, preserves the solver response, reports provider usage as unknown, and ignores late AI responses. It does not promise to stop work already running at the provider.
 - Optional AI loading and answered states expose busy and polite live-region semantics for assistive technology.
 - The browser rejects solver payloads with missing, empty, oversized, or excessive derivation steps and leaves the question retryable instead of rendering partial evidence.
-- Solver responses are also checked against the submitted operation and expression, preventing stale or mismatched answers from being displayed.
+- Solver responses are checked against the full submitted request, including operation, expression, variable, integral bounds, limit target, and direction. Missing or mismatched request echoes become retryable errors. Real HTTP smoke checks confirm the request-echo contract, including definite integrals and one-sided limits.
 - Health responses must contain the expected ready status and boolean AI configuration flag before the UI reports service readiness.
 - Successful AI payloads must carry explicit `not_checked` verification metadata before their text is rendered as an unverified explanation.
 - The chat-search toggle exposes `aria-expanded` and keeps it synchronized for clicks, keyboard opening, and Escape closing.

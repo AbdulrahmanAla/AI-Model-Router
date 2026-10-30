@@ -558,7 +558,14 @@
         const validCheck = check && ['symbolic_check', 'numerical_evidence', 'not_checked', 'failed'].includes(check.status) && typeof check.detail === 'string';
         const validSteps = Array.isArray(body.steps) && body.steps.length >= 1 && body.steps.length <= 8
           && body.steps.every((step) => typeof step === 'string' && step.trim().length > 0 && step.length <= 500);
-        const matchesRequest = !expectedRequest || (body.operation === expectedRequest.operation && body.expression === expectedRequest.expression);
+        const echoed = body.request;
+        const matchesRequest = !expectedRequest || (
+          body.operation === expectedRequest.operation && body.expression === expectedRequest.expression
+          && echoed && typeof echoed === 'object' && !Array.isArray(echoed)
+          && ['operation', 'expression', 'lower', 'upper', 'target', 'direction'].every((field) =>
+            (echoed[field] ?? null) === (expectedRequest[field] ?? null))
+          && echoed.variable === (expectedRequest.variable || 'x')
+        );
         const validResult = body.status === 'solved'
           ? typeof body.result === 'string' && body.result.trim().length > 0
           : body.status === 'unresolved' && body.result === null && check && check.status === 'not_checked';
