@@ -113,6 +113,7 @@ def _base_metadata(*, started: float, source: str, choice: str, reason: str) -> 
         "elapsed_ms": round((time.perf_counter() - started) * 1000, 3),
         "attempts": [],
         "jev_calls": 0,
+        "model_calls": 0,
         "input_tokens": None,
         "output_tokens": None,
         "total_tokens": None,
@@ -216,10 +217,12 @@ async def choose_route(app: Any, *, mode: Literal["deterministic", "jev", "ai_on
                                       "ai_calls": 1, "input_tokens": None,
                                       "output_tokens": None, "total_tokens": None})
         metadata["jev_calls"] = 1
+        metadata["model_calls"] = 1
         metadata["model"] = config.model
         return metadata
     metadata.update({"source": "jev", "choice": choice, "reason": "Jev typed route decision",
                      "model": attempt.get("model"), "jev_calls": 1,
+                     "model_calls": 1,
                      "input_tokens": attempt.get("input_tokens"),
                      "output_tokens": attempt.get("output_tokens"),
                      "total_tokens": attempt.get("total_tokens")})
