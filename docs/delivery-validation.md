@@ -54,7 +54,11 @@ The browser solved `x^2` as `2*x`, then Explain preserved that exact answer and 
 
 These screenshots verify UI integration and accounting only. Their response text, timing, and token counts are synthetic test values and are excluded from efficiency evidence.
 
-Final solver measurements are recorded after the final integration gate.
+## Latest solver-only measurement
+
+On 30 October 2026, three repeats of the 40-case public HTTP benchmark produced 120 observations. All 90 supported-case observations were correct, all 30 boundary observations passed, failed outcomes were zero, and the exact route recorded zero general-model calls. Client wall-clock latency had a 576.7 ms median, with a 527.2 to 767.9 ms range. The bounded SymPy worker had a 39.1 ms median across completed solved cases.
+
+These timings include local process and HTTP overhead and are evidence about this route on this PC. They are not an AI latency comparison and do not measure energy, FLOPs, or total compute.
 
 ## Limits
 
