@@ -659,6 +659,12 @@
     elements.expression.focus();
   }
 
+  function closeMobileSidebar() {
+    if (!elements.sidebar.classList.contains('open')) return;
+    elements.sidebar.classList.remove('open');
+    elements.appShell.classList.add('sidebar-collapsed');
+  }
+
   function exampleValues(button) {
     return {
       operation: button.dataset.operation || 'derivative',
@@ -709,11 +715,11 @@
       const aiRequest = state.messages.find((message) => message.aiLoading);
       if (aiRequest) cancelAi(aiRequest);
     });
-    $('#new-chat').addEventListener('click', resetChat);
-    $('#syntax-help').addEventListener('click', () => elements.help.showModal());
-    $('#route-help').addEventListener('click', () => elements.routeHelp.showModal());
-    $('#session-copy').addEventListener('click', copySessionEvidence);
-    $('#session-download').addEventListener('click', downloadSessionEvidence);
+    $('#new-chat').addEventListener('click', () => { closeMobileSidebar(); resetChat(); });
+    $('#syntax-help').addEventListener('click', () => { closeMobileSidebar(); elements.help.showModal(); });
+    $('#route-help').addEventListener('click', () => { closeMobileSidebar(); elements.routeHelp.showModal(); });
+    $('#session-copy').addEventListener('click', () => { closeMobileSidebar(); copySessionEvidence(); });
+    $('#session-download').addEventListener('click', () => { closeMobileSidebar(); downloadSessionEvidence(); });
     $('#open-help-inline').addEventListener('click', () => elements.help.showModal());
     $('#close-help').addEventListener('click', () => elements.help.close());
     $('#close-route').addEventListener('click', () => elements.routeHelp.close());
