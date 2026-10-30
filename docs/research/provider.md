@@ -2,7 +2,9 @@
 
 ## Recommendation
 
-Use a small server-side HTTP adapter for an OpenAI-compatible Chat Completions endpoint. Keep the exact SymPy path independent of the adapter, so the app runs and demonstrates the efficiency claim with no model key. Enable the provider only when `AI_BASE_URL`, `AI_API_KEY`, and `AI_MODEL` are configured. Do not send a browser request directly to a model provider.
+Use a small server-side HTTP adapter for an OpenAI-compatible Chat Completions endpoint or Ollama's native local `/api/chat` endpoint. Keep the exact SymPy path independent of the adapter, so the app runs and demonstrates the efficiency claim with no model key. Enable the hosted provider only when `AI_BASE_URL`, `AI_API_KEY`, and `AI_MODEL` are configured. Enable the local provider with `AI_PROVIDER=ollama` and `OLLAMA_MODEL`; it defaults to loopback `http://127.0.0.1:11434` and sends no authorization header. Do not send a browser request directly to a model provider.
+
+Ollama's native response can expose `prompt_eval_count`, `eval_count`, and nanosecond duration fields. Preserve those as provider-specific evidence and leave missing fields unknown. Local inference has no API charge but still consumes local compute and memory.
 
 The adapter sends a non-streaming `POST {base_url}/chat/completions` with `Content-Type: application/json`, an `Authorization: Bearer ...` header, a model name, and a short `messages` array. The OpenAI reference defines `messages` as the conversation input and shows this endpoint shape in its curl example: [Create chat completion](https://developers.openai.com/api/reference/resources/chat/subresources/completions/methods/create#request-body).
 

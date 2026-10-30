@@ -15,7 +15,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ConfigDict, Field
 
-from .ai import AIServiceError, AIValidationBusy, handle_ai
+from .ai import AIServiceError, AIValidationBusy, ai_configured, handle_ai
 from .solver import GrammarError, SolveTimeout, SolveUnresolved, SolverBusy, _unresolved_steps, run_bounded
 
 
@@ -100,8 +100,7 @@ async def limit_request_body(request: Request, call_next):
 
 @app.get("/api/health")
 def health() -> dict[str, object]:
-    configured = all(os.getenv(name) for name in ("AI_BASE_URL", "AI_API_KEY", "AI_MODEL"))
-    return {"status": "ok", "ai_configured": configured}
+    return {"status": "ok", "ai_configured": ai_configured()}
 
 
 def validate_solve_request(request: SolveRequest) -> dict[str, object]:

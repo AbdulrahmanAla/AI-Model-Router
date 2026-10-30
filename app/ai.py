@@ -46,6 +46,7 @@ class AIValidationBusy(GrammarError):
 
 @dataclass(frozen=True)
 class ProviderConfig:
+    provider: str
     base_url: str
     api_key: str
     model: str
@@ -72,20 +73,39 @@ def _integer_setting(name: str, default: int, *, minimum: int, maximum: int) -> 
 
 
 def _provider_config() -> ProviderConfig | None:
-    base_url = os.getenv("AI_BASE_URL", "").strip()
-    api_key = os.getenv("AI_API_KEY", "").strip()
-    model = os.getenv("AI_MODEL", "").strip()
-    if not base_url or not api_key or not model:
+    provider = os.getenv("AI_PROVIDER", "openai").strip().lower() or "openai"
+    if provider == "ollama":
+        base_url = os.getenv("OLLAMA_BASE_URL", "http://127.0.0.1:11434").strip()
+        api_key = ""
+        model = os.getenv("OLLAMA_MODEL", "").strip()
+    elif provider in {"openai", "openai-compatible"}:
+        provider = "openai"
+        base_url = os.getenv("AI_BASE_URL", "").strip()
+        api_key = os.getenv("AI_API_KEY", "").strip()
+        model = os.getenv("AI_MODEL", "").strip()
+    else:
         return None
+    if not base_url or not model or (provider == "openai" and not api_key):
+        return None
+    timeout_default = 120.0 if provider == "ollama" else _DEFAULT_TIMEOUT_SECONDS
+    if provider == "ollama" and "AI_TIMEOUT_SECONDS" in os.environ:
+        timeout_default = _number_setting(
+            "AI_TIMEOUT_SECONDS", timeout_default, minimum=0.1, maximum=120.0
+        )
+    timeout_name = "OLLAMA_TIMEOUT_SECONDS" if provider == "ollama" else "AI_TIMEOUT_SECONDS"
     return ProviderConfig(
+        provider=provider,
         base_url=base_url.rstrip("/"),
         api_key=api_key,
         model=model,
-        timeout_seconds=_number_setting(
-            "AI_TIMEOUT_SECONDS", _DEFAULT_TIMEOUT_SECONDS, minimum=0.1, maximum=120.0
-        ),
+        timeout_seconds=_number_setting(timeout_name, timeout_default, minimum=0.1, maximum=120.0),
         max_tokens=_integer_setting("AI_MAX_TOKENS", _DEFAULT_MAX_TOKENS, minimum=1, maximum=4000),
     )
+
+
+def ai_configured() -> bool:
+    """Return whether the selected provider has the minimum local config."""
+    return _provider_config() is not None
 
 
 def _metrics(
@@ -97,6 +117,7 @@ def _metrics(
     ai_calls: int,
     solver_ms: float | None = None,
     usage: dict[str, Any] | None = None,
+    route: str = "ai",
 ) -> dict[str, Any]:
     usage = usage or {}
 
@@ -106,8 +127,20 @@ def _metrics(
             return value
         return None
 
+    def duration_ns(name: str) -> int | None:
+        value = usage.get(name)
+        if isinstance(value, int) and not isinstance(value, bool) and value >= 0:
+            return value
+        return None
+
+    input_tokens = token("prompt_tokens")
+    output_tokens = token("completion_tokens")
+    total_tokens = token("total_tokens")
+    if total_tokens is None and input_tokens is not None and output_tokens is not None:
+        total_tokens = input_tokens + output_tokens
+
     return {
-        "route": "ai",
+        "route": route,
         "ai_calls": ai_calls,
         "solver_ms": solver_ms,
         "ai_latency_ms": round((time.perf_counter() - provider_started) * 1000, 3)
@@ -115,9 +148,15 @@ def _metrics(
         else None,
         "elapsed_ms": round((time.perf_counter() - started) * 1000, 3),
         "model": model,
-        "input_tokens": token("prompt_tokens"),
-        "output_tokens": token("completion_tokens"),
-        "total_tokens": token("total_tokens"),
+        "input_tokens": input_tokens,
+        "output_tokens": output_tokens,
+        "total_tokens": total_tokens,
+        "prompt_eval_count": token("prompt_eval_count"),
+        "eval_count": token("eval_count"),
+        "total_duration_ns": duration_ns("total_duration"),
+        "load_duration_ns": duration_ns("load_duration"),
+        "prompt_eval_duration_ns": duration_ns("prompt_eval_duration"),
+        "eval_duration_ns": duration_ns("eval_duration"),
         "ai_status": status,
     }
 
@@ -134,6 +173,7 @@ def _error(
     ai_calls: int,
     solver_ms: float | None = None,
     usage: dict[str, Any] | None = None,
+    route: str = "ai",
 ) -> AIServiceError:
     return AIServiceError(
         status_code,
@@ -147,6 +187,7 @@ def _error(
             ai_calls=ai_calls,
             solver_ms=solver_ms,
             usage=usage,
+            route=route,
         ),
     )
 
@@ -155,6 +196,12 @@ def _chat_url(base_url: str) -> str:
     if base_url.endswith("/chat/completions"):
         return base_url
     return f"{base_url}/chat/completions"
+
+
+def _ollama_url(base_url: str) -> str:
+    if base_url.endswith("/api/chat"):
+        return base_url
+    return f"{base_url}/api/chat"
 
 
 def _validate_grammar(payload: dict[str, Any]) -> None:
@@ -296,9 +343,53 @@ def _response_content(body: Any, action: str, operation: str) -> str:
     return content
 
 
+def _ollama_response_content(body: Any, action: str, operation: str) -> str:
+    if not isinstance(body, dict):
+        raise ValueError("response body is not an object")
+    message = body.get("message")
+    if not isinstance(message, dict) or not isinstance(message.get("content"), str):
+        raise ValueError("response message is incomplete")
+    content = message["content"].strip()
+    if not content or len(content) > 12000:
+        raise ValueError("response text is empty or too large")
+    if action in {"baseline", "fallback"} and not _machine_answer_is_valid(content, operation, action):
+        raise ValueError("response does not match the JSON answer contract")
+    return content
+
+
 def _usage(body: Any) -> dict[str, Any]:
     value = body.get("usage") if isinstance(body, dict) else None
     return value if isinstance(value, dict) else {}
+
+
+def _ollama_usage(body: Any) -> dict[str, Any]:
+    """Normalize Ollama's native counts and nanosecond durations."""
+    if not isinstance(body, dict):
+        return {}
+    prompt_count = body.get("prompt_eval_count")
+    eval_count = body.get("eval_count")
+    usage: dict[str, Any] = {
+        "prompt_eval_count": prompt_count,
+        "eval_count": eval_count,
+        "prompt_eval_duration": body.get("prompt_eval_duration"),
+        "eval_duration": body.get("eval_duration"),
+        "load_duration": body.get("load_duration"),
+        "total_duration": body.get("total_duration"),
+    }
+    if isinstance(prompt_count, int) and not isinstance(prompt_count, bool) and prompt_count >= 0:
+        usage["prompt_tokens"] = prompt_count
+    if isinstance(eval_count, int) and not isinstance(eval_count, bool) and eval_count >= 0:
+        usage["completion_tokens"] = eval_count
+    if (
+        isinstance(prompt_count, int)
+        and not isinstance(prompt_count, bool)
+        and prompt_count >= 0
+        and isinstance(eval_count, int)
+        and not isinstance(eval_count, bool)
+        and eval_count >= 0
+    ):
+        usage["total_tokens"] = prompt_count + eval_count
+    return usage
 
 
 async def _call_provider(
@@ -340,17 +431,29 @@ async def _call_provider(
     provider_started = time.perf_counter()
     attempted = False
     transport = getattr(app.state, "ai_transport", None)
-    request_body = {
-        "model": config.model,
-        "messages": _messages(action, payload, exact),
-        "max_tokens": config.max_tokens,
-        "stream": False,
-    }
-    headers = {"Authorization": f"Bearer {config.api_key}", "Content-Type": "application/json"}
+    if config.provider == "ollama":
+        request_body = {
+            "model": config.model,
+            "messages": _messages(action, payload, exact),
+            "stream": False,
+            "think": False,
+            "options": {"num_predict": config.max_tokens},
+        }
+        endpoint = _ollama_url(config.base_url)
+        headers = {"Content-Type": "application/json"}
+    else:
+        request_body = {
+            "model": config.model,
+            "messages": _messages(action, payload, exact),
+            "max_tokens": config.max_tokens,
+            "stream": False,
+        }
+        endpoint = _chat_url(config.base_url)
+        headers = {"Authorization": f"Bearer {config.api_key}", "Content-Type": "application/json"}
 
     async def send_request() -> httpx.Response:
         async with httpx.AsyncClient(transport=transport, timeout=config.timeout_seconds) as client:
-            return await client.post(_chat_url(config.base_url), headers=headers, json=request_body)
+            return await client.post(endpoint, headers=headers, json=request_body)
 
     try:
         attempted = True
@@ -386,7 +489,7 @@ async def _call_provider(
         response_body = response.json()
     except (ValueError, json.JSONDecodeError):
         response_body = {}
-    usage = _usage(response_body)
+    usage = _ollama_usage(response_body) if config.provider == "ollama" else _usage(response_body)
     if response.status_code < 200 or response.status_code >= 300:
         status = "auth_error" if response.status_code in {401, 403} else "rate_limited" if response.status_code == 429 else "provider_error"
         raise _error(
@@ -403,7 +506,11 @@ async def _call_provider(
         )
     try:
         body = response_body
-        text = _response_content(body, action, payload["operation"])
+        text = (
+            _ollama_response_content(body, action, payload["operation"])
+            if config.provider == "ollama"
+            else _response_content(body, action, payload["operation"])
+        )
     except (ValueError, json.JSONDecodeError, TypeError) as exc:
         raise _error(
             status_code=502,
@@ -429,6 +536,170 @@ async def _call_provider(
             ai_calls=1,
             solver_ms=solver_ms,
             usage=usage,
+        ),
+    }
+
+
+async def call_ollama(
+    app: Any,
+    prompt: str,
+    *,
+    action: str = "route",
+    structured_payload: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Send one bounded plain-language prompt to the configured local Ollama server.
+
+    This is the narrow seam used by the routed endpoint. It never accepts a
+    browser-provided provider URL or credential and it never runs the solver.
+    ``structured_payload`` is optional context for a future router prompt and
+    is deliberately serialized as data inside the user message.
+    """
+    started = time.perf_counter()
+    if not isinstance(prompt, str) or not prompt.strip() or len(prompt) > 12_000:
+        raise _error(
+            status_code=422,
+            code="invalid_prompt",
+            detail="The AI prompt is empty or too large.",
+            started=started,
+            provider_started=None,
+            status="invalid_prompt",
+            model=None,
+            ai_calls=0,
+            route="ollama",
+        )
+    config = _provider_config()
+    if config is None or config.provider != "ollama":
+        raise _error(
+            status_code=503,
+            code="ai_unavailable",
+            detail="The local AI provider is not configured.",
+            started=started,
+            provider_started=None,
+            status="missing_config",
+            model=None,
+            ai_calls=0,
+            route="ollama",
+        )
+    acquired = await asyncio.to_thread(_AI_CONCURRENCY.acquire, False)
+    if not acquired:
+        raise _error(
+            status_code=503,
+            code="ai_unavailable",
+            detail="The local AI provider is busy. Try again shortly.",
+            started=started,
+            provider_started=None,
+            status="busy",
+            model=config.model,
+            ai_calls=0,
+            route="ollama",
+        )
+
+    provider_started = time.perf_counter()
+    attempted = False
+    transport = getattr(app.state, "ai_transport", None)
+    context = ""
+    if structured_payload is not None:
+        context = "\nStructured context: " + json.dumps(
+            structured_payload, sort_keys=True, separators=(",", ":")
+        )
+    request_body = {
+        "model": config.model,
+        "messages": [
+            {
+                "role": "system",
+                "content": (
+                    "You are an optional AI assistant. Return concise plain text. "
+                    "Do not claim that an unverified answer is a proof."
+                ),
+            },
+            {"role": "user", "content": prompt.strip() + context},
+        ],
+        "stream": False,
+        "think": False,
+        "options": {"num_predict": config.max_tokens},
+    }
+    headers = {"Content-Type": "application/json"}
+    endpoint = _ollama_url(config.base_url)
+
+    async def send_request() -> httpx.Response:
+        async with httpx.AsyncClient(transport=transport, timeout=config.timeout_seconds) as client:
+            return await client.post(endpoint, headers=headers, json=request_body)
+
+    try:
+        attempted = True
+        response = await asyncio.wait_for(send_request(), timeout=config.timeout_seconds)
+    except (asyncio.TimeoutError, httpx.TimeoutException) as exc:
+        raise _error(
+            status_code=504,
+            code="ai_unavailable",
+            detail="The local AI provider did not respond before the deadline.",
+            started=started,
+            provider_started=provider_started,
+            status="timeout",
+            model=config.model,
+            ai_calls=1 if attempted else 0,
+            route="ollama",
+        ) from exc
+    except httpx.RequestError as exc:
+        raise _error(
+            status_code=502,
+            code="ai_unavailable",
+            detail="The local AI provider could not be reached.",
+            started=started,
+            provider_started=provider_started,
+            status="connection_error",
+            model=config.model,
+            ai_calls=1 if attempted else 0,
+            route="ollama",
+        ) from exc
+    finally:
+        _AI_CONCURRENCY.release()
+
+    try:
+        response_body = response.json()
+    except (ValueError, json.JSONDecodeError):
+        response_body = {}
+    usage = _ollama_usage(response_body)
+    if response.status_code < 200 or response.status_code >= 300:
+        raise _error(
+            status_code=502,
+            code="ai_unavailable",
+            detail="The local AI provider returned an error.",
+            started=started,
+            provider_started=provider_started,
+            status="provider_error",
+            model=config.model,
+            ai_calls=1,
+            usage=usage,
+            route="ollama",
+        )
+    try:
+        text = _ollama_response_content(response_body, action, "unknown")
+    except (ValueError, json.JSONDecodeError, TypeError) as exc:
+        raise _error(
+            status_code=502,
+            code="ai_unavailable",
+            detail="The local AI provider returned an incomplete response.",
+            started=started,
+            provider_started=provider_started,
+            status="invalid_response",
+            model=config.model,
+            ai_calls=1,
+            usage=usage,
+            route="ollama",
+        ) from exc
+    return {
+        "status": "answered",
+        "text": text,
+        "verification": {"status": "not_checked", "method": "AI output", "detail": "AI text is unverified."},
+        "metrics": _metrics(
+            started=started,
+            provider_started=provider_started,
+            status="ok",
+            model=config.model,
+            ai_calls=1,
+            usage=usage,
+            route="ollama",
         ),
     }
 
