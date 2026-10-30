@@ -7,15 +7,16 @@ import os
 import time
 import asyncio
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from .ai import AIServiceError, AIValidationBusy, handle_ai
+from .router import choose_route
 from .solver import GrammarError, SolveTimeout, SolveUnresolved, SolverBusy, _unresolved_steps, run_bounded
 
 
@@ -36,6 +37,14 @@ class AIRequest(BaseModel):
 
     action: Literal["explain", "fallback", "baseline"]
     request: SolveRequest
+
+
+class RouteRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    mode: Literal["deterministic", "jev", "ai_only"] = "deterministic"
+    request: dict[str, Any] | None = None
+    prompt: str | None = Field(default=None, min_length=1, max_length=2000)
 
 
 app = FastAPI(title="AI Math Assistant", version="0.1.0")
@@ -177,6 +186,60 @@ async def ai(request: AIRequest, http_request: Request) -> dict[str, object] | J
             status_code=exc.status_code,
             content={"error": exc.code, "detail": exc.detail, "metrics": exc.metrics},
         )
+
+
+@app.post("/api/route", response_model=None)
+async def route(request: RouteRequest, http_request: Request) -> dict[str, object] | JSONResponse:
+    """Select a bounded exact or language route and preserve its evidence."""
+    if (request.request is None) == (request.prompt is None):
+        raise HTTPException(status_code=422, detail="Provide exactly one structured request or prompt.")
+
+    parsed_request: SolveRequest | None = None
+    validated_payload: dict[str, object] | None = None
+    if request.request is not None:
+        try:
+            parsed_request = SolveRequest.model_validate(request.request)
+        except ValidationError as exc:
+            raise HTTPException(status_code=422, detail="The structured request is invalid.") from exc
+        validated_payload = validate_solve_request(parsed_request)
+
+    routing = await choose_route(
+        http_request.app,
+        mode=request.mode,
+        payload=validated_payload,
+        prompt=request.prompt,
+    )
+    choice = routing["choice"]
+    if choice == "solver" and parsed_request is not None:
+        answer = await solve_request(parsed_request)
+        return {"status": "routed", "answer": answer, "routing": routing}
+    if choice == "solver":
+        routing = dict(routing)
+        routing["choice"] = "ai"
+        routing["reason"] = "A solver choice cannot execute a plain-language prompt; using AI."
+        choice = "ai"
+    if choice == "refuse":
+        return {"status": "refused", "answer": None, "routing": routing}
+
+    try:
+        from .ai import call_ollama
+
+        ai_answer = await call_ollama(
+            http_request.app,
+            request.prompt or json.dumps(validated_payload, sort_keys=True, separators=(",", ":")),
+            structured_payload=validated_payload,
+        )
+    except ImportError:
+        return JSONResponse(
+            status_code=503,
+            content={"error": "ai_unavailable", "detail": "The local Ollama adapter is unavailable.", "routing": routing},
+        )
+    except AIServiceError as exc:
+        return JSONResponse(
+            status_code=exc.status_code,
+            content={"error": exc.code, "detail": exc.detail, "metrics": exc.metrics, "routing": routing},
+        )
+    return {"status": "routed", "answer": ai_answer, "routing": routing}
 
 
 static_root = Path(__file__).resolve().parent.parent / "web"
