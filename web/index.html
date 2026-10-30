@@ -43,8 +43,8 @@
       <section class="conversation" aria-live="polite" aria-atomic="false" id="conversation">
         <div class="welcome" id="welcome">
           <div class="welcome-mark" aria-hidden="true">∑</div>
-          <h1>Where should we begin?</h1>
-          <p>Ask a structured calculus or algebra question. AI Math Assistant computes the result first and shows its check before you ask for an explanation.</p>
+          <h1>What would you like to work through?</h1>
+          <p>Ask in your own words. AI Math Assistant routes supported math to the exact local solver, shows every solution step, and keeps optional AI help clearly labeled.</p>
         <div class="starter-prompts" aria-label="Starter questions">
           <button type="button" class="starter-prompt" data-operation="derivative" data-expression="x^3*sin(x)">Differentiate x³ sin(x)</button>
           <button type="button" class="starter-prompt" data-operation="integral" data-expression="2*x + cos(x)">Integrate 2x + cos(x)</button>
@@ -57,9 +57,9 @@
         <div class="messages" id="messages"></div>
       </section>
 
-      <section class="composer-area" aria-label="Math question composer">
+      <section class="composer-area" aria-label="Chat composer">
         <div class="composer-shell">
-          <div class="operation-row">
+          <div class="operation-row legacy-controls" hidden aria-hidden="true">
             <label class="operation-label" for="operation">Operation</label>
             <select id="operation" aria-label="Operation" aria-describedby="operation-hint">
               <option value="derivative">Derivative</option>
@@ -78,7 +78,8 @@
             <span class="operation-hint" id="route-mode-hint">No model call for supported math</span>
           </div>
           <form id="solve-form" novalidate>
-            <div class="input-grid">
+            <label class="chat-input-label" for="chat-input"><span class="sr-only">Message AI Math Assistant</span><textarea id="chat-input" rows="1" maxlength="2000" placeholder="Message AI Math Assistant..." aria-describedby="input-help"></textarea></label>
+            <div class="input-grid legacy-inputs" hidden aria-hidden="true">
               <label class="field expression-field" for="expression"><span>Expression</span><span id="expression" class="math-field" role="textbox" aria-label="Expression" tabindex="0" data-placeholder="For example: x^3 sin(x)" aria-describedby="input-help" aria-keyshortcuts="Enter Shift+Enter Escape /"></span><textarea id="expression-typed" class="typed-math-field" rows="1" hidden spellcheck="false" placeholder="For example: x^3*sin(x)" aria-describedby="input-help"></textarea></label>
               <label class="field route-prompt-field" id="route-prompt-field" for="route-prompt" hidden><span>Language question <small>(optional when an expression is provided)</small></span><textarea id="route-prompt" rows="2" maxlength="2000" placeholder="For example: Explain why the derivative of x squared is 2x."></textarea><span class="operation-hint">Sent as data to the selected route. It is never executed as a formula.</span></label>
               <div class="option-fields" id="integral-options" hidden>
@@ -91,13 +92,13 @@
               </div>
             </div>
             <div class="composer-bottom">
-              <span class="input-help" id="input-help">Use explicit multiplication, such as 2*x.</span>
-              <button class="send-button" id="send-button" type="submit"><span class="send-label">Solve</span><span class="send-arrow" aria-hidden="true">↑</span></button>
+              <span class="input-help" id="input-help">Ask a math question or type anything you want help with. Enter sends; Shift+Enter adds a line.</span>
+              <button class="send-button" id="send-button" type="submit"><span class="send-label">Send</span><span class="send-arrow" aria-hidden="true">↑</span></button>
             </div>
             <p class="form-error" id="form-error" role="alert" hidden></p>
           </form>
         </div>
-        <p class="composer-disclaimer">Supported real-valued expressions use one variable, x. <button id="open-help-inline" type="button">See syntax help</button></p>
+        <p class="composer-disclaimer">Supported exact math uses real-valued expressions with one variable, x. <button id="open-help-inline" type="button">See syntax help</button></p>
       </section>
     </main>
   </div>

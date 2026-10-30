@@ -27,3 +27,12 @@
 .messages,.message{min-width:0;grid-template-columns:minmax(0,1fr)}
 .ai-history{margin-top:12px;border-top:1px solid var(--line-soft)}.ai-history summary{padding-top:10px;color:var(--muted);font-size:12px;cursor:pointer}
 
+/* Chat first composer. The structured controls remain in the DOM as a
+   compatibility seam for saved examples and the existing API tests, while
+   the product surface is one familiar free form message box. */
+.legacy-controls,.legacy-inputs{display:none!important}
+.chat-input-label{display:block;padding:0 4px}
+#chat-input{display:block;width:100%;min-height:44px;max-height:140px;padding:8px 0;border:0;outline:0;resize:none;overflow-y:auto;background:transparent;color:var(--text);font-size:15px;line-height:1.5}
+#chat-input::placeholder{color:var(--faint)}
+.composer-shell:focus-within{border-color:rgba(0,184,156,.55);box-shadow:0 16px 40px rgba(0,0,0,.24),0 0 0 1px rgba(0,184,156,.12)}
+

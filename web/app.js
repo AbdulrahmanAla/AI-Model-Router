@@ -18,7 +18,7 @@
   };
 
   const elements = {
-    form: $('#solve-form'), operation: $('#operation'), routeMode: $('#route-mode'), routeModeHint: $('#route-mode-hint'), routePromptField: $('#route-prompt-field'), routePrompt: $('#route-prompt'), expression: $('#expression'), lower: $('#lower'), upper: $('#upper'),
+    form: $('#solve-form'), chatInput: $('#chat-input'), operation: $('#operation'), routeMode: $('#route-mode'), routeModeHint: $('#route-mode-hint'), routePromptField: $('#route-prompt-field'), routePrompt: $('#route-prompt'), expression: $('#expression'), lower: $('#lower'), upper: $('#upper'),
     target: $('#target'), direction: $('#direction'), integralOptions: $('#integral-options'), limitOptions: $('#limit-options'),
     operationHint: $('#operation-hint'), inputHelp: $('#input-help'), send: $('#send-button'), messages: $('#messages'), welcome: $('#welcome'), sessionStats: $('#session-stats'),
     formError: $('#form-error'), sessionSummary: $('#session-summary'), sessionChecks: $('#session-checks'),
@@ -364,7 +364,59 @@
     return request;
   }
 
+  // Convert the small set of natural language forms that can be proven safe
+  // into the existing structured solver request. Everything else stays a
+  // plain prompt and follows the configured language route.
+  function freeformRequest(text) {
+    const source = String(text || '').trim().replace(/[?؟]+$/u, '').trim();
+    if (!source) return { request: null, prompt: '' };
+    const clean = (value) => String(value || '')
+      .trim()
+      .replace(/^(?:of|for|with)\s+/i, '')
+      .replace(/\s+(?:with\s+respect\s+to|respecting)\s+x\s*$/i, '')
+      .replace(/[.,;:]$/u, '')
+      .trim();
+    const bounded = (value) => {
+      const expression = clean(value);
+      if (!expression || expression.length > 400) return null;
+      // Keep the backend grammar as the authority. This check only prevents
+      // prose fragments from being mistaken for exact math.
+      if (!/[0-9xX]/.test(expression)) return null;
+      if (/[\n\r]/.test(expression)) return null;
+      return expression;
+    };
+    let match = source.match(/^(?:please\s+)?(?:differentiate|derivative\s+of|find\s+the\s+derivative\s+of|d\s*\/\s*d\s*x)\s*(?:of\s+)?(.+)$/i);
+    if (match) {
+      const expression = bounded(match[1]);
+      if (expression) return { request: { operation: 'derivative', expression, variable: 'x', lower: null, upper: null, target: null, direction: null }, prompt: '' };
+    }
+    match = source.match(/^(?:please\s+)?(?:integrate|integral\s+of|find\s+the\s+integral\s+of)\s*(?:of\s+)?(.+)$/i);
+    if (match) {
+      const expression = bounded(match[1]);
+      if (expression) return { request: { operation: 'integral', expression, variable: 'x', lower: null, upper: null, target: null, direction: null }, prompt: '' };
+    }
+    match = source.match(/^(?:please\s+)?(?:find\s+the\s+)?limit\s+(?:of\s+)?(.+?)\s+(?:as\s+)?x\s*(?:approaches|->|→)\s*([^\s,]+)(?:\s+from\s+(?:the\s+)?(right|left))?$/i);
+    if (match) {
+      const expression = bounded(match[1]);
+      const target = clean(match[2]);
+      if (expression && target) return { request: { operation: 'limit', expression, variable: 'x', lower: null, upper: null, target, direction: match[3] ? (match[3].toLowerCase() === 'right' ? '+' : '-') : 'both' }, prompt: '' };
+    }
+    match = source.match(/^(?:please\s+)?(?:solve|find\s+the\s+roots?\s+of)\s+(.+)$/i);
+    if (match && /=/.test(match[1])) {
+      const expression = bounded(match[1]);
+      if (expression) return { request: { operation: 'equation', expression, variable: 'x', lower: null, upper: null, target: null, direction: null }, prompt: '' };
+    }
+    if (/=/.test(source) && /^[0-9xX+*/^().\s=\-]+$/.test(source)) {
+      return { request: { operation: 'equation', expression: source, variable: 'x', lower: null, upper: null, target: null, direction: null }, prompt: '' };
+    }
+    return { request: null, prompt: source };
+  }
+
   function buildRoutePayload() {
+    if (elements.chatInput && String(elements.chatInput.value || '').trim()) {
+      const parsed = freeformRequest(elements.chatInput.value);
+      return { mode: parsed.request ? 'deterministic' : 'deterministic', request: parsed.request, prompt: parsed.prompt };
+    }
     const mode = selectedRouteMode();
     const request = buildRequest();
     const prompt = elements.routePrompt ? String(elements.routePrompt.value || '').trim() : '';
@@ -827,13 +879,13 @@
 
   function renderChatList() {
     elements.chatList.replaceChildren();
-    const visible = state.messages.filter((message) => requestTitle(message.request).toLowerCase().includes(state.chatFilter.toLowerCase()));
+    const visible = state.messages.filter((message) => (message.display || requestTitle(message.request)).toLowerCase().includes(state.chatFilter.toLowerCase()));
     if (!visible.length) {
       elements.chatList.append(element('p', 'empty-chats', state.messages.length ? 'No matching questions.' : 'Your solved questions will appear here.'));
       return;
     }
     visible.forEach((message) => {
-      const button = element('button', message.id === state.selectedMessageId ? 'chat-row active' : 'chat-row', requestTitle(message.request));
+      const button = element('button', message.id === state.selectedMessageId ? 'chat-row active' : 'chat-row', message.display || requestTitle(message.request));
       button.type = 'button';
       if (message.id === state.selectedMessageId) button.setAttribute('aria-current', 'true');
       button.addEventListener('click', () => {
@@ -1192,7 +1244,8 @@
       showFormError(validationError.message, fields);
       showToast(validationError.message);
       elements.toast.dataset.formError = 'true';
-      if (validationError.fields[0] === 'routePrompt') elements.routePrompt.focus();
+      if (elements.chatInput && !payload.request && !payload.prompt) elements.chatInput.focus();
+      else if (validationError.fields[0] === 'routePrompt') elements.routePrompt.focus();
       else focusField(validationError.fields[0] || 'expression');
       return;
     }
@@ -1200,7 +1253,8 @@
     state.solving = true;
     elements.send.disabled = true;
     const structuredRequest = request.expression ? request : null;
-    const display = structuredRequest ? displayRequest(structuredRequest) : payload.prompt;
+    const display = (elements.chatInput && String(elements.chatInput.value || '').trim())
+      || (structuredRequest ? displayRequest(structuredRequest) : payload.prompt);
     const message = { id: String(state.nextMessageId++), generation: state.solveGeneration, request: structuredRequest, prompt: payload.prompt || null, routeMode: payload.mode, display, loading: true };
     state.selectedMessageId = message.id;
     state.messages.push(message);
@@ -1237,6 +1291,7 @@
     if (elements.routeMode) elements.routeMode.value = 'exact';
     if (elements.routePrompt) elements.routePrompt.value = '';
     elements.chatSearch.value = '';
+    if (elements.chatInput) elements.chatInput.value = '';
     setFieldValue('expression', '');
     setFieldValue('lower', '');
     setFieldValue('upper', '');
@@ -1244,7 +1299,10 @@
     clearFormError();
     updateOperationFields();
     renderMessages();
+    // Keep the legacy field focus state for compatibility with saved examples,
+    // then place the real cursor in the chat composer.
     focusField('expression');
+    if (elements.chatInput) elements.chatInput.focus();
   }
 
   function closeMobileSidebar() {
@@ -1325,9 +1383,14 @@
     setFieldValue('upper', values.upper || '');
     setFieldValue('target', values.target || '');
     elements.direction.value = values.direction || 'both';
+    if (elements.chatInput) {
+      const operationText = values.operation === 'derivative' ? 'Differentiate' : values.operation === 'integral' ? 'Integrate' : values.operation === 'limit' ? `Find the limit of ${values.expression} as x approaches ${values.target || '0'}` : `Solve ${values.expression}`;
+      elements.chatInput.value = values.operation === 'limit' ? operationText : `${operationText} ${values.expression}`;
+    }
     clearFormError();
     updateOperationFields();
     focusField('expression');
+    if (elements.chatInput) elements.chatInput.focus();
   }
 
   function editQuestionButton(request) {
@@ -1353,6 +1416,16 @@
     elements.expression.addEventListener('keydown', (event) => {
       if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); elements.form.requestSubmit(); }
     });
+    if (elements.chatInput) {
+      elements.chatInput.addEventListener('input', () => {
+        elements.chatInput.style.height = 'auto';
+        elements.chatInput.style.height = `${Math.min(elements.chatInput.scrollHeight, 140)}px`;
+        clearFormError();
+      });
+      elements.chatInput.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); elements.form.requestSubmit(); }
+      });
+    }
     document.addEventListener('keydown', (event) => {
       const dialogOpen = elements.help.open || elements.examples.open || elements.routeHelp.open;
       if (!dialogOpen && shouldFocusChatSearch(event, document.activeElement && document.activeElement.tagName)) {
@@ -1363,7 +1436,8 @@
       }
       if (!dialogOpen && shouldFocusComposer(event, document.activeElement && document.activeElement.tagName)) {
         event.preventDefault();
-        focusField('expression');
+        if (elements.chatInput) elements.chatInput.focus();
+        else focusField('expression');
         return;
       }
       if (event.key !== 'Escape') return;
