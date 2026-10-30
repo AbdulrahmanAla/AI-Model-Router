@@ -20,6 +20,14 @@ def test_health_does_not_expose_provider_secrets() -> None:
     assert response.json() == {"status": "ok", "ai_configured": False}
 
 
+def test_health_reports_local_ollama_configuration_without_a_key(monkeypatch) -> None:
+    monkeypatch.setenv("AI_PROVIDER", "ollama")
+    monkeypatch.setenv("OLLAMA_MODEL", "qwen3.5:4b")
+    response = client.get("/api/health")
+    assert response.status_code == 200
+    assert response.json() == {"status": "ok", "ai_configured": True}
+
+
 def test_derivative_uses_exact_route_and_independent_numeric_evidence() -> None:
     response = client.post("/api/solve", json={"operation": "derivative", "expression": "x^3"})
     body = response.json()
