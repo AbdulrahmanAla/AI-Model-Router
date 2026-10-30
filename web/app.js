@@ -174,6 +174,14 @@
     return { aiCalls, aiLatency, attempts: attempts.length, totalTokens, solverMetrics, models, routes, statuses };
   }
 
+  function answeredAiTexts(message) {
+    const texts = Array.isArray(message && message.aiAttempts)
+      ? message.aiAttempts.filter((attempt) => attempt.status === 'answered' && attempt.text).map((attempt) => attempt.text)
+      : [];
+    if (message && message.ai && message.ai.status === 'answered' && message.ai.text && !texts.includes(message.ai.text)) texts.push(message.ai.text);
+    return texts;
+  }
+
   function renderMetrics(message, details) {
     const metrics = combinedMetrics(message);
     const grid = element('div', 'route-grid');
@@ -255,10 +263,10 @@
         const route = `Routes: ${combined ? combined.routes.join(' + ') : (metrics.route || 'not reported')}`;
         const calls = `General-model calls: ${combined ? (Number.isFinite(combined.aiCalls) ? combined.aiCalls : 'not reported') : (Number.isFinite(metrics.ai_calls) ? metrics.ai_calls : 'not reported')}`;
         const timing = `Timing: solver ${metricValue(metrics.solver_ms, 'ms')}; total ${metricValue(metrics.elapsed_ms, 'ms')}; AI ${metricValue(combined && combined.aiLatency, 'ms')}`;
-        const aiText = message && message.ai && message.ai.status === 'answered' && message.ai.text ? `AI explanation (unverified):\n${message.ai.text}` : '';
+        const aiTexts = answeredAiTexts(message).map((text) => `AI explanation (unverified):\n${text}`);
         const steps = response.steps.map((step, index) => `${index + 1}. ${step}`).join('\n');
         const notes = Array.isArray(response.notes) && response.notes.length ? `Notes:\n${response.notes.join('\n')}` : '';
-        copyText([`Question: ${displayRequest(request)}`, `Result: ${response.result}`, verification, route, calls, timing, aiText, notes, `Steps:\n${steps}`].filter(Boolean).join('\n'), 'Full solution copied.');
+        copyText([`Question: ${displayRequest(request)}`, `Result: ${response.result}`, verification, route, calls, timing, ...aiTexts, notes, `Steps:\n${steps}`].filter(Boolean).join('\n'), 'Full solution copied.');
       });
       card.append(copyFull);
     }
@@ -431,7 +439,8 @@
       lines.push(`General-model calls: ${Number.isFinite(metrics.aiCalls) ? metrics.aiCalls : 'not reported'}`);
       lines.push(`Reported tokens: ${Number.isFinite(metrics.totalTokens) ? metrics.totalTokens : 'not reported'}`);
       lines.push(`AI attempts: ${metrics.attempts}`);
-      if (message.ai && message.ai.status === 'answered' && message.ai.text) lines.push(`AI explanation (unverified):\n${message.ai.text}`);
+      const aiTexts = answeredAiTexts(message).map((text) => `AI explanation (unverified):\n${text}`);
+      lines.push(...aiTexts);
       lines.push(`Steps: ${Array.isArray(response.steps) ? response.steps.length : 0}`);
       lines.push('');
     });

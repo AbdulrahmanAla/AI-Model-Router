@@ -100,14 +100,15 @@ for (const [question, expected] of [
 test('full-solution copy counts optional AI attempts', () => {
   const app = appHarness();
   const buttons = [];
-  const message = { display: 'Derivative x^2', response: { ...result, metrics: { route: 'solver', ai_calls: 0, solver_ms: 4, elapsed_ms: 8 }, steps: ['Compute the result.'] }, ai: { status: 'answered', text: 'Use the power rule here.' }, aiAttempts: [
-    { status: 'answered', action: 'explain', metrics: { route: 'ai', ai_calls: 1, latency_ms: 12, total_tokens: 20 } }
+  const message = { display: 'Derivative x^2', response: { ...result, metrics: { route: 'solver', ai_calls: 0, solver_ms: 4, elapsed_ms: 8 }, steps: ['Compute the result.'] }, ai: { status: 'error', message: 'Provider unavailable.' }, aiAttempts: [
+    { status: 'answered', action: 'explain', text: 'Use the power rule here.', metrics: { route: 'ai', ai_calls: 1, latency_ms: 12, total_tokens: 20 } },
+    { status: 'error', action: 'explain' }
   ] };
   app.addCopyActions(message.response, { append: (button) => buttons.push(button) }, request, message);
   buttons.find((button) => button.textContent === 'Copy full solution').click();
-  assert.match(app.state.copiedEvidence, /Routes: solver \+ ai/);
-  assert.match(app.state.copiedEvidence, /General-model calls: 1/);
-  assert.match(app.state.copiedEvidence, /AI 12\.00 ms/);
+  assert.match(app.state.copiedEvidence, /Routes: solver \+ ai \+ explain/);
+  assert.match(app.state.copiedEvidence, /General-model calls: not reported/);
+  assert.match(app.state.copiedEvidence, /AI Not reported/);
   assert.match(app.state.copiedEvidence, /AI explanation \(unverified\):\nUse the power rule here\./);
 });
 
@@ -176,7 +177,7 @@ test('retry recovers from an invalid response with the same question', async () 
 test('session export includes all explanation calls and reported tokens', () => {
   const app = appHarness();
   app.state.messages.push({ display: 'Derivative x^2', response: { ...result, metrics: { route: 'solver', ai_calls: 0, solver_ms: 12.5, elapsed_ms: 25.75 } }, ai: { status: 'answered', text: 'Explain the power rule.' }, aiAttempts: [
-    { status: 'answered', action: 'explain', metrics: { ai_calls: 1, total_tokens: 40 } },
+    { status: 'answered', action: 'explain', text: 'Explain the power rule.', metrics: { ai_calls: 1, total_tokens: 40 } },
     { status: 'answered', action: 'explain', metrics: { ai_calls: 1, total_tokens: 60 } },
   ] });
   app.copySessionEvidence();
