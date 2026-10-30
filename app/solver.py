@@ -639,6 +639,16 @@ def _integral_rule_step(expression: sp.Expr | None) -> str:
     return rules.get(expression.func, "Find an antiderivative with respect to x.")
 
 
+def _derivative_domain_note(tree: ast.AST) -> str | None:
+    branch_functions = {"sqrt", "log", "tan", "asin", "acos", "Abs"}
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id in branch_functions:
+            return "Numerical derivative evidence uses safe real samples; branch points or poles are not claimed as ordinary derivative points."
+        if isinstance(node, ast.BinOp) and isinstance(node.op, ast.Div) and _contains_variable(node.right):
+            return "Numerical derivative evidence uses safe real samples; denominator holes are excluded from the check."
+    return None
+
+
 def _solved_steps(
     operation: str,
     source: str,
@@ -796,7 +806,9 @@ def _compute(payload: dict[str, Any]) -> dict[str, Any]:
         result_expr = sp.diff(expression, _X)
         result_text = _sstr(result_expr)
         verification = _verify_derivative(expression, result_expr, parsed.tree, parsed.source)
-        return {"result": result_text, "latex": _latex(result_expr), "verification": verification, "notes": [], "steps": _solved_steps(operation, source, result_text, verification, expression=expression)}
+        domain_note = _derivative_domain_note(parsed.tree)
+        notes = [domain_note] if domain_note else []
+        return {"result": result_text, "latex": _latex(result_expr), "verification": verification, "notes": notes, "steps": _solved_steps(operation, source, result_text, verification, expression=expression)}
     if operation == "integral":
         if payload.get("lower") is None and payload.get("upper") is None:
             result_expr = sp.integrate(expression, _X)

@@ -72,6 +72,14 @@ def test_derivative_verification_does_not_sample_outside_raw_domain() -> None:
     assert response.status_code == 200
     assert body["result"] == "1"
     assert body["verification"]["status"] == "not_checked"
+    assert "branch points" in body["notes"][0]
+
+
+def test_derivative_domain_note_calls_out_denominator_holes() -> None:
+    response = client.post("/api/solve", json={"operation": "derivative", "expression": "1/x"})
+    body = response.json()
+    assert response.status_code == 200
+    assert "denominator holes" in body["notes"][0]
 
 
 def test_indefinite_integral_is_checked_by_differentiating_antiderivative() -> None:
