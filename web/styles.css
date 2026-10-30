@@ -17,6 +17,7 @@
 .solution-steps summary{padding-top:11px;color:var(--muted);cursor:pointer;font-size:12px}
 .step-list{display:grid;gap:7px;margin:10px 0 0;padding:0 0 0 24px;color:var(--muted);font-size:12px;line-height:1.55}
 .step-list li::marker{color:var(--teal-bright);font-weight:600}
+.formula{overflow-x:auto;line-height:1.6;padding:4px 0 8px}.formula-math{display:inline-block;white-space:nowrap}.step-list li{overflow-wrap:anywhere}
 
 .math-field{min-height:42px;padding:8px 2px;color:var(--text);font-size:19px;line-height:1.4;cursor:text}.math-field:empty::before{content:attr(data-placeholder);color:var(--faint);font-family:Inter,system-ui,sans-serif;font-size:15px}.math-field.mq-focused{outline:2px solid var(--teal-bright);outline-offset:3px;border-radius:5px}.compact-math-field{min-height:28px;padding:3px 0;font-size:15px}.compact-math-field:empty::before{font-size:13px}.mq-editable-field{border:0!important;box-shadow:none!important;background:transparent!important}.mq-cursor{border-color:var(--teal-bright)!important}
 .typed-math-field{width:100%;min-height:38px;padding:7px 3px;border:0;border-radius:4px;background:transparent;color:var(--text)}.typed-math-field::placeholder{color:var(--faint)}.compact-math-field+.typed-math-field{min-height:28px;padding:3px 0}

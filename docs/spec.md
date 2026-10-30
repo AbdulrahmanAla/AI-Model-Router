@@ -12,6 +12,7 @@ The user approved the current ChatGPT-style layout and the test boundaries on 29
 - One real variable named `x`. The composer uses a visual equation editor with a bounded adapter for supported MathQuill constructs and offers plain typed formulas if the editor library is unavailable. Arbitrary pasted LaTeX, natural-language interpretation, matrices, plots, accounts, and durable storage are outside this implementation.
 - Chat-style dark website with a narrow sidebar, centered conversation, bottom composer, teal accent, and product name AI Math Assistant.
 - Exact answer, honest check status, collapsible route metrics, and optional Explain button. No automatic AI call on submit or error. An explicit Ask AI fallback action is available for a valid request the solver cannot finish.
+- Display familiar exact-result notation with the bundled MathQuill static renderer, including fractions, ordinary roots, powers, and finite sets. Keep the authoritative typed answer for accessibility, copying, and session evidence. Unknown commands, indexed roots, excessive notation, or renderer failure retain the typed answer instead of risking a partial visual formula. No new network dependency or AI call is needed for formatting.
 - Session-only conversation history, new chat, supported syntax help, mobile layout, keyboard submission, loading state, readable errors, and accessible labels.
 
 ## Runtime and grammar

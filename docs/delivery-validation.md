@@ -152,3 +152,13 @@ Public API regressions cover `x*exp(x)`, `x*sin(x)`, `3*x*cos(2*x+1)`, and `(x+1
 The actual browser journey typed `x*exp(x)` into the visual editor, selected Integral, submitted, and displayed `(x - 1)*exp(x)` with seven numbered steps, a symbolic residual check, and zero model calls.
 
 ![Worked integration by parts in the website](evidence/integration-by-parts.png)
+
+## Typeset exact answers
+
+The result card uses the already bundled MathQuill static renderer for a conservative subset of the server's LaTeX. Fractions, ordinary square roots, powers, trigonometric functions, and finite sets are readable mathematical notation. The exact typed answer remains the accessible result and the source for copying and evidence exports. Unsupported notation and renderer failures keep readable text; AI output is never passed to this renderer.
+
+The local gate passed 85 Python tests, 101 frontend tests, JavaScript syntax checks, and HTTP smoke including all 40 frozen evaluation cases. Public frontend checks cover accessible and copied answers, repeated rendering, missing library, renderer failure, unknown commands, indexed roots, excessive size/depth, malformed groups, and plain-language results. These tests stub the renderer and are contract checks.
+
+Actual browser checks separately submitted the derivative of `sqrt(x+1)` and the equation `x*x-2`, confirming the grouped radical fraction and a set of radical roots. Integrating `exp(-x*x)` returned `sqrt(pi)*erf(x)/2` as readable text because its special-function notation is outside the display subset. The narrow preview had an effective CSS width of about 433 px, with no page-width overflow and the result fraction fitting inside its card. The viewport override was reset. Browser error/warning logs were empty. No live-provider evaluation or compute-reduction claim follows from these formatting checks.
+
+![Typeset exact fraction and grouped root](evidence/typeset-result.png)

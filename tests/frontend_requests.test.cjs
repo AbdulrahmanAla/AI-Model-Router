@@ -5,19 +5,22 @@ const vm = require('node:vm');
 const path = require('node:path');
 const indexHtml = fs.readFileSync(path.join(__dirname, '../web/index.html'), 'utf8');
 
-function appHarness({ withMathQuill = false } = {}) {
+function appHarness({ withMathQuill = false, staticMathFailure = false } = {}) {
   const pending = [];
   const timers = new Map();
   const downloads = [];
   const domNodes = new Map();
   let nextTimer = 0;
-  const createNode = () => ({ value: '', dataset: {}, style: {}, scrollHeight: 42, hidden: true, children: [], attributes: {}, focus() { this.focused = true; }, removeAttribute(name) { delete this.attributes[name]; }, setAttribute(name, value) { this.attributes[name] = value; }, addEventListener(event, callback) { this[event] = callback; }, classList: { add() {}, remove() {}, contains() { return false; } }, replaceChildren(...nodes) { this.children = nodes; }, append(...nodes) { this.children.push(...nodes); }, appendChild(node) { this.children.push(node); return node; }, querySelector() { return createNode(); } });
+  const createNode = () => ({ value: '', dataset: {}, style: {}, scrollHeight: 42, hidden: true, children: [], get childElementCount() { return this.children.length; }, attributes: {}, focus() { this.focused = true; }, removeAttribute(name) { delete this.attributes[name]; }, setAttribute(name, value) { this.attributes[name] = value; }, addEventListener(event, callback) { this[event] = callback; }, classList: { add() {}, remove() {}, contains() { return false; } }, replaceChildren(...nodes) { this.children = nodes; }, append(...nodes) { this.children.push(...nodes); }, appendChild(node) { this.children.push(node); return node; }, querySelector() { return createNode(); }, querySelectorAll(selector) { return descendants(this).filter((node) => String(node.className || '').split(' ').includes(selector.slice(1))); } });
   const mathFields = new Map();
   const mathQuill = withMathQuill ? { getInterface: () => ({ MathField(node) {
     let value = '';
     const field = { latex(next) { if (next !== undefined) { value = next; return field; } return value; }, focus() { node.focused = true; } };
     mathFields.set(node.id, field);
     return field;
+  }, StaticMath(node) {
+    if (staticMathFailure) throw new Error('Renderer unavailable');
+    return { latex(value) { node.renderedLatex = value; return this; }, reflow() {} };
   } }) } : undefined;
   const source = fs.readFileSync(path.join(__dirname, '../web/app.js'), 'utf8');
   const context = vm.createContext({
@@ -28,7 +31,7 @@ function appHarness({ withMathQuill = false } = {}) {
       querySelectorAll: () => [],
       addEventListener() {},
       body: { append(node) { downloads.push(node); } },
-      createElement: () => ({ style: {}, dataset: {}, children: [], attributes: {}, appendChild(node) { this.children.push(node); return node; }, append(...nodes) { this.children.push(...nodes); }, setAttribute(name, value) { this.attributes[name] = value; }, addEventListener(event, callback) { this[event] = callback; }, click() { this.clicked = true; }, remove() { this.removed = true; } }),
+      createElement: () => Object.assign(createNode(), { click() { this.clicked = true; }, remove() { this.removed = true; } }),
     },
     window: {
       setTimeout: (callback) => { timers.set(++nextTimer, callback); return nextTimer; },
@@ -52,6 +55,54 @@ function appHarness({ withMathQuill = false } = {}) {
 const request = { operation: 'derivative', expression: 'x^2' };
 const result = { status: 'solved', operation: 'derivative', expression: 'x^2', request: { ...request, variable: 'x', lower: null, upper: null, target: null, direction: null }, result: '2*x', verification: { status: 'symbolic_check', detail: 'Checked.' }, steps: ['Read the function.', 'Apply the power rule.'] };
 const response = (body) => ({ ok: true, json: async () => body });
+
+function descendants(node) {
+  return (node.children || []).flatMap((child) => [child, ...descendants(child)]);
+}
+
+test('exact results display typeset fractions while keeping accessible and copied answers exact', () => {
+  const app = appHarness({ withMathQuill: true });
+  app.state.messages.push({ id: '1', request, display: 'Derivative sqrt(x)', response: { ...result, result: '1/(2*sqrt(x))', latex: '\\frac{1}{2 \\sqrt{x}}' } });
+  app.renderConversation();
+  const nodes = descendants(app.elements.messages);
+  const visual = nodes.find((node) => node.className === 'formula-math');
+  assert.ok(visual, 'A typeset formula should be rendered');
+  assert.equal(visual.renderedLatex, '\\frac{1}{2 \\sqrt{x}}');
+  assert.equal(visual.attributes['aria-hidden'], 'true');
+  assert.equal(nodes.find((node) => node.className === 'formula').attributes['aria-label'], 'Exact result: 1/(2*sqrt(x))');
+  const copy = nodes.find((node) => node.attributes?.['aria-label'] === 'Copy exact result');
+  copy.click();
+  assert.equal(app.state.copiedEvidence, '1/(2*sqrt(x))');
+  visual.append({ textContent: 'Rendered glyphs must not enter the plain answer' });
+  app.renderConversation();
+  const updated = descendants(app.elements.messages);
+  assert.notEqual(updated.find((node) => node.className === 'formula-math'), visual);
+  const plain = updated.filter((node) => node.className === 'sr-only' && node.textContent === '1/(2*sqrt(x))');
+  assert.equal(plain.length, 1, 'Repeated rendering keeps one authoritative accessible answer');
+});
+
+for (const [label, options, latex] of [
+  ['missing library', {}, '\\frac{1}{x}'],
+  ['renderer failure', { withMathQuill: true, staticMathFailure: true }, '\\frac{1}{x}'],
+  ['unfamiliar notation', { withMathQuill: true }, '\\operatorname{erf}(x)'],
+  ['indexed root', { withMathQuill: true }, '\\sqrt[3]{x}'],
+  ['oversized notation', { withMathQuill: true }, 'x'.repeat(4001)],
+  ['excessive nesting', { withMathQuill: true }, '{'.repeat(17) + 'x' + '}'.repeat(17)],
+  ['unbalanced groups', { withMathQuill: true }, '\\frac{1}{x'],
+  ['plain language result', { withMathQuill: true }, 'all real x'],
+]) {
+  test(`exact answer stays readable with ${label}`, () => {
+    const app = appHarness(options);
+    app.state.messages.push({ id: '1', request, display: 'Question', response: { ...result, latex } });
+    app.renderConversation();
+    const nodes = descendants(app.elements.messages);
+    assert.equal(nodes.some((node) => node.className === 'formula-math'), false);
+    const formula = nodes.find((node) => node.className === 'formula');
+    assert.equal(formula.attributes['aria-label'], 'Exact result: 2*x');
+    assert.ok(formula.textContent === '2*x' || formula.children.some((node) => node.textContent === '2*x'));
+    assert.ok(nodes.some((node) => node.textContent === 'Solution steps'));
+  });
+}
 
 test('visual math conversion preserves supported fractions, powers, products, and constants', () => {
   const app = appHarness();

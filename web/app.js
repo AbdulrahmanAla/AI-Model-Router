@@ -631,6 +631,7 @@
     card.append(heading);
     if (response.result !== null && response.result !== undefined) {
       const formula = element('div', 'formula', response.result);
+      if (typeof response.latex === 'string') formula.dataset.latex = response.latex;
       formula.setAttribute('role', 'status');
       formula.setAttribute('aria-label', resultAriaLabel(response));
       card.append(formula);
@@ -680,6 +681,44 @@
     return row;
   }
 
+  function supportedResultLatex(latex) {
+    if (!latex || latex.length > MAX_LATEX_LENGTH || /\\sqrt\s*\[/.test(latex)) return false;
+    const commands = new Set(['frac', 'sqrt', 'left', 'right', 'sin', 'cos', 'tan', 'log', 'exp', 'sinh', 'cosh', 'tanh', 'pi', 'infty', 'cdot', ',', '!', ';', ':', '{', '}']);
+    let supported = true;
+    const remainder = latex.replace(/\\([A-Za-z]+|.)/g, (_match, command) => {
+      if (!commands.has(command)) supported = false;
+      return '';
+    });
+    if (!supported || /[^0-9xe+\-*/^{}()[\]|.,\s]/.test(remainder)) return false;
+    let depth = 0;
+    for (const character of remainder) {
+      if (character === '{' && ++depth > MAX_LATEX_DEPTH) return false;
+      if (character === '}' && --depth < 0) return false;
+    }
+    return depth === 0;
+  }
+
+  function typesetResults() {
+    let MQ;
+    try { MQ = window.MathQuill && window.MathQuill.getInterface(2); } catch (_) { return; }
+    if (!MQ || typeof MQ.StaticMath !== 'function') return;
+    elements.messages.querySelectorAll('.formula').forEach((formula) => {
+      const latex = formula.dataset.latex;
+      if (!supportedResultLatex(latex)) return;
+      const original = formula.textContent;
+      try {
+        const visual = element('span', 'formula-math');
+        visual.setAttribute('aria-hidden', 'true');
+        const math = MQ.StaticMath(visual);
+        math.latex(latex);
+        formula.replaceChildren(element('span', 'sr-only', original), visual);
+        math.reflow();
+      } catch (_) {
+        formula.replaceChildren(document.createTextNode(original));
+      }
+    });
+  }
+
   function renderMessages(scrollToLatest = false) {
     const previousScrollTop = elements.conversation.scrollTop;
     const followLatest = scrollToLatest || elements.conversation.scrollHeight
@@ -694,6 +733,7 @@
       wrapper.append(user, renderAssistant(message));
       elements.messages.append(wrapper);
     });
+    typesetResults();
     renderChatList();
     renderSessionStats();
     elements.conversation.scrollTop = followLatest ? elements.conversation.scrollHeight : previousScrollTop;
