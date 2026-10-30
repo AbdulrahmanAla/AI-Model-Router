@@ -396,8 +396,9 @@
     }
     match = source.match(/^(?:(?:please|can\s+you|could\s+you|would\s+you)\s+)?(?:(?:what\s+is|calculate|compute|find)\s+)?(?:integrate|integral\s+of|find\s+the\s+integral\s+of)\s*(?:of\s+)?(.+)$/i);
     if (match) {
-      const expression = bounded(match[1]);
-      if (expression) return { request: { operation: 'integral', expression, variable: 'x', lower: null, upper: null, target: null, direction: null }, prompt: '' };
+      const bounds = clean(match[1]).match(/^(.+?)\s+from\s+([^\s]+)\s+to\s+([^\s]+)$/i);
+      const expression = bounded(bounds ? bounds[1] : match[1]);
+      if (expression) return { request: { operation: 'integral', expression, variable: 'x', lower: bounds ? clean(bounds[2]) : null, upper: bounds ? clean(bounds[3]) : null, target: null, direction: null }, prompt: '' };
     }
     match = source.match(/^(?:please\s+)?(?:find\s+the\s+)?limit\s+(?:of\s+)?(.+?)\s+(?:as\s+)?x\s*(?:approaches|->|→)\s*([^\s,]+)(?:\s+from\s+(?:the\s+)?(right|left))?$/i);
     if (match) {

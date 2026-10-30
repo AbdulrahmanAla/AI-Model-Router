@@ -67,6 +67,9 @@ test('free form math messages become validated structured requests', () => {
   assert.equal(app.freeformRequest('What is the derivative of sin(x)').request.operation, 'derivative');
   assert.equal(app.freeformRequest('Can you differentiate x^2?').request.operation, 'derivative');
   assert.equal(app.freeformRequest('Please find the integral of x^2').request.operation, 'integral');
+  assert.equal(JSON.stringify(app.freeformRequest('Integrate x^2 from 0 to 1').request), JSON.stringify({
+    operation: 'integral', expression: 'x^2', variable: 'x', lower: '0', upper: '1', target: null, direction: null
+  }));
   assert.equal(app.freeformRequest('Find d/dx of x^2').request.operation, 'derivative');
   assert.equal(app.freeformRequest('What is the derivative of x^2 with respect to x?').request.operation, 'derivative');
   assert.equal(app.freeformRequest('What are the roots of x^2 - 4 = 0?').request.operation, 'equation');
