@@ -670,6 +670,10 @@
     };
   }
 
+  function shouldFocusComposer(event, activeTagName) {
+    return event.key === '/' && !event.ctrlKey && !event.metaKey && !event.altKey && !['INPUT', 'TEXTAREA', 'SELECT'].includes(activeTagName || '');
+  }
+
   function applyExample(button) {
     const values = exampleValues(button);
     elements.operation.value = values.operation;
@@ -693,6 +697,11 @@
       if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); elements.form.requestSubmit(); }
     });
     document.addEventListener('keydown', (event) => {
+      if (shouldFocusComposer(event, document.activeElement && document.activeElement.tagName)) {
+        event.preventDefault();
+        elements.expression.focus();
+        return;
+      }
       if (event.key !== 'Escape') return;
       if (elements.help.open || elements.routeHelp.open) return;
       const solving = state.messages.find((message) => message.loading);

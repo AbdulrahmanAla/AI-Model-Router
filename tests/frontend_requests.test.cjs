@@ -29,7 +29,7 @@ function appHarness() {
     renderMessages = () => {};
     copyText = (value) => { state.copiedEvidence = value; };
     setServiceStatus = (kind, label) => { state.serviceLabel = label; };
-    this.app = { state, elements, solve, cancelSolve, retrySolve, requestAi, cancelAi, copySessionEvidence, downloadSessionEvidence, sessionEvidenceText, addCopyActions, exampleValues, routeLabel };
+    this.app = { state, elements, solve, cancelSolve, retrySolve, requestAi, cancelAi, copySessionEvidence, downloadSessionEvidence, sessionEvidenceText, addCopyActions, exampleValues, routeLabel, shouldFocusComposer };
   })();`), context);
   return { ...context.app, pending, timers, downloads };
 }
@@ -51,6 +51,13 @@ test('route label makes the exact local path explicit', () => {
   assert.equal(app.routeLabel({ aiCalls: 0, routes: ['solver'] }), 'Exact local · 0 model calls');
   assert.equal(app.routeLabel({ aiCalls: 1, routes: ['solver', 'explain'] }), '1 general-model call');
   assert.equal(app.routeLabel({ aiCalls: null, routes: ['solver'] }), 'AI calls not reported');
+});
+
+test('slash shortcut only focuses the composer outside text fields', () => {
+  const app = appHarness();
+  assert.equal(app.shouldFocusComposer({ key: '/', ctrlKey: false, metaKey: false, altKey: false }, 'BODY'), true);
+  assert.equal(app.shouldFocusComposer({ key: '/', ctrlKey: false, metaKey: false, altKey: false }, 'TEXTAREA'), false);
+  assert.equal(app.shouldFocusComposer({ key: '/', ctrlKey: true, metaKey: false, altKey: false }, 'BODY'), false);
 });
 
 for (const [question, expected] of [
