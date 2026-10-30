@@ -387,7 +387,7 @@
       // prose fragments from being mistaken for exact math.
       if (!/[0-9xX]/.test(expression)) return null;
       if (/[\n\r]/.test(expression)) return null;
-      return expression;
+      return addImplicitMultiplication(expression);
     };
     let match = source.match(/^(?:please\s+)?(?:(?:what\s+is|calculate|compute|find)\s+)?(?:the\s+)?(?:differentiate|derivative\s+of|find\s+the\s+derivative\s+of|d\s*\/\s*d\s*x)\s*(?:of\s+)?(.+)$/i);
     if (match) {
@@ -419,7 +419,16 @@
   function buildRoutePayload() {
     if (elements.chatInput && String(elements.chatInput.value || '').trim()) {
       const parsed = freeformRequest(elements.chatInput.value);
-      return { mode: parsed.request ? 'deterministic' : 'deterministic', request: parsed.request, prompt: parsed.prompt };
+      let prompt = parsed.prompt;
+      const previous = latestMessage(state.messages);
+      if (!parsed.request && previous && previous.response && previous.response.status === 'solved'
+        && /\b(?:explain|elaborate|expand|deep)\b/i.test(prompt)
+        && /\b(?:answer|result|solution|steps?)\b/i.test(prompt)) {
+        const verification = previous.response.verification && previous.response.verification.detail
+          ? ` Verification: ${previous.response.verification.detail}` : '';
+        prompt = `${prompt}\n\nContext from the previous exact solution. Question: ${previous.display}. Exact result: ${previous.response.result}.${verification} Explain this result clearly and show the reasoning.`;
+      }
+      return { mode: 'deterministic', request: parsed.request, prompt };
     }
     const mode = selectedRouteMode();
     const request = buildRequest();

@@ -59,7 +59,7 @@ const response = (body) => ({ ok: true, json: async () => body });
 test('free form math messages become validated structured requests', () => {
   const app = appHarness();
   assert.equal(JSON.stringify(app.freeformRequest('Differentiate x^3 + sin(x)')), JSON.stringify({
-    request: { operation: 'derivative', expression: 'x^3 + sin(x)', variable: 'x', lower: null, upper: null, target: null, direction: null }, prompt: ''
+    request: { operation: 'derivative', expression: 'x^3+sin(x)', variable: 'x', lower: null, upper: null, target: null, direction: null }, prompt: ''
   }));
   assert.equal(JSON.stringify(app.freeformRequest('Find the limit of sin(x)/x as x approaches 0 from the right').request), JSON.stringify({
     operation: 'limit', expression: 'sin(x)/x', variable: 'x', lower: null, upper: null, target: '0', direction: '+'
@@ -88,6 +88,18 @@ test('submitting a general chat prompt does not dereference a missing request', 
   assert.equal(app.state.solving, true);
   assert.equal(app.elements.send.disabled, true);
   assert.equal(app.elements.chatInput.value, '');
+});
+
+test('follow-up explanation prompts include the previous exact result as context', () => {
+  const app = appHarness();
+  app.state.messages.push({
+    display: 'Integrate 2*x + cos(x)',
+    response: { status: 'solved', result: 'x^2 + sin(x)', verification: { detail: 'Checked.' } }
+  });
+  app.elements.chatInput.value = 'provide a deep explanation for this answer';
+  const payload = app.buildRoutePayload();
+  assert.match(payload.prompt, /Exact result: x\^2 \+ sin\(x\)/);
+  assert.match(payload.prompt, /Explain this result clearly/);
 });
 
 function descendants(node) {

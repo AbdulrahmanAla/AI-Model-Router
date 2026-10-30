@@ -30,14 +30,37 @@ _EQUATION_PATTERNS = (
     re.compile(r"^(?:solve|solve\s+for\s+x|find\s+the\s+roots?\s+of|roots?\s+of)\s+(.+)$", re.I),
     re.compile(r"^(?:what\s+are\s+the\s+solutions\s+to)\s+(.+)$", re.I),
 )
+_TOKEN_PATTERN = re.compile(r"(?:\d+(?:\.\d*)?|\.\d+|[A-Za-z_][A-Za-z_0-9]*|==|[()+\-*/^=,])")
+_FUNCTION_NAMES = {"sin", "cos", "tan", "log", "exp", "sqrt", "Abs", "asin", "acos", "atan", "sinh", "cosh", "tanh"}
 
 
 def _clean(value: str) -> str:
     return re.sub(r"[\s?.!,;:]+$", "", value.strip())
 
 
+def _normalize_expression(expression: str) -> str:
+    tokens = []
+    cursor = 0
+    for match in _TOKEN_PATTERN.finditer(expression):
+        if expression[cursor:match.start()].strip():
+            return expression
+        tokens.append(match.group(0))
+        cursor = match.end()
+    if expression[cursor:].strip():
+        return expression
+    result: list[str] = []
+    for token in tokens:
+        previous = result[-1] if result else None
+        can_end = previous == ")" or (previous and (previous[0].isdigit() or previous[0] == "." or previous[0].isalpha() or previous[0] == "_"))
+        can_start = token == "(" or token[0].isdigit() or token[0] == "." or token[0].isalpha() or token[0] == "_"
+        if previous and can_end and can_start and not (previous in _FUNCTION_NAMES and token == "("):
+            result.append("*")
+        result.append(token)
+    return "".join(result)
+
+
 def _candidate(operation: str, expression: str, **fields: Any) -> dict[str, Any] | None:
-    expression = _clean(expression)
+    expression = _normalize_expression(_clean(expression))
     if not expression or len(expression) > _MAX_EXPRESSION_LENGTH:
         return None
     payload: dict[str, Any] = {
