@@ -17,7 +17,7 @@
     operationHint: $('#operation-hint'), inputHelp: $('#input-help'), send: $('#send-button'), messages: $('#messages'), welcome: $('#welcome'), sessionStats: $('#session-stats'),
     formError: $('#form-error'),
     chatList: $('#chat-list'), chatSearchWrap: $('#chat-search-wrap'), chatSearch: $('#chat-search'), chatSearchToggle: $('#search-toggle'), status: $('#service-status'), toast: $('#toast'),
-    appShell: document.querySelector('.app-shell'), sidebar: $('#sidebar'), help: $('#help-dialog'), routeHelp: $('#route-dialog'), conversation: $('#conversation')
+    appShell: document.querySelector('.app-shell'), sidebar: $('#sidebar'), openSidebar: $('#open-sidebar'), help: $('#help-dialog'), routeHelp: $('#route-dialog'), conversation: $('#conversation')
   };
 
   function setText(node, value) {
@@ -723,6 +723,7 @@
     if (!elements.sidebar.classList.contains('open')) return;
     elements.sidebar.classList.remove('open');
     elements.appShell.classList.add('sidebar-collapsed');
+    elements.openSidebar.setAttribute('aria-expanded', 'false');
   }
 
   function exampleValues(button) {
@@ -840,8 +841,8 @@
     $('#open-help-inline').addEventListener('click', () => elements.help.showModal());
     $('#close-help').addEventListener('click', () => elements.help.close());
     $('#close-route').addEventListener('click', () => elements.routeHelp.close());
-    $('#close-sidebar').addEventListener('click', () => { elements.sidebar.classList.remove('open'); elements.appShell.classList.add('sidebar-collapsed'); });
-    $('#open-sidebar').addEventListener('click', () => { elements.appShell.classList.remove('sidebar-collapsed'); elements.sidebar.classList.add('open'); });
+    $('#close-sidebar').addEventListener('click', () => { elements.sidebar.classList.remove('open'); elements.appShell.classList.add('sidebar-collapsed'); elements.openSidebar.setAttribute('aria-expanded', 'false'); });
+    $('#open-sidebar').addEventListener('click', () => { elements.appShell.classList.remove('sidebar-collapsed'); elements.sidebar.classList.add('open'); elements.openSidebar.setAttribute('aria-expanded', 'true'); });
     $('#search-toggle').addEventListener('click', () => {
       if (elements.chatSearchWrap.hidden) {
         elements.chatSearchWrap.hidden = false;

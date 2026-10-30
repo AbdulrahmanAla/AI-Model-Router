@@ -37,6 +37,7 @@ The actual website at `http://127.0.0.1:8000` was exercised through the in-app b
 - Health responses must contain the expected ready status and boolean AI configuration flag before the UI reports service readiness.
 - Successful AI payloads must carry explicit `not_checked` verification metadata before their text is rendered as an unverified explanation.
 - The chat-search toggle exposes `aria-expanded` and keeps it synchronized for clicks, keyboard opening, and Escape closing.
+- The mobile sidebar toggle exposes `aria-expanded` and keeps it synchronized when the sidebar opens or closes.
 - Result-card copy actions expose distinct accessible labels for the exact result, all derivation steps, and the complete verified or unresolved attempt.
 - Escape closes an open chat search and clears its filter before request cancellation is considered.
 - Exact formulas expose a semantic status role and an accessible label containing the computed result.
