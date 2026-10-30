@@ -711,7 +711,10 @@
   function renderAssistant(message) {
     const row = element('article', 'message assistant-message');
     row.setAttribute('aria-label', 'Assistant response');
-    row.append(element('div', 'assistant-mark', '∑'));
+    const assistantMark = element('div', 'assistant-mark', '🤖');
+    assistantMark.setAttribute('aria-label', 'AI Math Assistant');
+    assistantMark.setAttribute('title', 'AI Math Assistant');
+    row.append(assistantMark);
     const body = element('div', 'assistant-body');
     if (message.loading) {
       const loading = element('p', 'assistant-copy', 'Computing the exact result...');
@@ -740,13 +743,14 @@
     }
     const response = message.response || {};
     if (response.status === 'answered' && typeof response.text === 'string') {
-      body.append(element('p', 'assistant-copy', 'The selected route returned an unverified AI response.'));
-      const aiBox = aiResponseBox(response, true);
-      body.append(aiBox);
+      const text = element('p', 'assistant-copy', response.text || 'The provider returned no explanation text.');
+      text.setAttribute('aria-live', 'polite');
+      body.append(text);
       const details = element('details', 'route-details');
       details.open = message.routeExpanded === true;
       details.addEventListener('toggle', () => { message.routeExpanded = details.open; });
-      details.append(element('summary', '', 'Show route details'));
+      details.append(element('summary', '', 'Response details'));
+      details.append(aiResponseBox(response, false));
       renderMetrics(message, details);
       body.append(details);
       if (message.request) body.append(editQuestionButton(message.request));
