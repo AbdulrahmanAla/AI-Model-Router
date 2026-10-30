@@ -43,7 +43,7 @@ def main():
                 ({"operation": "derivative", "expression": "x^3"}, "3*x**2"),
                 ({"operation": "integral", "expression": "2*x"}, "x**2"),
                 ({"operation": "integral", "expression": "x", "lower": "0", "upper": "1"}, "1/2"),
-                ({"operation": "limit", "expression": "sin(x)/x", "target": "0"}, "1"),
+                ({"operation": "limit", "expression": "sin(x)/x", "target": "0", "direction": "both"}, "1"),
                 ({"operation": "limit", "expression": "sqrt(x)", "target": "0", "direction": "+"}, "0"),
                 ({"operation": "equation", "expression": "x-2=0"}, "{2}"),
             ]

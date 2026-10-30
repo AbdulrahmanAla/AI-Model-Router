@@ -64,6 +64,24 @@ def test_missing_configuration_does_not_call_provider(monkeypatch) -> None:
     assert calls == []
 
 
+def test_limit_without_direction_is_rejected_before_provider_call(monkeypatch) -> None:
+    calls = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        calls.append(request)
+        return response("unused")
+
+    configure_provider(monkeypatch, handler)
+    result = client.post(
+        "/api/ai",
+        json={"action": "baseline", "request": {"operation": "limit", "expression": "sin(x)/x", "target": "0"}},
+    )
+
+    assert result.status_code == 422
+    assert "direction" in result.json()["detail"].lower()
+    assert calls == []
+
+
 def test_explanation_is_grounded_and_reports_usage(monkeypatch) -> None:
     seen = {}
 

@@ -106,7 +106,7 @@ def test_each_supported_operation_returns_bounded_deterministic_steps() -> None:
     requests = [
         {"operation": "derivative", "expression": "x^3"},
         {"operation": "integral", "expression": "x", "lower": "0", "upper": "1"},
-        {"operation": "limit", "expression": "sin(x)/x", "target": "0"},
+        {"operation": "limit", "expression": "sin(x)/x", "target": "0", "direction": "both"},
         {"operation": "equation", "expression": "x^2 = 1"},
     ]
     for request in requests:
@@ -120,7 +120,7 @@ def test_each_supported_operation_returns_bounded_deterministic_steps() -> None:
 
 
 def test_unresolved_response_explains_where_exact_route_stopped() -> None:
-    response = client.post("/api/solve", json={"operation": "limit", "expression": "1/x", "target": "0"})
+    response = client.post("/api/solve", json={"operation": "limit", "expression": "1/x", "target": "0", "direction": "both"})
     body = response.json()
     assert response.status_code == 200
     assert body["status"] == "unresolved"
@@ -209,8 +209,12 @@ def test_improper_integrals_accept_infinite_bounds_with_honest_check_status() ->
         assert body["verification"]["status"] == "not_checked"
 
 
-def test_limit_uses_both_sides_when_direction_is_omitted() -> None:
+def test_limit_requires_an_explicit_direction() -> None:
     response = client.post("/api/solve", json={"operation": "limit", "expression": "sin(x)/x", "target": "0"})
+    assert response.status_code == 422
+    assert "direction" in response.json()["detail"].lower()
+
+    response = client.post("/api/solve", json={"operation": "limit", "expression": "sin(x)/x", "target": "0", "direction": "both"})
     body = response.json()
     assert response.status_code == 200
     assert body["result"] == "1"
@@ -324,7 +328,7 @@ def test_ordinary_decimal_literal_remains_supported() -> None:
 
 
 def test_nonexistent_two_sided_limit_is_explicit() -> None:
-    response = client.post("/api/solve", json={"operation": "limit", "expression": "1/x", "target": "0"})
+    response = client.post("/api/solve", json={"operation": "limit", "expression": "1/x", "target": "0", "direction": "both"})
     body = response.json()
     assert response.status_code == 200
     assert body["status"] == "unresolved"
@@ -337,7 +341,7 @@ def test_nonexistent_two_sided_limit_is_explicit() -> None:
 def test_limit_verification_does_not_sample_outside_raw_domain() -> None:
     response = client.post(
         "/api/solve",
-        json={"operation": "limit", "expression": "sqrt(x-10)^2", "target": "0"},
+        json={"operation": "limit", "expression": "sqrt(x-10)^2", "target": "0", "direction": "both"},
     )
     body = response.json()
     assert response.status_code == 200
@@ -385,7 +389,7 @@ def test_limit_retains_valid_endpoints_holes_and_unbounded_real_domains() -> Non
 def test_limit_rejects_infinite_target_outside_the_raw_domain() -> None:
     response = client.post(
         "/api/solve",
-        json={"operation": "limit", "expression": "sqrt(x)^2", "target": "-oo"},
+        json={"operation": "limit", "expression": "sqrt(x)^2", "target": "-oo", "direction": "both"},
     )
     body = response.json()
     assert response.status_code == 200

@@ -389,8 +389,21 @@ def _verify_antiderivative(original: sp.Expr, result: sp.Expr) -> dict[str, str]
 def _verify_branch_antiderivative(original: sp.Expr, result: sp.Expr) -> dict[str, str]:
     """Check a real logarithmic primitive away from its excluded zeros."""
     try:
-        residual = sp.diff(result, _X) - original
-        residual_fn = sp.lambdify(_X, residual, "mpmath")
+        raw_residual = sp.diff(result, _X) - original
+        residual = sp.simplify(raw_residual)
+        if residual == 0:
+            return {
+                "status": "symbolic_check",
+                "method": "differentiate antiderivative",
+                "detail": "The derivative residual simplifies to zero on the stated real domain.",
+            }
+        try:
+            residual_fn = sp.lambdify(_X, residual, "mpmath")
+        except Exception:
+            # SymPy can expose excluded logarithm zeros as ComplexInfinity in
+            # a Piecewise residual. Keep the symbolic attempt, then sample the
+            # unsimplified derivative away from those zeros.
+            residual_fn = sp.lambdify(_X, raw_residual, "mpmath")
         valid = 0
         for point in (-2.1, -0.7, 0.4, 1.6, 3.2):
             value = residual_fn(point)
@@ -966,7 +979,7 @@ def _compute(payload: dict[str, Any]) -> dict[str, Any]:
         return {"result": result_text, "latex": _latex(result_expr), "verification": verification, "notes": [], "steps": _solved_steps(operation, source, result_text, verification, expression=expression, lower=lower, upper=upper)}
     if operation == "limit":
         target = parse_constant(payload["target"])
-        direction = payload.get("direction") or "both"
+        direction = payload["direction"]
         _check_limit_approach_domain(parsed.tree, parsed.source, target, direction)
         if direction == "both":
             left = sp.limit(expression, _X, target, dir="-")
