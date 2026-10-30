@@ -444,8 +444,11 @@
     const link = document.createElement('a');
     link.href = url;
     link.download = 'ai-math-assistant-session-evidence.txt';
+    link.style.display = 'none';
+    document.body.append(link);
     link.click();
-    URL.revokeObjectURL(url);
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 0);
     showToast('Session evidence downloaded.');
   }
 
