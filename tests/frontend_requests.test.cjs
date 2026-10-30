@@ -81,6 +81,20 @@ test('exact results display typeset fractions while keeping accessible and copie
   assert.equal(plain.length, 1, 'Repeated rendering keeps one authoritative accessible answer');
 });
 
+test('exact result cards offer LaTeX copying without changing the typed result copy', () => {
+  const app = appHarness();
+  const buttons = [];
+  app.addCopyActions({ result: '1/(2*sqrt(x))', latex: '\\frac{1}{2\\sqrt{x}}', steps: [] }, { append: (button) => buttons.push(button) }, request);
+  const latex = buttons.find((button) => button.textContent === 'Copy LaTeX');
+  assert.ok(latex);
+  assert.equal(latex.attributes['aria-label'], 'Copy exact result as LaTeX');
+  latex.click();
+  assert.equal(app.state.copiedEvidence, '\\frac{1}{2\\sqrt{x}}');
+  const exact = buttons.find((button) => button.textContent === 'Copy exact result');
+  exact.click();
+  assert.equal(app.state.copiedEvidence, '1/(2*sqrt(x))');
+});
+
 for (const [label, options, latex] of [
   ['missing library', {}, '\\frac{1}{x}'],
   ['renderer failure', { withMathQuill: true, staticMathFailure: true }, '\\frac{1}{x}'],

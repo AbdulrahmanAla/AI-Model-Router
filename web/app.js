@@ -538,6 +538,13 @@
       copyResult.setAttribute('aria-label', 'Copy exact result');
       copyResult.addEventListener('click', () => copyText(response.result, 'Exact result copied.'));
       card.append(copyResult);
+      if (typeof response.latex === 'string' && response.latex.trim() && response.latex !== response.result) {
+        const copyLatex = element('button', '', 'Copy LaTeX');
+        copyLatex.type = 'button';
+        copyLatex.setAttribute('aria-label', 'Copy exact result as LaTeX');
+        copyLatex.addEventListener('click', () => copyText(response.latex, 'LaTeX result copied.'));
+        card.append(copyLatex);
+      }
     }
     if (Array.isArray(response.steps) && response.steps.length) {
       const copySteps = element('button', '', 'Copy steps');

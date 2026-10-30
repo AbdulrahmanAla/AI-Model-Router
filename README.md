@@ -69,3 +69,4 @@ The working application is under `app/` and `web/`. Local scratch work is ignore
 The composer uses a bundled MathQuill editor for expressions, bounds, and limit targets. Type fractions, exponents, roots, trigonometric functions, and symbols visually. The browser converts the MathQuill LaTeX into the same bounded structured expression grammar used by the exact solver. The editor is a presentation layer only. It does not expand the solver's supported mathematics, and it never sends raw LaTeX to the API.
 
 MathQuill is included under the Mozilla Public License. See `web/assets/LICENSES.txt` for third-party notices.
+Solved cards expose **Copy exact result** for the typed solver contract and **Copy LaTeX** for math-aware editors when a distinct LaTeX form is available. The two formats serve different uses and never replace one another.
