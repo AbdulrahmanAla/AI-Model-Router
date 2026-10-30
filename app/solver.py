@@ -738,8 +738,17 @@ def _solved_steps(
             steps.append(f"Display the antiderivative as {result}; the arbitrary constant C is omitted.")
         else:
             steps.append(f"Check the original real domain across [{_sstr(lower)}, {_sstr(upper)}].")
-            steps.append(f"Evaluate the definite integral from {_sstr(lower)} to {_sstr(upper)}.")
-            steps.append(f"Simplify the bounded result to {result}.")
+            if (expression is not None and expression.is_polynomial(_X)
+                    and lower.is_finite is True and upper.is_finite is True):
+                primitive = sp.Poly(expression, _X).integrate().as_expr()
+                upper_value = sp.simplify(primitive.subs(_X, upper))
+                lower_value = sp.simplify(primitive.subs(_X, lower))
+                steps.append(f"Integrate the polynomial term by term to get F(x) = {_sstr(primitive)}.")
+                steps.append(f"Evaluate the bounds: F({_sstr(upper)}) = {_sstr(upper_value)}; F({_sstr(lower)}) = {_sstr(lower_value)}.")
+                steps.append(f"Apply F(b) - F(a): ({_sstr(upper_value)}) - ({_sstr(lower_value)}) = {result}.")
+            else:
+                steps.append(f"Evaluate the definite integral from {_sstr(lower)} to {_sstr(upper)}.")
+                steps.append(f"Simplify the bounded result to {result}.")
         steps.append(_verification_step(verification))
         return _bounded_steps(steps)
 

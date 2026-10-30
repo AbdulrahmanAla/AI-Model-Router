@@ -165,6 +165,24 @@ def test_definite_integral_reports_independent_quadrature() -> None:
     assert body["verification"]["status"] == "numerical_evidence"
 
 
+def test_polynomial_definite_integrals_show_antiderivative_and_bound_values() -> None:
+    for expression, lower, upper, result, primitive, upper_value, lower_value in (
+        ("x^2", "0", "1", "1/3", "x**3/3", "1/3", "0"),
+        ("3*x+2", "-1", "2", "21/2", "3*x**2/2 + 2*x", "10", "-1/2"),
+        ("5", "0", "2", "10", "5*x", "10", "0"),
+    ):
+        response = client.post("/api/solve", json={"operation": "integral", "expression": expression, "lower": lower, "upper": upper})
+        body = response.json()
+        assert response.status_code == 200
+        assert body["status"] == "solved"
+        assert body["result"] == result
+        assert any(f"F(x) = {primitive}" in step for step in body["steps"])
+        assert any(f"F({upper}) = {upper_value}" in step and f"F({lower}) = {lower_value}" in step for step in body["steps"])
+        assert any("F(b) - F(a)" in step and result in step for step in body["steps"])
+        assert body["verification"]["status"] == "numerical_evidence"
+        assert body["metrics"]["ai_calls"] == 0
+
+
 def test_improper_integrals_accept_infinite_bounds_with_honest_check_status() -> None:
     for expression, lower, upper in [("exp(x)", "-oo", "0"), ("exp(-x)", "0", "oo")]:
         response = client.post("/api/solve", json={"operation": "integral", "expression": expression, "lower": lower, "upper": upper})

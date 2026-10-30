@@ -21,3 +21,5 @@ Real-logarithm linearity steps use the same Abs transformation as the final anti
 Sine, cosine, and exponential integrals with a linear argument show the concrete substitution, differential scaling, and substituted-back antiderivative. Worked public API cases include a shifted sine, scaled cosine, and negative exponential slope. The shortcut requires a nonzero constant inner derivative.
 
 Power integrals show n and n + 1, division by the new exponent, and the separate n = -1 logarithm rule. Constant integrands show multiplication by x; scalar multiples name the extracted factor and retain the remaining power or substitution steps. Worked API cases cover positive and negative powers, the logarithm exception, constants, and a scaled sine.
+
+Finite polynomial definite integrals show the termwise antiderivative, both endpoint values, and F(b) - F(a). Worked API cases cover a monomial, a linear polynomial with a negative lower endpoint, and a constant integrand. Infinite bounds and nonpolynomial integrands retain their existing route descriptions.
