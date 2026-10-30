@@ -14,6 +14,7 @@ function appHarness() {
   const context = vm.createContext({
     AbortController,
     document: {
+      createTextNode: (text) => ({ textContent: text }),
       querySelector: () => ({ dataset: {}, style: {}, scrollHeight: 42, hidden: true, children: [], attributes: {}, focus() { this.focused = true; }, removeAttribute(name) { delete this.attributes[name]; }, setAttribute(name, value) { this.attributes[name] = value; }, classList: { add() {}, remove() {}, contains() { return false; } }, replaceChildren(...nodes) { this.children = nodes; }, append(...nodes) { this.children.push(...nodes); } }),
       body: { append(node) { downloads.push(node); } },
       createElement: () => ({ style: {}, children: [], attributes: {}, appendChild(node) { this.children.push(node); return node; }, append(...nodes) { this.children.push(...nodes); }, setAttribute(name, value) { this.attributes[name] = value; }, addEventListener(event, callback) { this[event] = callback; }, click() { this.clicked = true; }, remove() { this.removed = true; } }),
@@ -38,6 +39,39 @@ function appHarness() {
 const request = { operation: 'derivative', expression: 'x^2' };
 const result = { status: 'solved', operation: 'derivative', expression: 'x^2', request: { ...request, variable: 'x', lower: null, upper: null, target: null, direction: null }, result: '2*x', verification: { status: 'symbolic_check', detail: 'Checked.' }, steps: ['Read the function.', 'Apply the power rule.'] };
 const response = (body) => ({ ok: true, json: async () => body });
+
+test('solution and route disclosures retain each message reading state across AI updates', async () => {
+  const app = appHarness();
+  const message = { request, response: result };
+  const disclosures = (target) => {
+    const found = {};
+    const visit = (node) => {
+      if (node.className === 'solution-steps' || node.className === 'route-details') found[node.className] = node;
+      (node.children || []).forEach(visit);
+    };
+    visit(app.renderAssistant(target));
+    return found;
+  };
+  const initial = disclosures(message);
+  assert.equal(initial['solution-steps'].open, true);
+  assert.equal(initial['route-details'].open, false);
+  initial['solution-steps'].open = false;
+  initial['solution-steps'].toggle();
+  initial['route-details'].open = true;
+  initial['route-details'].toggle();
+  const running = app.requestAi(message, 'explain');
+  const loading = disclosures(message);
+  assert.equal(loading['solution-steps'].open, false);
+  assert.equal(loading['route-details'].open, true);
+  app.pending[0].resolve(response({ status: 'answered', text: 'Use the power rule.', verification: { status: 'not_checked', method: 'AI output', detail: 'Unverified.' } }));
+  await running;
+  const completed = disclosures(message);
+  assert.equal(completed['solution-steps'].open, false);
+  assert.equal(completed['route-details'].open, true);
+  const other = disclosures({ request, response: result });
+  assert.equal(other['solution-steps'].open, true);
+  assert.equal(other['route-details'].open, false);
+});
 
 for (const question of [
   { operation: 'derivative', expression: 'x^3' },

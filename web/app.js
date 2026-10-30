@@ -212,10 +212,11 @@
     return `${metrics.aiCalls} general-model call${metrics.aiCalls === 1 ? '' : 's'}`;
   }
 
-  function renderSteps(response, card) {
+  function renderSteps(response, card, message) {
     if (!Array.isArray(response.steps) || !response.steps.length) return;
     const details = element('details', 'solution-steps');
-    details.open = true;
+    details.open = message.stepsExpanded !== false;
+    details.addEventListener('toggle', () => { message.stepsExpanded = details.open; });
     const summary = element('summary', '', 'Solution steps');
     summary.setAttribute('aria-label', 'Solution steps');
     summary.append(document.createTextNode(` (${response.steps.length})`));
@@ -361,11 +362,13 @@
       response.notes.forEach((note) => notes.append(element('li', '', note)));
       card.append(notes);
     }
-    renderSteps(response, card);
+    renderSteps(response, card, message);
     const copyActions = element('div', 'card-actions');
     addCopyActions(response, copyActions, message.request, message);
     if (copyActions.childElementCount) card.append(copyActions);
     const details = element('details', 'route-details');
+    details.open = message.routeExpanded === true;
+    details.addEventListener('toggle', () => { message.routeExpanded = details.open; });
     details.append(element('summary', '', 'Show route details'));
     renderMetrics(message, details);
     card.append(details);
