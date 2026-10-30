@@ -637,6 +637,8 @@ def _integral_rule_step(expression: sp.Expr | None) -> str:
     if expression.is_Add:
         components = []
         for term in expression.args:
+            if term.count_ops() > 20:
+                return "Use linearity: integrate each term and add the results."
             antiderivative = sp.integrate(term, _X)
             if antiderivative.has(sp.Integral):
                 return "Use linearity: integrate each term and add the results."
