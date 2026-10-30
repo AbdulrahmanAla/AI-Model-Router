@@ -245,18 +245,21 @@
     if (response.result !== null && response.result !== undefined) {
       const copyResult = element('button', '', 'Copy exact result');
       copyResult.type = 'button';
+      copyResult.setAttribute('aria-label', 'Copy exact result');
       copyResult.addEventListener('click', () => copyText(response.result, 'Exact result copied.'));
       card.append(copyResult);
     }
     if (Array.isArray(response.steps) && response.steps.length) {
       const copySteps = element('button', '', 'Copy steps');
       copySteps.type = 'button';
+      copySteps.setAttribute('aria-label', 'Copy all solution steps');
       copySteps.addEventListener('click', () => copyText(response.steps.map((step, index) => `${index + 1}. ${step}`).join('\n'), 'Solution steps copied.'));
       card.append(copySteps);
     }
     if (Array.isArray(response.steps) && response.steps.length && ((response.result !== null && response.result !== undefined) || response.status === 'unresolved')) {
       const copyFull = element('button', '', response.status === 'unresolved' ? 'Copy full attempt' : 'Copy full solution');
       copyFull.type = 'button';
+      copyFull.setAttribute('aria-label', response.status === 'unresolved' ? 'Copy full unresolved attempt with verification and steps' : 'Copy full solution with verification and steps');
       copyFull.addEventListener('click', () => {
         const verification = response.verification && response.verification.detail ? `Verification (${checkLabel(response.verification.status)}): ${response.verification.detail}` : '';
         const combined = message ? combinedMetrics(message) : null;

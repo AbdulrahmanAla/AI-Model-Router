@@ -96,6 +96,9 @@ for (const [question, expected] of [
     const buttons = [];
     app.addCopyActions({ ...result, expression: question.expression, metrics: { route: 'solver', ai_calls: 0, solver_ms: 4.5, elapsed_ms: 9.25 }, steps: ['Compute the result.'],
       notes: ['Numerical samples are not a proof.'] }, { append: (button) => buttons.push(button) }, question);
+    assert.equal(buttons.find((button) => button.textContent === 'Copy exact result').attributes['aria-label'], 'Copy exact result');
+    assert.equal(buttons.find((button) => button.textContent === 'Copy steps').attributes['aria-label'], 'Copy all solution steps');
+    assert.equal(buttons.find((button) => button.textContent === 'Copy full solution').attributes['aria-label'], 'Copy full solution with verification and steps');
     buttons.find((button) => button.textContent === 'Copy full solution').click();
     assert.ok(app.state.copiedEvidence.includes(`Question: ${expected}`));
     assert.match(app.state.copiedEvidence, /Verification \(Symbolic check\): Checked\./);
@@ -110,6 +113,7 @@ test('unresolved results can be copied as a full attempt', () => {
   const buttons = [];
   const unresolved = { status: 'unresolved', result: null, verification: { status: 'not_checked', detail: 'The exact route stopped safely.' }, steps: ['Stop before returning an exact answer.'] };
   app.addCopyActions(unresolved, { append: (button) => buttons.push(button) }, request);
+  assert.equal(buttons.find((button) => button.textContent === 'Copy full attempt').attributes['aria-label'], 'Copy full unresolved attempt with verification and steps');
   buttons.find((button) => button.textContent === 'Copy full attempt').click();
   assert.match(app.state.copiedEvidence, /Question: Derivative x\^2/);
   assert.match(app.state.copiedEvidence, /Status: unresolved/);

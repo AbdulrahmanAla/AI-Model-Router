@@ -33,6 +33,7 @@ The actual website at `http://127.0.0.1:8000` was exercised through the in-app b
 - Escape cancels an active solver or optional AI request while preserving the retry path; dialog Escape behavior remains unchanged.
 - Optional AI loading and answered states expose busy and polite live-region semantics for assistive technology.
 - The browser rejects solver payloads with missing, empty, oversized, or excessive derivation steps and leaves the question retryable instead of rendering partial evidence.
+- Result-card copy actions expose distinct accessible labels for the exact result, all derivation steps, and the complete verified or unresolved attempt.
 - The composer hint documents Enter to solve, Shift+Enter for a new line, and Escape to cancel an active request.
 
 The wide and narrow viewport controls were set to 1366 by 900 and 390 by 844 respectively. Browser zoom and screenshot pixel scaling can make captured pixel dimensions differ from those requested values.
