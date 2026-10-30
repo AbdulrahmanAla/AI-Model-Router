@@ -101,6 +101,10 @@ def test_nonlinear_inner_integral_does_not_claim_linear_parts_shortcut() -> None
     assert body['status'] == 'solved'
     assert body['result'] == 'exp(x**2)/2'
     assert not any('Integration by parts:' in step for step in body['steps'])
+    steps = '\n'.join(body['steps'])
+    assert 'Use substitution u = x**2; du/dx = 2*x' in steps
+    assert 'x = (1/2)*(du/dx)' in steps
+    assert 'integral exp(u)/2 du = exp(u)/2' in steps
 
 
 def test_integrals_show_constant_and_power_rule_arithmetic() -> None:
@@ -121,6 +125,36 @@ def test_integrals_show_constant_and_power_rule_arithmetic() -> None:
         if expression == "3*sin(2*x)":
             assert any("constant factor 3" in step and "u = 2*x" in step for step in body["steps"])
         assert body["metrics"]["ai_calls"] == 0
+
+
+def test_nonlinear_substitution_steps_show_trig_scaling_and_the_complete_differential() -> None:
+    for expression, expected, substitution, differential, rewritten in (
+        ('2*x*cos(x^2+1)', 'sin(x**2 + 1)', 'x**2 + 1', '2*x', 'integral cos(u) du = sin(u)'),
+        ('-6*x*sin(3*x^2+2)', 'cos(3*x**2 + 2)', '3*x**2 + 2', '6*x', 'integral -sin(u) du = cos(u)'),
+        ('(3*x^2+2)*exp(x^3+2*x)', 'exp(x**3 + 2*x)', 'x**3 + 2*x', '3*x**2 + 2', 'integral exp(u) du = exp(u)'),
+    ):
+        response = client.post('/api/solve', json={'operation': 'integral', 'expression': expression})
+        assert response.status_code == 200
+        body = response.json()
+        assert body['status'] == 'solved'
+        assert body['result'] == expected
+        steps = '\n'.join(body['steps'])
+        assert f'Use substitution u = {substitution}; du/dx = {differential}' in steps
+        assert rewritten in steps
+        assert f'Substitute u = {substitution} back to get {expected}' in steps
+        assert body['verification']['status'] == 'symbolic_check'
+        assert body['metrics']['ai_calls'] == 0
+        assert len(body['steps']) <= 8
+        assert all(len(step) <= 500 for step in body['steps'])
+
+
+def test_substitution_does_not_match_only_the_leading_coefficient() -> None:
+    response = client.post('/api/solve', json={'operation': 'integral', 'expression': '(2*x+1)*exp(x^2)'})
+    body = response.json()
+    assert response.status_code == 200
+    assert body['status'] == 'solved'
+    assert not any('Match the differential:' in step for step in body['steps'])
+    assert body['metrics']['ai_calls'] == 0
 
 
 def test_product_derivative_step_shows_the_intermediate_rule() -> None:

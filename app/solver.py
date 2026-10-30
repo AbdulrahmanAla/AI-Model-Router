@@ -716,6 +716,47 @@ def _integral_rule_step(expression: sp.Expr | None) -> str:
     return rules.get(expression.func, "Find an antiderivative with respect to x.")
 
 
+def _substitution_integral_steps(expression: sp.Expr | None) -> list[str]:
+    """Recognize a polynomial differential times sin(g), cos(g), or exp(g)."""
+    if expression is None or not expression.is_Mul:
+        return []
+    for index, factor in enumerate(expression.args):
+        if factor.func not in (sp.sin, sp.cos, sp.exp):
+            continue
+        argument = factor.args[0]
+        if not argument.is_polynomial(_X) or sp.degree(argument, _X) < 2:
+            continue
+        remaining = sp.Mul(*(expression.args[:index] + expression.args[index + 1:]))
+        if not remaining.is_polynomial(_X):
+            continue
+        differential = sp.diff(argument, _X)
+        differential_poly = sp.Poly(differential, _X)
+        remaining_poly = sp.Poly(remaining, _X)
+        if remaining_poly.degree() != differential_poly.degree():
+            continue
+        scale = sp.cancel(remaining_poly.LC() / differential_poly.LC())
+        if scale.is_real is not True or scale.is_finite is not True:
+            continue
+        if sp.expand(remaining - scale * differential) != 0:
+            continue
+        u = sp.Symbol('u', real=True)
+        if factor.func == sp.sin:
+            primitive = -scale * sp.cos(u)
+        elif factor.func == sp.cos:
+            primitive = scale * sp.sin(u)
+        else:
+            primitive = scale * sp.exp(u)
+        transformed = scale * factor.func(u)
+        steps = [
+            f"Use substitution u = {_sstr(argument)}; du/dx = {_sstr(differential)}.",
+            f"Match the differential: {_sstr(remaining)} = ({_sstr(scale)})*(du/dx), so ({_sstr(remaining)})*dx = ({_sstr(scale)})*du.",
+            f"Rewrite and integrate in u: integral {_sstr(transformed)} du = {_sstr(primitive)}.",
+            f"Substitute u = {_sstr(argument)} back to get {_sstr(primitive.subs(u, argument))}.",
+        ]
+        return steps if all(len(step) <= 500 for step in steps) else []
+    return []
+
+
 def _integration_by_parts_steps(expression: sp.Expr | None) -> list[str]:
     """Show one complete parts calculation for a linear factor times sin/cos/exp."""
     if expression is None or not expression.is_Mul:
@@ -790,8 +831,8 @@ def _solved_steps(
     if operation == "integral":
         steps = [f"Read the integrand as {source}."]
         if lower is None and upper is None:
-            parts_steps = _integration_by_parts_steps(expression)
-            steps.extend(parts_steps or [_integral_rule_step(expression)])
+            worked_steps = _substitution_integral_steps(expression) or _integration_by_parts_steps(expression)
+            steps.extend(worked_steps or [_integral_rule_step(expression)])
             if branch_sensitive:
                 steps.append("Use the real logarithmic branch log(Abs(...)) and keep its nonzero-domain restriction.")
             steps.append(f"Display the antiderivative as {result}; the arbitrary constant C is omitted.")

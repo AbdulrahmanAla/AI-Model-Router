@@ -174,3 +174,13 @@ The final live browser check submitted `x*exp(x)` repeatedly. At an effective na
 ![New answer starts at the question and exact result](evidence/result-reading-position.png)
 
 ![Narrow answer reading keeps the header visible](evidence/result-reading-mobile.png)
+
+## Nonlinear substitution worked solutions
+
+The exact route now explains substitution for a polynomial differential multiplied by `sin(g(x))`, `cos(g(x))`, or `exp(g(x))`, where the polynomial inner function has degree at least two. It calculates `g'`, checks the full constant-multiple identity, rewrites the integral in `u`, integrates using a known rule, and substitutes back. This adds no symbolic integration call, provider request, or external dependency. The authoritative answer and verification remain unchanged, with the existing eight-step and 500-character limits.
+
+The local gate passed 87 Python tests, 105 frontend tests, syntax checks, and all 40 frozen HTTP evaluation cases. Public math API checks cover `x*exp(x^2)`, `2*x*cos(x^2+1)`, `-6*x*sin(3*x^2+2)`, and `(3*x^2+2)*exp(x^3+2*x)`. A same-degree near-match, `(2*x+1)*exp(x^2)`, must not claim the substitution because the complete differential does not match.
+
+The browser submitted `x*exp(x*x)`, displayed `exp(x**2)/2` with seven numbered steps, a symbolic residual check, and zero model calls. After waiting for the copy-success notification, reading the clipboard confirmed all seven steps, including the scaling and substitution back. Browser error/warning logs were empty.
+
+![Worked nonlinear substitution in the result card](evidence/nonlinear-substitution.png)
