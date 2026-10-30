@@ -134,6 +134,7 @@ def test_limit_uses_both_sides_when_direction_is_omitted() -> None:
     assert body["result"] == "1"
     assert body["verification"]["status"] == "numerical_evidence"
     assert any("real domain" in step for step in body["steps"])
+    assert any("left-hand limit = 1" in step.lower() and "right-hand limit = 1" in step.lower() for step in body["steps"])
 
 
 def test_equation_returns_real_roots_and_checks_substitution() -> None:

@@ -676,6 +676,8 @@ def _solved_steps(
     upper: sp.Expr | None = None,
     target: sp.Expr | None = None,
     direction: str | None = None,
+    left_limit: sp.Expr | None = None,
+    right_limit: sp.Expr | None = None,
     expanded_equation: str | None = None,
     polynomial_degree: int | None = None,
     branch_sensitive: bool = False,
@@ -707,6 +709,8 @@ def _solved_steps(
         steps.append("Check the original real domain for safe points approaching the target.")
         if direction == "both":
             steps.append("Compute the left-hand and right-hand limits, then compare them.")
+            if left_limit is not None and right_limit is not None:
+                steps.append(f"Left-hand limit = {_sstr(left_limit)}; right-hand limit = {_sstr(right_limit)}.")
         else:
             steps.append(f"Compute the one-sided limit from {direction_text}.")
         steps.extend([f"Simplify the limit to {result}.", _verification_step(verification)])
@@ -913,7 +917,7 @@ def _compute(payload: dict[str, Any]) -> dict[str, Any]:
             raise RuntimeError("The limit is unresolved.")
         verification = _verify_limit_numeric(expression, result_expr, target, direction, parsed.tree, parsed.source)
         result_text = _sstr(result_expr)
-        return {"result": result_text, "latex": _latex(result_expr), "verification": verification, "notes": [], "steps": _solved_steps(operation, source, result_text, verification, expression=expression, target=target, direction=direction)}
+        return {"result": result_text, "latex": _latex(result_expr), "verification": verification, "notes": [], "steps": _solved_steps(operation, source, result_text, verification, expression=expression, target=target, direction=direction, left_limit=left if direction == "both" else None, right_limit=right if direction == "both" else None)}
     raise GrammarError("That operation is not supported.")
 
 
