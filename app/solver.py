@@ -436,6 +436,8 @@ def _verify_definite_integral(original: sp.Expr, result: sp.Expr, lower: sp.Expr
 
 
 def _verify_equation(expression: sp.Expr, roots: list[sp.Expr]) -> dict[str, str]:
+    if not roots:
+        return {"status": "not_checked", "method": "root substitution", "detail": "The solver returned no real roots. There are no roots to substitute; this does not independently prove the absence of real solutions."}
     try:
         if all(sp.simplify(expression.subs(_X, root)) == 0 for root in roots):
             return {"status": "symbolic_check", "method": "root substitution", "detail": "Every returned real root satisfies the equation."}
@@ -734,6 +736,9 @@ def _solved_steps(
             steps.append("Recognize a polynomial identity, so every real x is a solution.")
         elif result == "no real solutions":
             steps.append("Recognize a nonzero constant equation, so no real solution exists.")
+        elif result == "{}":
+            steps.append("The polynomial solver returns the empty real solution set: no real roots were found.")
+            steps.append("There are no candidate roots to substitute; absence of real roots has not been independently checked.")
         else:
             degree_text = f" of degree {polynomial_degree}" if polynomial_degree is not None else ""
             steps.append(f"Solve the real polynomial{degree_text} for its candidate roots.")

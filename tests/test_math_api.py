@@ -153,6 +153,20 @@ def test_equation_allows_whitespace_around_equals() -> None:
     assert any("factor the polynomial" in step.lower() for step in body["steps"])
 
 
+def test_empty_real_solution_set_does_not_claim_a_substitution_check() -> None:
+    for expression in ("x^2 + 1 = 0", "x^4 + 1 = 0"):
+        response = client.post("/api/solve", json={"operation": "equation", "expression": expression})
+        assert response.status_code == 200
+        body = response.json()
+        assert body["status"] == "solved"
+        assert body["result"] == "{}"
+        assert body["verification"]["status"] == "not_checked"
+        assert "does not independently prove" in body["verification"]["detail"]
+        assert any("empty real solution set" in step for step in body["steps"])
+        assert not any(step.startswith("Substitute the returned roots") for step in body["steps"])
+        assert body["metrics"]["ai_calls"] == 0
+
+
 def test_equation_accepts_a_bounded_nested_quartic() -> None:
     response = client.post("/api/solve", json={"operation": "equation", "expression": "(x^2-1)^2=0"})
     assert response.status_code == 200
