@@ -23,7 +23,7 @@
         <button class="nav-item" id="latest-question" type="button"><span class="nav-icon" aria-hidden="true">↘</span><span>Latest question</span></button>
       </nav>
       <div class="chat-section">
-        <div class="section-heading"><span>Chats</span><button class="tiny-button" id="search-toggle" type="button" aria-label="Search chats (Ctrl+K or Cmd+K)" aria-expanded="false" title="Search chats (Ctrl+K or Cmd+K)">⌕</button></div>
+        <div class="section-heading"><span>Chats</span><button class="tiny-button" id="search-toggle" type="button" aria-label="Search chats (Ctrl+K or Cmd+K)" aria-controls="chat-search-wrap" aria-expanded="false" title="Search chats (Ctrl+K or Cmd+K)">⌕</button></div>
         <label class="chat-search" id="chat-search-wrap" hidden><span class="sr-only">Search chats</span><input id="chat-search" type="search" placeholder="Search this session" autocomplete="off" aria-keyshortcuts="Control+K Meta+K"></label>
         <div class="chat-list" id="chat-list"><p class="empty-chats">Your solved questions will appear here.</p></div>
       </div>
@@ -32,7 +32,7 @@
 
     <main class="main-content">
       <header class="topbar">
-        <button class="icon-button mobile-menu" id="open-sidebar" type="button" aria-label="Open sidebar" aria-expanded="false" title="Open sidebar">☰</button>
+        <button class="icon-button mobile-menu" id="open-sidebar" type="button" aria-label="Open sidebar" aria-controls="sidebar" aria-expanded="false" title="Open sidebar">☰</button>
         <div class="topbar-title">Math workspace</div>
         <div class="session-stats" id="session-stats" role="status" aria-live="polite" aria-atomic="true">0 exact solves · 0 model calls</div>
         <div class="status-pill" id="service-status" role="status" aria-live="polite" aria-atomic="true"><span class="status-dot" aria-hidden="true"></span><span>Checking solver</span></div>
