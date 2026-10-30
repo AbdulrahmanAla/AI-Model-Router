@@ -17,3 +17,5 @@ The exact route reports zero model calls. Verification labels distinguish numeri
 The test run emits one upstream Starlette deprecation warning about its `httpx` test client import. It does not affect the result.
 
 Real-logarithm linearity steps use the same Abs transformation as the final antiderivative. Public API tests cover sums with singularities at zero and at one. Branch notes explicitly preserve the original integrand's real domain.
+
+Sine, cosine, and exponential integrals with a linear argument show the concrete substitution, differential scaling, and substituted-back antiderivative. Worked public API cases include a shifted sine, scaled cosine, and negative exponential slope. The shortcut requires a nonzero constant inner derivative.

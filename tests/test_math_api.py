@@ -42,6 +42,22 @@ def test_solution_steps_name_the_integral_rule_family() -> None:
     assert any("integrate 2*x" in step.lower() and "integrate cos(x)" in step.lower() for step in body["steps"])
 
 
+def test_linear_argument_integrals_show_substitution_and_scale() -> None:
+    for expression, expected, substitution, slope in (
+        ("sin(2*x+1)", "-cos(2*x + 1)/2", "2*x + 1", "2"),
+        ("cos(3*x)", "sin(3*x)/3", "3*x", "3"),
+        ("exp(-2*x)", "-exp(-2*x)/2", "-2*x", "-2"),
+    ):
+        response = client.post("/api/solve", json={"operation": "integral", "expression": expression})
+        assert response.status_code == 200
+        body = response.json()
+        assert body["status"] == "solved"
+        assert body["result"] == expected
+        assert any(f"u = {substitution}" in step and f"du = ({slope})*dx" in step and expected in step for step in body["steps"])
+        assert body["verification"]["status"] == "symbolic_check"
+        assert body["metrics"]["ai_calls"] == 0
+
+
 def test_product_derivative_step_shows_the_intermediate_rule() -> None:
     response = client.post("/api/solve", json={"operation": "derivative", "expression": "x^3*sin(x)"})
     body = response.json()

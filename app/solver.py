@@ -651,6 +651,22 @@ def _integral_rule_step(expression: sp.Expr | None) -> str:
         return "Use linearity: integrate each term and add the results."
     if expression.is_Mul and any(not factor.has(_X) for factor in expression.args):
         return "Pull constant factors outside the integral, then integrate the remaining expression."
+    if expression.func in (sp.sin, sp.cos, sp.exp) and expression.args[0] != _X:
+        argument = expression.args[0]
+        slope = sp.diff(argument, _X)
+        if not slope.has(_X) and slope.is_zero is False:
+            if expression.func == sp.sin:
+                primitive, rule = -sp.cos(argument), "Integral sin(u) du = -cos(u)"
+            elif expression.func == sp.cos:
+                primitive, rule = sp.sin(argument), "Integral cos(u) du = sin(u)"
+            else:
+                primitive, rule = sp.exp(argument), "Integral exp(u) du = exp(u)"
+            return (
+                f"Use substitution u = {_sstr(argument)}, so du = ({_sstr(slope)})*dx "
+                f"and dx = du/({_sstr(slope)}). {rule}; divide by {_sstr(slope)} "
+                f"and substitute back to get {_sstr(primitive / slope)}."
+            )
+        return "Find an antiderivative with respect to x; the inner derivative is not a nonzero constant, so the linear-argument substitution shortcut does not apply."
     rules = {
         sp.sin: "Use ∫sin(u) du = -cos(u) when the argument is x.",
         sp.cos: "Use ∫cos(u) du = sin(u) when the argument is x.",
