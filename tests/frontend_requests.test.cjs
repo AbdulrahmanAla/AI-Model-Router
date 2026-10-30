@@ -148,6 +148,16 @@ test('invalid AI success cannot masquerade as an explanation', async () => {
   assert.equal(message.response.result, '2*x');
 });
 
+test('oversized AI success is a recoverable invalid response', async () => {
+  const app = appHarness();
+  const message = { request, response: result };
+  const running = app.requestAi(message, 'explain');
+  app.pending[0].resolve(response({ status: 'answered', text: 'x'.repeat(12001) }));
+  await running;
+  assert.equal(message.ai.status, 'error');
+  assert.match(message.ai.message, /invalid response/i);
+});
+
 test('valid unresolved response remains available for explicit fallback', async () => {
   const app = appHarness();
   const message = { request, generation: 0, loading: true };

@@ -3,6 +3,7 @@
 
   const $ = (selector) => document.querySelector(selector);
   const state = { messages: [], solving: false, health: null, chatFilter: '', nextMessageId: 1, solveGeneration: 0, activeSolve: null };
+  const MAX_AI_TEXT_LENGTH = 12000;
   const operationCopy = {
     derivative: { hint: 'Find d/dx of an expression', help: 'Use explicit multiplication, such as 2*x.' },
     integral: { hint: 'Find an antiderivative or a definite integral', help: 'Leave bounds blank for an antiderivative, or provide both.' },
@@ -520,7 +521,7 @@
           : body.status === 'unresolved' && body.result === null && check && check.status === 'not_checked';
         if (!validCheck || !validResult) throw new Error('The server returned an invalid response. Please retry.');
       }
-      if (url === '/api/ai' && (body.status !== 'answered' || typeof body.text !== 'string' || !body.text.trim())) {
+      if (url === '/api/ai' && (body.status !== 'answered' || typeof body.text !== 'string' || !body.text.trim() || body.text.length > MAX_AI_TEXT_LENGTH)) {
         throw new Error('The server returned an invalid response. Please retry.');
       }
       return body;
