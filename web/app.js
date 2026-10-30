@@ -479,7 +479,9 @@
     grid.append(metricCard('Solver time', metricValue(metrics.solverMetrics.solver_ms, 'ms')));
     grid.append(metricCard('AI time', metricValue(metrics.aiLatency, 'ms')));
     grid.append(metricCard('Solve time', metricValue(metrics.solverMetrics.elapsed_ms, 'ms')));
-    grid.append(metricCard('Model', metrics.models.length ? metrics.models.join(', ') : 'Not used'));
+    const modelLabel = metrics.models.length ? metrics.models.join(', ')
+      : (metrics.attempts && metrics.aiCalls !== 0 ? 'Not reported' : 'Not used');
+    grid.append(metricCard('Model', modelLabel));
     grid.append(metricCard('Reported tokens', metricValue(metrics.totalTokens)));
     if (metrics.statuses.length) grid.append(metricCard('AI status', metrics.statuses.join(', ')));
     details.append(grid);
@@ -565,24 +567,35 @@
     }
   }
 
-  function renderAiResponse(message, body) {
-    if (!message.ai) return;
-    const response = message.ai;
+  function aiResponseBox(response, announce, attemptNumber = null) {
     const boxClass = response.status === 'answered' ? 'ai-response' : (response.status === 'loading' ? 'ai-response ai-loading' : 'ai-response error');
     const box = element('div', boxClass);
     if (response.status === 'loading') box.setAttribute('aria-busy', 'true');
-    if (response.status === 'answered') box.setAttribute('aria-live', 'polite');
+    if (response.status === 'answered' && announce) box.setAttribute('aria-live', 'polite');
     const label = response.status === 'answered' ? 'AI text · unverified' : (response.status === 'loading' ? 'AI request in progress' : 'AI response unavailable');
-    box.append(element('span', 'ai-label', label));
+    box.append(element('span', 'ai-label', attemptNumber === null ? label : `Attempt ${attemptNumber} · ${label}`));
     box.append(element('span', 'ai-copy', response.status === 'answered' ? (response.text || 'The provider returned no explanation text.') : (response.message || 'The AI response is unavailable.')));
     if (response.status === 'answered' && response.text) {
       const copy = element('button', 'ai-copy-button', 'Copy AI explanation');
       copy.type = 'button';
-      copy.setAttribute('aria-label', 'Copy unverified AI explanation');
+      copy.setAttribute('aria-label', attemptNumber === null ? 'Copy unverified AI explanation' : `Copy unverified AI explanation from attempt ${attemptNumber}`);
       copy.addEventListener('click', () => copyText(response.text, 'AI explanation copied.'));
       box.append(copy);
     }
-    body.append(box);
+    return box;
+  }
+
+  function renderAiResponse(message, body) {
+    if (!message.ai) return;
+    body.append(aiResponseBox(message.ai, true));
+    const earlier = Array.isArray(message.aiAttempts) ? message.aiAttempts.slice(0, -1) : [];
+    if (!earlier.length) return;
+    const history = element('details', 'ai-history');
+    history.open = message.aiHistoryExpanded === true;
+    history.addEventListener('toggle', () => { message.aiHistoryExpanded = history.open; });
+    history.append(element('summary', '', `Earlier AI attempts (${earlier.length})`));
+    earlier.forEach((attempt, index) => history.append(aiResponseBox(attempt, false, index + 1)));
+    body.append(history);
   }
 
   function renderAssistant(message) {

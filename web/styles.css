@@ -25,4 +25,5 @@
 .typed-math-field{width:100%;min-height:38px;padding:7px 3px;border:0;border-radius:4px;background:transparent;color:var(--text)}.typed-math-field::placeholder{color:var(--faint)}.compact-math-field+.typed-math-field{min-height:28px;padding:3px 0}
 .field{min-width:0}.input-grid{grid-template-columns:minmax(0,1fr)}.math-field{width:100%;max-width:100%;min-width:0;overflow-x:auto;overscroll-behavior-x:contain}
 .messages,.message{min-width:0;grid-template-columns:minmax(0,1fr)}
+.ai-history{margin-top:12px;border-top:1px solid var(--line-soft)}.ai-history summary{padding-top:10px;color:var(--muted);font-size:12px;cursor:pointer}
 

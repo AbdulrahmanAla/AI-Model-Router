@@ -50,6 +50,8 @@ Create an untracked `.env` file or set these variables in your shell or deployme
 
 Keep `.env` out of Git. Exact math works without this configuration. Explain and Ask AI actions show unavailable until a provider is configured. The browser receives no provider key. [Provider research](docs/research/provider.md) records compatibility limits.
 
+To reproduce an explanation followed by a failed retry without a live model, run `python scripts/preview_ai_contract.py`. Open the printed local URL, solve a question, and request an explanation twice. The first response and its token counters are explicitly labeled synthetic fixtures; later provider attempts fail. This preview binds only to localhost and substitutes the external HTTP transport. It does not measure model quality, usage, or efficiency.
+
 ## Evaluate the compute-saving claim
 
 Use the [evaluation guide](docs/evaluation.md) to run the frozen 40-case set against the running HTTP server. Solver-only mode checks correctness and zero-call routing. Live comparison requires explicit opt-in and a configured provider. It can incur API charges.

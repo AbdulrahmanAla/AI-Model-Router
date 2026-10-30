@@ -224,3 +224,11 @@ At an effective narrow CSS viewport of about 433 px, the corrected main editor m
 The existing local gate passed 92 Python tests, 110 frontend tests, syntax checks, and all 40 frozen HTTP evaluation cases. The browser geometry, editing, scrolling, and submission checks verify the layout change directly. Review found no material issue, and the additional caret and nested-fraction checks covered its remaining concerns.
 
 ![Contained long formula and answer on a narrow screen](evidence/long-formula-mobile.png)
+
+## AI attempt history, pending browser verification
+
+The local change preserves earlier AI attempts in a collapsible section after a retry, keeps their answers labeled unverified, and provides a copy action for each earlier answer. The expanded-history choice survives rerendering. Route details now say that model metadata is unreported when an attempted call has unknown usage, rather than claiming no model was used.
+
+The local gate passed 92 Python tests, 111 frontend tests, syntax checks, and all 40 frozen HTTP evaluation cases. The new public frontend regression reproduces a successful explanation followed by a failed retry, confirms the earlier text remains available and copyable, preserves the expanded state, checks its unverified labeling and model metadata, and confirms history access makes no request.
+
+`scripts/preview_ai_contract.py` starts a localhost-only app with a synthetic external transport: the first provider attempt returns clearly labeled fixture text and fixture token counts, and later attempts fail. The script started successfully and its help command passed. No real provider was contacted. The intended browser journey has not been verified: the prior browser-control runtime was unavailable, and the Windows computer-use fallback stopped because it could not confidently determine the current Chrome URL. This change remains local and unpublished pending that check.

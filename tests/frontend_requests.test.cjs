@@ -464,6 +464,33 @@ test('route label makes the exact local path explicit', () => {
   assert.equal(app.routeLabel({ aiCalls: null, routes: ['solver'] }), 'AI calls not reported');
 });
 
+test('a failed explanation retry preserves the previous unverified explanation in the page', async () => {
+  const app = appHarness();
+  const first = { action: 'explain', status: 'answered', text: 'Earlier explanation to keep.', metrics: { ai_calls: 1, total_tokens: 20 } };
+  const message = { request, response: result, ai: first, aiAttempts: [first] };
+  const running = app.requestAi(message, 'explain');
+  app.pending[0].resolve({ ok: false, status: 502, json: async () => ({ detail: 'Provider unavailable.', metrics: { ai_calls: 1, total_tokens: null } }) });
+  await running;
+  const nodes = descendants(app.renderAssistant(message));
+  assert.ok(nodes.some((node) => node.textContent === 'Earlier explanation to keep.'));
+  assert.ok(nodes.some((node) => node.textContent === 'Provider unavailable.'));
+  const history = nodes.find((node) => node.className === 'ai-history');
+  assert.ok(history);
+  assert.equal(history.open, false);
+  history.open = true;
+  history.toggle();
+  const updated = descendants(app.renderAssistant(message));
+  assert.equal(updated.find((node) => node.className === 'ai-history').open, true);
+  const copy = updated.find((node) => node.attributes?.['aria-label'] === 'Copy unverified AI explanation from attempt 1');
+  copy.click();
+  assert.equal(app.state.copiedEvidence, 'Earlier explanation to keep.');
+  const model = updated.find((node) => node.className === 'metric' && node.children[0].textContent === 'Model');
+  assert.equal(model.children[1].textContent, 'Not reported');
+  const earlierBox = descendants(history).find((node) => node.className === 'ai-response');
+  assert.equal(earlierBox.attributes['aria-live'], undefined);
+  assert.equal(app.pending.length, 1, 'Reading previous text needs no new provider request');
+});
+
 test('exact results expose a spoken result label', () => {
   const app = appHarness();
   assert.equal(app.resultAriaLabel(result), 'Exact result: 2*x');
