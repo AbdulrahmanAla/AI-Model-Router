@@ -50,6 +50,21 @@ Create an untracked `.env` file or set these variables in your shell or deployme
 
 Keep `.env` out of Git. Exact math works without this configuration. Explain and Ask AI actions show unavailable until a provider is configured. The browser receives no provider key. [Provider research](docs/research/provider.md) records compatibility limits.
 
+### Run a local Ollama model
+
+Install Ollama, download a small model, and keep the model server on the loopback interface. For example, the Ollama API exposes `http://127.0.0.1:11434/api/chat` and reports native prompt and generation counts plus nanosecond durations when the response includes them:
+
+```powershell
+ollama pull qwen3.5:4b
+$env:AI_PROVIDER = "ollama"
+$env:OLLAMA_MODEL = "qwen3.5:4b"
+$env:OLLAMA_BASE_URL = "http://127.0.0.1:11434"
+$env:OLLAMA_TIMEOUT_SECONDS = "120"
+\.venv\Scripts\python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8000
+```
+
+The local adapter sends no authorization header and does not require `AI_API_KEY`. Local inference has no API charge, but model download size, GPU or CPU time, memory, electricity, and latency still count as resources. If Ollama is unavailable, exact solver requests continue to work and AI actions report a recoverable unavailable state.
+
 To reproduce an explanation followed by a failed retry without a live model, run `python scripts/preview_ai_contract.py`. Open the printed local URL, solve a question, and request an explanation twice. The first response and its token counters are explicitly labeled synthetic fixtures; later provider attempts fail. This preview binds only to localhost and substitutes the external HTTP transport. It does not measure model quality, usage, or efficiency.
 
 ## Evaluate the compute-saving claim
