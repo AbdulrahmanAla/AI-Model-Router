@@ -636,6 +636,19 @@ def _derivative_rule_step(expression: sp.Expr | None) -> str:
 def _integral_rule_step(expression: sp.Expr | None) -> str:
     if expression is None:
         return "Find an antiderivative with respect to x."
+    if not expression.has(_X):
+        return f"Treat {_sstr(expression)} as a constant: its antiderivative is {_sstr(expression * _X)}."
+    if expression == _X or (expression.is_Pow and expression.base == _X and expression.exp.is_number):
+        exponent = sp.Integer(1) if expression == _X else expression.exp
+        if exponent == -1:
+            return "For n = -1, use the logarithm rule instead of dividing by n + 1: integral 1/x dx = log(Abs(x)), on intervals excluding x = 0."
+        next_exponent = exponent + 1
+        primitive = _X ** next_exponent / next_exponent
+        return (
+            f"Power rule: integral x^n dx = x^(n + 1)/(n + 1) for n != -1. "
+            f"Here n = {_sstr(exponent)}, so n + 1 = {_sstr(next_exponent)}; "
+            f"raise the power and divide to get {_sstr(primitive)} on the original real domain."
+        )
     if expression.is_Add:
         components = []
         for term in expression.args:
@@ -650,7 +663,12 @@ def _integral_rule_step(expression: sp.Expr | None) -> str:
             return "Use linearity: " + " ".join(components)
         return "Use linearity: integrate each term and add the results."
     if expression.is_Mul and any(not factor.has(_X) for factor in expression.args):
-        return "Pull constant factors outside the integral, then integrate the remaining expression."
+        constant, remaining = expression.as_independent(_X, as_Add=False)
+        return (
+            f"Pull the constant factor {_sstr(constant)} outside: integrate {_sstr(expression)} "
+            f"as {_sstr(constant)} times the integral of {_sstr(remaining)}. "
+            + _integral_rule_step(remaining)
+        )
     if expression.func in (sp.sin, sp.cos, sp.exp) and expression.args[0] != _X:
         argument = expression.args[0]
         slope = sp.diff(argument, _X)

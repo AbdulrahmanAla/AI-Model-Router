@@ -58,6 +58,26 @@ def test_linear_argument_integrals_show_substitution_and_scale() -> None:
         assert body["metrics"]["ai_calls"] == 0
 
 
+def test_integrals_show_constant_and_power_rule_arithmetic() -> None:
+    for expression, expected, step_fragment in (
+        ("x^3", "x**4/4", "n = 3"),
+        ("x", "x**2/2", "n = 1"),
+        ("1/x^2", "-1/x", "n = -2"),
+        ("1/x", "log(Abs(x))", "n = -1"),
+        ("5", "5*x", "constant"),
+        ("3*sin(2*x)", "-3*cos(2*x)/2", "u = 2*x"),
+    ):
+        response = client.post("/api/solve", json={"operation": "integral", "expression": expression})
+        body = response.json()
+        assert response.status_code == 200
+        assert body["status"] == "solved"
+        assert body["result"] == expected
+        assert any(step_fragment in step for step in body["steps"])
+        if expression == "3*sin(2*x)":
+            assert any("constant factor 3" in step and "u = 2*x" in step for step in body["steps"])
+        assert body["metrics"]["ai_calls"] == 0
+
+
 def test_product_derivative_step_shows_the_intermediate_rule() -> None:
     response = client.post("/api/solve", json={"operation": "derivative", "expression": "x^3*sin(x)"})
     body = response.json()
