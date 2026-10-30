@@ -235,6 +235,28 @@ def test_equation_allows_whitespace_around_equals() -> None:
     assert any("factor the polynomial" in step.lower() for step in body["steps"])
 
 
+def test_quadratic_steps_show_coefficients_discriminant_and_root_rule() -> None:
+    for expression, expected, coefficients, discriminant in (
+        ("x^2-5*x+6=0", "{2, 3}", "a = 1, b = -5, c = 6", "1"),
+        ("x^2-2=0", "{-sqrt(2), sqrt(2)}", "a = 1, b = 0, c = -2", "8"),
+        ("x^2-2*x+1=0", "{1}", "a = 1, b = -2, c = 1", "0"),
+        ("2*x^2-8=0", "{-2, 2}", "a = 2, b = 0, c = -8", "64"),
+        ("x^2+1=0", "{}", "a = 1, b = 0, c = 1", "-4"),
+    ):
+        response = client.post("/api/solve", json={"operation": "equation", "expression": expression})
+        body = response.json()
+        assert response.status_code == 200
+        assert body["status"] == "solved"
+        assert body["result"] == expected
+        assert any(coefficients in step and f"D = b^2 - 4*a*c = {discriminant}" in step for step in body["steps"])
+        if discriminant == "-4":
+            assert any("negative" in step and "no real roots" in step for step in body["steps"])
+        else:
+            assert any("x = (-b +/- sqrt(D))/(2*a)" in step for step in body["steps"])
+        assert 1 <= len(body["steps"]) <= 8
+        assert body["steps"][-1].startswith("Verification")
+
+
 def test_empty_real_solution_set_does_not_claim_a_substitution_check() -> None:
     for expression in ("x^2 + 1 = 0", "x^4 + 1 = 0"):
         response = client.post("/api/solve", json={"operation": "equation", "expression": expression})

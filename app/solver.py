@@ -781,6 +781,14 @@ def _solved_steps(
             steps.append(f"Expand the polynomial: {expanded_equation} = 0.")
         if factorized_equation and factorized_equation != expanded_equation and factorized_equation not in {"0", "1", "-1"}:
             steps.append(f"Factor the polynomial: {factorized_equation} = 0.")
+        if polynomial_degree == 2 and expression is not None:
+            a, b, c = sp.Poly(expression, _X).all_coeffs()
+            discriminant = sp.simplify(b**2 - 4*a*c)
+            rule = "The discriminant is negative, so there are no real roots." if discriminant.is_negative is True else "Use x = (-b +/- sqrt(D))/(2*a)."
+            steps.append(
+                f"Quadratic coefficients: a = {_sstr(a)}, b = {_sstr(b)}, c = {_sstr(c)}. "
+                f"D = b^2 - 4*a*c = {_sstr(discriminant)}. {rule}"
+            )
         if result == "all real x":
             steps.append("Recognize a polynomial identity, so every real x is a solution.")
         elif result == "no real solutions":
@@ -876,6 +884,7 @@ def _compute(payload: dict[str, Any]) -> dict[str, Any]:
                 source,
                 result,
                 verification,
+                expression=equation,
                 expanded_equation=_sstr(equation),
                 factorized_equation=factorized_equation,
                 polynomial_degree=None if polynomial.is_zero else int(polynomial.degree()),

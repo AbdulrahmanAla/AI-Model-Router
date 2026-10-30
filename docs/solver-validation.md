@@ -25,3 +25,5 @@ Power integrals show n and n + 1, division by the new exponent, and the separate
 Finite polynomial definite integrals show the termwise antiderivative, both endpoint values, and F(b) - F(a). Worked API cases cover a monomial, a linear polynomial with a negative lower endpoint, and a constant integrand. Infinite bounds and nonpolynomial integrands retain their existing route descriptions.
 
 Supported elementary function derivatives show the concrete chain rule: the inner expression u, du/dx, the outer derivative in u, and the substituted product. Public API examples cover a quadratic inner expression, a shifted logarithm, and a negative exponential slope. The independent derivative check remains numerical evidence.
+
+Quadratic derivations display a, b, c, the discriminant, and the quadratic formula or negative-discriminant conclusion. Public API examples cover integer roots, irrational roots, a repeated root, a nonunit leading coefficient, and no real roots. The final verification step remains present within the eight-step response bound.
