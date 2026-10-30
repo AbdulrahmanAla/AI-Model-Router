@@ -2,7 +2,7 @@
   'use strict';
 
   const $ = (selector) => document.querySelector(selector);
-  const state = { messages: [], solving: false, health: null, chatFilter: '', nextMessageId: 1, solveGeneration: 0, activeSolve: null };
+  const state = { messages: [], solving: false, health: null, chatFilter: '', nextMessageId: 1, solveGeneration: 0, activeSolve: null, selectedMessageId: null };
   const MAX_AI_TEXT_LENGTH = 12000;
   const operationCopy = {
     derivative: { hint: 'Find d/dx of an expression', help: 'Use explicit multiplication, such as 2*x.' },
@@ -398,10 +398,12 @@
       return;
     }
     visible.forEach((message) => {
-      const button = element('button', 'chat-row', requestTitle(message.request));
+      const button = element('button', message.id === state.selectedMessageId ? 'chat-row active' : 'chat-row', requestTitle(message.request));
       button.type = 'button';
       button.addEventListener('click', () => {
         closeMobileSidebar();
+        state.selectedMessageId = message.id;
+        renderChatList();
         const target = elements.messages.querySelector(`[data-message-id="${message.id}"]`);
         if (target) target.scrollIntoView({ behavior: 'smooth', block: 'center' });
       });
@@ -643,6 +645,7 @@
     state.solving = true;
     elements.send.disabled = true;
     const message = { id: String(state.nextMessageId++), generation: state.solveGeneration, request, display: displayRequest(request), loading: true };
+    state.selectedMessageId = message.id;
     state.messages.push(message);
     renderMessages();
     solve(request, message);
@@ -671,6 +674,7 @@
     elements.send.disabled = false;
     state.messages = [];
     state.nextMessageId = 1;
+    state.selectedMessageId = null;
     state.chatFilter = '';
     elements.chatSearch.value = '';
     elements.expression.value = '';
@@ -723,6 +727,8 @@
       showToast('Solve a question before jumping to the latest result.');
       return;
     }
+    state.selectedMessageId = latest.id;
+    renderChatList();
     const target = elements.messages.querySelector(`[data-message-id="${latest.id}"]`);
     if (target) target.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
