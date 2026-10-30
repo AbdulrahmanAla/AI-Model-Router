@@ -109,6 +109,18 @@ def test_real_logarithmic_antiderivative_uses_abs_and_states_domain() -> None:
     assert "nonzero" in body["notes"][1]
 
 
+def test_integral_linearity_steps_preserve_the_real_logarithmic_branch() -> None:
+    for expression in ("x + 1/x", "x + 1/(x-1)"):
+        response = client.post("/api/solve", json={"operation": "integral", "expression": expression})
+        body = response.json()
+        assert response.status_code == 200
+        assert body["status"] == "solved"
+        assert "log(Abs(" in body["result"]
+        assert any("linearity" in step and "log(Abs(" in step for step in body["steps"])
+        assert any("original integrand" in note for note in body["notes"])
+        assert body["metrics"]["ai_calls"] == 0
+
+
 def test_definite_integral_reports_independent_quadrature() -> None:
     response = client.post("/api/solve", json={"operation": "integral", "expression": "x", "lower": "0", "upper": "1"})
     body = response.json()

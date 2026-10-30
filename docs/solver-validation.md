@@ -15,3 +15,5 @@ The solver uses a spawned worker with a two-process semaphore and `SOLVER_TIMEOU
 The exact route reports zero model calls. Verification labels distinguish numerical evidence, symbolic checks, failed checks, and unchecked results. Numerical samples do not claim a proof.
 
 The test run emits one upstream Starlette deprecation warning about its `httpx` test client import. It does not affect the result.
+
+Real-logarithm linearity steps use the same Abs transformation as the final antiderivative. Public API tests cover sums with singularities at zero and at one. Branch notes explicitly preserve the original integrand's real domain.

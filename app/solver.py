@@ -644,6 +644,7 @@ def _integral_rule_step(expression: sp.Expr | None) -> str:
             antiderivative = sp.integrate(term, _X)
             if antiderivative.has(sp.Integral):
                 return "Use linearity: integrate each term and add the results."
+            antiderivative, _ = _real_log_antiderivative(antiderivative)
             components.append(f"Integrate {_sstr(term)}: {_sstr(antiderivative)}.")
         if len(components) <= 3:
             return "Use linearity: " + " ".join(components)
@@ -862,6 +863,7 @@ def _compute(payload: dict[str, Any]) -> dict[str, Any]:
             notes = ["The arbitrary constant C is omitted."]
             if branch_sensitive:
                 notes.append("Real logarithms use Abs and are valid on intervals where each logarithm argument is nonzero.")
+                notes.append("The original integrand's real domain still applies; using Abs does not extend that domain.")
             result_text = _sstr(result_expr)
             return {"result": result_text, "latex": _latex(result_expr), "verification": verification, "notes": notes, "steps": _solved_steps(operation, source, result_text, verification, expression=expression, branch_sensitive=branch_sensitive)}
         lower = parse_constant(payload["lower"])
