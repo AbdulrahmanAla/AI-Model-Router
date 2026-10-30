@@ -40,14 +40,14 @@ function appHarness({ withMathQuill = false, staticMathFailure = false, liveRend
     },
     Blob: class Blob { constructor(parts, options) { this.parts = parts; this.options = options; } },
     URL: { createObjectURL: () => 'blob:test', revokeObjectURL: () => {} },
-    fetch: (url, options) => new Promise((resolve, reject) => pending.push({ resolve, reject, signal: options.signal })),
+    fetch: (url, options) => new Promise((resolve, reject) => pending.push({ resolve, reject, signal: options.signal, url, options })),
   });
   vm.runInContext(source.replace(/  wireEvents\(\);[\s\S]*$/, `
     const renderConversation = renderMessages;
     ${liveRender ? '' : 'renderMessages = () => {};'}
     copyText = (value) => { state.copiedEvidence = value; };
     setServiceStatus = (kind, label) => { state.serviceLabel = label; };
-    this.app = { state, elements, solve, cancelSolve, retrySolve, requestAi, cancelAi, copySessionEvidence, downloadSessionEvidence, sessionEvidenceText, addCopyActions, exampleValues, fillComposer, routeLabel, resultAriaLabel, shouldFocusComposer, shouldCloseSidebarOnEscape, shouldCloseChatSearchOnEscape, shouldFocusChatSearch, latestMessage, renderAiResponse, renderChatList, closeChatSearch, openChatSearch, fetchWithTimeout, submit, clearFormError, renderAssistant, renderConversation, latexToExpression, expressionToLatex, buildRequest, setFieldValue, validateRequest };
+    this.app = { state, elements, solve, route, cancelSolve, retrySolve, retryRoute, requestAi, cancelAi, copySessionEvidence, downloadSessionEvidence, sessionEvidenceText, addCopyActions, exampleValues, fillComposer, routeLabel, resultAriaLabel, shouldFocusComposer, shouldCloseSidebarOnEscape, shouldCloseChatSearchOnEscape, shouldFocusChatSearch, latestMessage, renderAiResponse, renderChatList, closeChatSearch, openChatSearch, fetchWithTimeout, submit, clearFormError, renderAssistant, renderConversation, latexToExpression, expressionToLatex, buildRequest, buildRoutePayload, setFieldValue, validateRequest, validateRoutePayload };
   })();`), context);
   return { ...context.app, pending, timers, downloads, mathFields };
 }
@@ -195,6 +195,58 @@ test('visual editor request construction includes operation context while typed 
   assert.deepEqual(JSON.parse(JSON.stringify(typed.buildRequest())), {
     operation: 'limit', expression: 'sin(x)/x', variable: 'x', lower: null, upper: null, target: '0', direction: '+',
   });
+});
+
+test('exact mode keeps the existing solver request boundary', async () => {
+  const app = appHarness();
+  app.elements.operation.value = 'derivative';
+  app.elements.expression.value = 'x^2';
+  app.elements.routeMode.value = 'exact';
+  app.submit({ preventDefault() {} });
+  assert.equal(app.pending.length, 1);
+  assert.equal(app.pending[0].url, '/api/solve');
+  assert.equal(JSON.parse(app.pending[0].options.body).expression, 'x^2');
+});
+
+test('structured routed mode sends exactly one request to the route boundary', () => {
+  const app = appHarness();
+  app.elements.operation.value = 'derivative';
+  app.elements.expression.value = 'x^2';
+  app.elements.routeMode.value = 'jev';
+  app.submit({ preventDefault() {} });
+  assert.equal(app.pending.length, 1);
+  assert.equal(app.pending[0].url, '/api/route');
+  assert.deepEqual(JSON.parse(app.pending[0].options.body), {
+    mode: 'jev',
+    request: { operation: 'derivative', expression: 'x^2', variable: 'x', lower: null, upper: null, target: null, direction: null },
+  });
+});
+
+test('language routed mode sends a bounded prompt without a solver request', () => {
+  const app = appHarness();
+  app.elements.routeMode.value = 'ai_only';
+  app.elements.routePrompt.value = 'Explain why the derivative of x squared is 2x.';
+  app.submit({ preventDefault() {} });
+  assert.equal(app.pending.length, 1);
+  assert.equal(app.pending[0].url, '/api/route');
+  assert.deepEqual(JSON.parse(app.pending[0].options.body), {
+    mode: 'ai_only',
+    prompt: 'Explain why the derivative of x squared is 2x.',
+  });
+});
+
+test('route response keeps AI text unverified and records route metrics', async () => {
+  const app = appHarness({ liveRender: true });
+  const message = { id: 'route-1', routeMode: 'ai_only', prompt: 'Explain x squared.', request: null, generation: 0, loading: true };
+  app.state.messages.push(message);
+  const running = app.route({ mode: 'ai_only', request: { expression: '' }, prompt: 'Explain x squared.' }, message);
+  assert.equal(app.pending.length, 1);
+  app.pending[0].resolve(response({ status: 'routed', answer: { status: 'answered', text: 'The derivative is 2x.' }, routing: { source: 'ollama', choice: 'ai', ai_calls: 1, total_tokens: 18 } }));
+  await running;
+  assert.equal(message.response.status, 'answered');
+  assert.equal(message.response.verification.status, 'not_checked');
+  assert.equal(message.response.metrics.route, 'ai');
+  assert.equal(message.response.metrics.source, 'ollama');
 });
 
 test('a completed solve reveals the start of its result when following the conversation', async () => {
@@ -527,6 +579,8 @@ test('navigation and operation controls keep their accessible relationships', ()
   assert.match(indexHtml, /id="search-toggle"[^>]*aria-controls="chat-search-wrap"[^>]*aria-expanded="false"/);
   assert.match(indexHtml, /id="open-sidebar"[^>]*aria-controls="sidebar"[^>]*aria-expanded="false"/);
   assert.match(indexHtml, /id="operation"[^>]*aria-describedby="operation-hint"/);
+  assert.match(indexHtml, /id="route-mode"[^>]*aria-describedby="route-mode-hint"/);
+  assert.match(indexHtml, /id="route-prompt"[^>]*maxlength="2000"/);
 });
 
 for (const body of [null, {}, { status: 'ok' }, { status: 'ok', ai_configured: 'false' }]) {
