@@ -189,6 +189,12 @@
     details.append(grid);
   }
 
+  function routeLabel(metrics) {
+    if (metrics.aiCalls === 0 && metrics.routes.includes('solver')) return 'Exact local · 0 model calls';
+    if (metrics.aiCalls === null) return 'AI calls not reported';
+    return `${metrics.aiCalls} general-model call${metrics.aiCalls === 1 ? '' : 's'}`;
+  }
+
   function renderSteps(response, card) {
     if (!Array.isArray(response.steps) || !response.steps.length) return;
     const details = element('details', 'solution-steps');
@@ -302,10 +308,7 @@
     heading.append(element('span', '', resultLabel(response)));
     heading.append(element('span', 'check-label', checkLabel(response.verification && response.verification.status)));
     const routeMetrics = combinedMetrics(message);
-    const routeText = routeMetrics.aiCalls === null
-      ? 'AI calls not reported'
-      : `${routeMetrics.aiCalls} general-model call${routeMetrics.aiCalls === 1 ? '' : 's'}`;
-    heading.append(element('span', 'route-label', routeText));
+    heading.append(element('span', 'route-label', routeLabel(routeMetrics)));
     card.append(heading);
     if (response.result !== null && response.result !== undefined) card.append(element('div', 'formula', response.result));
     if (response.verification && response.verification.detail) card.append(element('p', 'message-time', response.verification.detail));
