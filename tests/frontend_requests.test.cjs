@@ -35,7 +35,7 @@ function appHarness() {
 }
 
 const request = { operation: 'derivative', expression: 'x^2' };
-const result = { status: 'solved', result: '2*x', verification: { status: 'symbolic_check', detail: 'Checked.' }, steps: ['Read the function.', 'Apply the power rule.'] };
+const result = { status: 'solved', operation: 'derivative', expression: 'x^2', result: '2*x', verification: { status: 'symbolic_check', detail: 'Checked.' }, steps: ['Read the function.', 'Apply the power rule.'] };
 const response = (body) => ({ ok: true, json: async () => body });
 
 test('examples carry their own limit direction', () => {
@@ -221,11 +221,24 @@ for (const body of [
   });
 }
 
+for (const field of ['operation', 'expression']) {
+  test(`mismatched solver ${field} is retryable`, async () => {
+    const app = appHarness();
+    const message = { request, generation: 0, loading: true };
+    const running = app.solve(request, message);
+    app.pending[0].resolve(response({ ...result, [field]: field === 'operation' ? 'integral' : 'sin(x)' }));
+    await running;
+    assert.equal(message.response, undefined);
+    assert.match(message.error, /invalid response/i);
+  });
+}
+
 test('valid unresolved response remains available for explicit fallback', async () => {
   const app = appHarness();
   const message = { request, generation: 0, loading: true };
   const running = app.solve(request, message);
   app.pending[0].resolve(response({ status: 'unresolved', result: null,
+    operation: request.operation, expression: request.expression,
     verification: { status: 'not_checked', detail: 'The exact solver reached its time limit.' }, steps: ['Stop before returning an exact answer.'] }));
   await running;
   assert.equal(message.response.status, 'unresolved');
