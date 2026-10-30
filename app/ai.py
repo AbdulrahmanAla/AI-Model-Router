@@ -704,6 +704,64 @@ async def call_ollama(
     }
 
 
+async def call_text_prompt(app: Any, prompt: str, *, structured_payload: dict[str, Any] | None = None) -> dict[str, Any]:
+    """Send a bounded language prompt through the configured provider."""
+    config = _provider_config()
+    if config is None:
+        started = time.perf_counter()
+        raise _error(status_code=503, code="ai_unavailable", detail="The AI provider is not configured.",
+                     started=started, provider_started=None, status="missing_config", model=None, ai_calls=0)
+    if config.provider == "ollama":
+        return await call_ollama(app, prompt, structured_payload=structured_payload)
+    started = time.perf_counter()
+    if not isinstance(prompt, str) or not prompt.strip() or len(prompt) > 12_000:
+        raise _error(status_code=422, code="invalid_prompt", detail="The AI prompt is empty or too large.",
+                     started=started, provider_started=None, status="invalid_prompt", model=None, ai_calls=0)
+    acquired = await asyncio.to_thread(_AI_CONCURRENCY.acquire, False)
+    if not acquired:
+        raise _error(status_code=503, code="ai_unavailable", detail="The AI provider is busy. Try again shortly.",
+                     started=started, provider_started=None, status="busy", model=config.model, ai_calls=0)
+    provider_started = time.perf_counter()
+    context = ""
+    if structured_payload is not None:
+        context = "\nStructured context: " + json.dumps(structured_payload, sort_keys=True, separators=(",", ":"))
+    body = {"model": config.model, "messages": [
+        {"role": "system", "content": "You are an optional AI assistant. Return concise plain text. Do not claim an unverified answer is a proof."},
+        {"role": "user", "content": prompt.strip() + context},
+    ], "max_tokens": config.max_tokens, "stream": False}
+    headers = {"Authorization": f"Bearer {config.api_key}", "Content-Type": "application/json"}
+    transport = getattr(app.state, "ai_transport", None)
+    async def send() -> httpx.Response:
+        async with httpx.AsyncClient(transport=transport, timeout=config.timeout_seconds) as client:
+            return await client.post(_chat_url(config.base_url), headers=headers, json=body)
+    try:
+        response = await asyncio.wait_for(send(), timeout=config.timeout_seconds)
+    except (asyncio.TimeoutError, httpx.TimeoutException) as exc:
+        raise _error(status_code=504, code="ai_unavailable", detail="The AI provider did not respond before the deadline.",
+                     started=started, provider_started=provider_started, status="timeout", model=config.model, ai_calls=1) from exc
+    except httpx.RequestError as exc:
+        raise _error(status_code=502, code="ai_unavailable", detail="The AI provider could not be reached.",
+                     started=started, provider_started=provider_started, status="connection_error", model=config.model, ai_calls=1) from exc
+    finally:
+        _AI_CONCURRENCY.release()
+    try:
+        response_body = response.json()
+    except (ValueError, json.JSONDecodeError):
+        response_body = {}
+    usage = _usage(response_body)
+    if response.status_code < 200 or response.status_code >= 300:
+        raise _error(status_code=502, code="ai_unavailable", detail="The AI provider returned an error.",
+                     started=started, provider_started=provider_started, status="provider_error", model=config.model, ai_calls=1, usage=usage)
+    try:
+        text = _response_content(response_body, "explain", "unknown")
+    except (ValueError, TypeError, json.JSONDecodeError) as exc:
+        raise _error(status_code=502, code="ai_unavailable", detail="The AI provider returned an incomplete response.",
+                     started=started, provider_started=provider_started, status="invalid_response", model=config.model, ai_calls=1, usage=usage) from exc
+    return {"status": "answered", "text": text,
+            "verification": {"status": "not_checked", "method": "AI output", "detail": "AI text is unverified."},
+            "metrics": _metrics(started=started, provider_started=provider_started, status="ok", model=config.model, ai_calls=1, usage=usage)}
+
+
 async def handle_ai(app: Any, action: str, request: Any, validated_payload: dict[str, Any]) -> dict[str, Any]:
     """Validate, optionally recompute, and make one provider request."""
     if action not in _ALLOWED_ACTIONS:

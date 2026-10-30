@@ -87,7 +87,12 @@ def test_jev_missing_configuration_uses_deterministic_fallback() -> None:
     assert body["answer"]["status"] == "solved"
     assert body["routing"]["source"] == "deterministic_fallback"
     assert body["routing"]["choice"] == "solver"
-    assert body["routing"]["attempts"] == [{"provider": "jev", "status": "missing_config", "ai_calls": 0}]
+    attempt = body["routing"]["attempts"][0]
+    assert attempt["provider"] == "jev"
+    assert attempt["status"] == "missing_config"
+    assert attempt["ai_calls"] == 0
+    assert attempt["model_calls"] == 0
+    assert attempt["total_tokens"] is None
 
 
 def test_jev_malformed_response_falls_back_and_counts_attempt(monkeypatch) -> None:
@@ -162,3 +167,21 @@ def test_route_requires_exactly_one_input() -> None:
         json={"mode": "deterministic", "prompt": "hi", "request": {"operation": "derivative", "expression": "x"}},
     )
     assert both.status_code == 422
+
+
+def test_openai_compatible_prompt_route_uses_configured_provider(monkeypatch) -> None:
+    seen: dict[str, object] = {}
+    monkeypatch.setenv("AI_PROVIDER", "openai")
+    monkeypatch.setenv("AI_BASE_URL", "https://provider.example/v1")
+    monkeypatch.setenv("AI_API_KEY", "secret")
+    monkeypatch.setenv("AI_MODEL", "small-model")
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen["url"] = str(request.url)
+        return httpx.Response(200, json={"choices": [{"message": {"content": "A concise explanation."}}], "usage": {"prompt_tokens": 3, "completion_tokens": 4, "total_tokens": 7}})
+
+    app.state.ai_transport = httpx.MockTransport(handler)
+    result = client.post("/api/route", json={"mode": "ai_only", "prompt": "Explain why x^2 is increasing for x > 0."})
+    assert result.status_code == 200
+    assert result.json()["answer"]["text"] == "A concise explanation."
+    assert seen["url"] == "https://provider.example/v1/chat/completions"

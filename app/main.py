@@ -15,7 +15,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
-from .ai import AIServiceError, AIValidationBusy, _validate_grammar_bounded, ai_configured, call_ollama, handle_ai
+from .ai import AIServiceError, AIValidationBusy, _validate_grammar_bounded, ai_configured, call_text_prompt, handle_ai
 from .router import choose_route
 from .solver import GrammarError, SolveTimeout, SolveUnresolved, SolverBusy, _unresolved_steps, run_bounded
 
@@ -234,7 +234,7 @@ async def route(request: RouteRequest, http_request: Request) -> dict[str, objec
         if parsed_request is not None and validated_payload is not None:
             ai_answer = await handle_ai(http_request.app, "baseline", parsed_request, validated_payload)
         else:
-            ai_answer = await call_ollama(
+            ai_answer = await call_text_prompt(
                 http_request.app,
                 request.prompt or json.dumps(validated_payload, sort_keys=True, separators=(",", ":")),
                 structured_payload=validated_payload,
