@@ -25,7 +25,7 @@ function appHarness() {
     renderMessages = () => {};
     copyText = (value) => { state.copiedEvidence = value; };
     setServiceStatus = (kind, label) => { state.serviceLabel = label; };
-    this.app = { state, elements, solve, cancelSolve, retrySolve, requestAi, cancelAi, copySessionEvidence, addCopyActions };
+    this.app = { state, elements, solve, cancelSolve, retrySolve, requestAi, cancelAi, copySessionEvidence, addCopyActions, exampleValues };
   })();`), context);
   return { ...context.app, pending, timers };
 }
@@ -33,6 +33,14 @@ function appHarness() {
 const request = { operation: 'derivative', expression: 'x^2' };
 const result = { status: 'solved', result: '2*x', verification: { status: 'symbolic_check', detail: 'Checked.' } };
 const response = (body) => ({ ok: true, json: async () => body });
+
+test('examples carry their own limit direction', () => {
+  const app = appHarness();
+  assert.equal(JSON.stringify(app.exampleValues({ dataset: { operation: 'limit', expression: 'sqrt(x)', target: '0', direction: '+' } })), JSON.stringify({
+    operation: 'limit', expression: 'sqrt(x)', lower: '', upper: '', target: '0', direction: '+'
+  }));
+  assert.equal(app.exampleValues({ dataset: { operation: 'limit', expression: 'sin(x)/x', target: '0' } }).direction, 'both');
+});
 
 for (const [question, expected] of [
   [{ operation: 'integral', expression: 'x', lower: '0', upper: '1' }, 'Integral x from 0 to 1'],

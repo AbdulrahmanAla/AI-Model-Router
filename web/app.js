@@ -624,13 +624,25 @@
     elements.expression.focus();
   }
 
+  function exampleValues(button) {
+    return {
+      operation: button.dataset.operation || 'derivative',
+      expression: button.dataset.expression || '',
+      lower: '',
+      upper: '',
+      target: button.dataset.target || '',
+      direction: button.dataset.direction || 'both'
+    };
+  }
+
   function applyExample(button) {
-    elements.operation.value = button.dataset.operation;
-    elements.expression.value = button.dataset.expression || '';
-    elements.lower.value = '';
-    elements.upper.value = '';
-    elements.target.value = button.dataset.target || '';
-    elements.direction.value = button.dataset.direction || 'both';
+    const values = exampleValues(button);
+    elements.operation.value = values.operation;
+    elements.expression.value = values.expression;
+    elements.lower.value = values.lower;
+    elements.upper.value = values.upper;
+    elements.target.value = values.target;
+    elements.direction.value = values.direction;
     clearFormError();
     updateOperationFields();
     elements.help.close();
