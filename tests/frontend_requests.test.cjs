@@ -14,7 +14,7 @@ function appHarness() {
   const context = vm.createContext({
     AbortController,
     document: {
-      querySelector: () => ({ dataset: {}, hidden: true, children: [], attributes: {}, focus() { this.focused = true; }, removeAttribute(name) { delete this.attributes[name]; }, setAttribute(name, value) { this.attributes[name] = value; }, classList: { add() {}, remove() {}, contains() { return false; } }, replaceChildren(...nodes) { this.children = nodes; }, append(...nodes) { this.children.push(...nodes); } }),
+      querySelector: () => ({ dataset: {}, style: {}, scrollHeight: 42, hidden: true, children: [], attributes: {}, focus() { this.focused = true; }, removeAttribute(name) { delete this.attributes[name]; }, setAttribute(name, value) { this.attributes[name] = value; }, classList: { add() {}, remove() {}, contains() { return false; } }, replaceChildren(...nodes) { this.children = nodes; }, append(...nodes) { this.children.push(...nodes); } }),
       body: { append(node) { downloads.push(node); } },
       createElement: () => ({ style: {}, children: [], attributes: {}, appendChild(node) { this.children.push(node); return node; }, append(...nodes) { this.children.push(...nodes); }, setAttribute(name, value) { this.attributes[name] = value; }, addEventListener(event, callback) { this[event] = callback; }, click() { this.clicked = true; }, remove() { this.removed = true; } }),
     },
@@ -38,6 +38,42 @@ function appHarness() {
 const request = { operation: 'derivative', expression: 'x^2' };
 const result = { status: 'solved', operation: 'derivative', expression: 'x^2', result: '2*x', verification: { status: 'symbolic_check', detail: 'Checked.' }, steps: ['Read the function.', 'Apply the power rule.'] };
 const response = (body) => ({ ok: true, json: async () => body });
+
+for (const question of [
+  { operation: 'derivative', expression: 'x^3' },
+  { operation: 'integral', expression: 'x^2', lower: '0', upper: '1' },
+  { operation: 'integral', expression: 'sin(x)', lower: null, upper: null },
+  { operation: 'limit', expression: 'sqrt(x)', target: '0', direction: '+' },
+  { operation: 'equation', expression: 'x^2 - 4 = 0' },
+]) {
+  for (const outcome of ['solved', 'unresolved', 'error']) {
+    test(`edit ${outcome} ${question.operation} restores the question without a request`, () => {
+      const app = appHarness();
+      const original = JSON.stringify(question);
+      const message = outcome === 'error' ? { request: question, error: 'Please correct the formula.' }
+        : { request: question, response: { ...result, status: outcome, result: outcome === 'solved' ? result.result : null, steps: [] } };
+      for (const name of ['expression', 'lower', 'upper', 'target', 'direction']) app.elements[name].value = 'old draft';
+      const nodes = [];
+      const visit = (node) => { nodes.push(node); (node.children || []).forEach(visit); };
+      visit(app.renderAssistant(message));
+      const edit = nodes.find((node) => node.textContent === 'Edit question');
+      assert.ok(edit);
+      edit.click();
+      assert.equal(app.elements.operation.value, question.operation);
+      assert.equal(app.elements.expression.value, question.expression);
+      assert.equal(app.elements.lower.value, question.lower || '');
+      assert.equal(app.elements.upper.value, question.upper || '');
+      assert.equal(app.elements.target.value, question.target || '');
+      assert.equal(app.elements.direction.value, question.direction || 'both');
+      assert.equal(app.elements.integralOptions.hidden, question.operation !== 'integral');
+      assert.equal(app.elements.limitOptions.hidden, question.operation !== 'limit');
+      assert.equal(app.elements.expression.focused, true);
+      assert.equal(app.pending.length, 0);
+      assert.equal(JSON.stringify(question), original);
+      assert.equal(app.state.messages.length, 0);
+    });
+  }
+}
 
 for (const status of ['solved', 'unresolved']) {
   test(`visible cancel action stops the ${status === 'solved' ? 'explanation' : 'fallback'} request`, async () => {

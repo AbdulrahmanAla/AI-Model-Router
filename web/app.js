@@ -330,6 +330,7 @@
       retry.type = 'button';
       retry.addEventListener('click', () => retrySolve(message));
       actions.append(retry);
+      actions.append(editQuestionButton(message.request));
       body.append(actions);
       row.append(body);
       return row;
@@ -370,6 +371,7 @@
     card.append(details);
     body.append(card);
     const actions = element('div', 'message-actions');
+    actions.append(editQuestionButton(message.request));
     if (response.status === 'solved') {
       const explain = element('button', '', message.aiLoading ? 'Generating explanation...' : (message.ai && message.ai.action === 'explain' ? 'Explain again' : 'Explain this result'));
       explain.type = 'button';
@@ -803,18 +805,28 @@
     if (target) target.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
 
-  function applyExample(button) {
-    const values = exampleValues(button);
+  function fillComposer(values) {
     elements.operation.value = values.operation;
     elements.expression.value = values.expression;
-    elements.lower.value = values.lower;
-    elements.upper.value = values.upper;
-    elements.target.value = values.target;
-    elements.direction.value = values.direction;
+    elements.lower.value = values.lower || '';
+    elements.upper.value = values.upper || '';
+    elements.target.value = values.target || '';
+    elements.direction.value = values.direction || 'both';
     clearFormError();
     updateOperationFields();
-    elements.help.close();
     elements.expression.focus();
+  }
+
+  function editQuestionButton(request) {
+    const button = element('button', '', 'Edit question');
+    button.type = 'button';
+    button.addEventListener('click', () => fillComposer(request));
+    return button;
+  }
+
+  function applyExample(button) {
+    elements.help.close();
+    fillComposer(exampleValues(button));
   }
 
   function wireEvents() {

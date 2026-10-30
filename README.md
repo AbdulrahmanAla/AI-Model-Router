@@ -16,6 +16,8 @@ python -m venv .venv
 
 Open [AI Math Assistant locally](http://127.0.0.1:8000). Choose an operation, enter a typed formula such as `x^3*sin(x)`, and submit. Use explicit multiplication. Help in the website lists the grammar.
 
+Choose **Edit question** beneath an answer or error to restore that question to the composer, including integral bounds or limit direction. Change it and submit to create a new attempt while retaining the original in the session. Editing alone makes no solver or AI call.
+
 Useful demo shortcuts: press `/` from the page to focus the math composer, `Ctrl+K` on Windows or `Cmd+K` on macOS to search the session chats, and `Escape` to close the mobile sidebar or cancel an active request.
 
 ## Check before a direct merge

@@ -24,6 +24,7 @@ The actual website at `http://127.0.0.1:8000` was exercised through the in-app b
 - Browser console inspection during these journeys returned no errors or warnings.
 - The current UI also exposes the exact-first rationale, a visible general-model call count, inline validation for incomplete bounds or targets, copy actions for the result and full solution, and cancel/retry controls for slow solver or optional AI requests.
 - A repeated-question browser journey keeps duplicate sidebar entries addressable, and a cancelled solve returns to a ready service state with the original question available for retry.
+- Edit question restores the structured request to the composer from solved, unresolved, and error responses. Frontend renderer tests cover all four operations, bounded and unbounded integrals, zero bounds and targets, and one-sided limits. Editing clears old draft fields, focuses the expression, preserves the original request, and issues no API call until submission.
 - The top-bar session scorecard reports solved exact routes and provider calls, excluding unresolved requests from the solved count. Syntax-help examples can be clicked to populate the composer, including a limit target.
 - Each deterministic solution section displays its bounded step count while keeping the full numbered derivation visible.
 - The sidebar's Copy session evidence and Download session evidence actions package the current session's statuses, results, verification details, route call counts, timings, optional unverified AI text, and every numbered solution step for review.
