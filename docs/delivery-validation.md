@@ -31,6 +31,7 @@ The actual website at `http://127.0.0.1:8000` was exercised through the in-app b
 - Safely unresolved requests expose a Copy full attempt action that preserves the question, stop reason, verification state, and steps without inventing a result.
 - When an exact route stops safely, the scorecard reports the unresolved count separately instead of presenting it as a solve.
 - Escape cancels an active solver or optional AI request while preserving the retry path; dialog Escape behavior remains unchanged.
+- Both explanation and fallback routes display a Cancel AI request button while waiting. Cancelling aborts the browser request, preserves the solver response, reports provider usage as unknown, and ignores late AI responses. It does not promise to stop work already running at the provider.
 - Optional AI loading and answered states expose busy and polite live-region semantics for assistive technology.
 - The browser rejects solver payloads with missing, empty, oversized, or excessive derivation steps and leaves the question retryable instead of rendering partial evidence.
 - Solver responses are also checked against the submitted operation and expression, preventing stale or mismatched answers from being displayed.

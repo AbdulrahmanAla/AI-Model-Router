@@ -16,7 +16,7 @@ function appHarness() {
     document: {
       querySelector: () => ({ dataset: {}, hidden: true, children: [], attributes: {}, focus() { this.focused = true; }, removeAttribute(name) { delete this.attributes[name]; }, setAttribute(name, value) { this.attributes[name] = value; }, classList: { add() {}, remove() {}, contains() { return false; } }, replaceChildren(...nodes) { this.children = nodes; }, append(...nodes) { this.children.push(...nodes); } }),
       body: { append(node) { downloads.push(node); } },
-      createElement: () => ({ style: {}, children: [], attributes: {}, append(...nodes) { this.children.push(...nodes); }, setAttribute(name, value) { this.attributes[name] = value; }, addEventListener(event, callback) { this[event] = callback; }, click() { this.clicked = true; }, remove() { this.removed = true; } }),
+      createElement: () => ({ style: {}, children: [], attributes: {}, appendChild(node) { this.children.push(node); return node; }, append(...nodes) { this.children.push(...nodes); }, setAttribute(name, value) { this.attributes[name] = value; }, addEventListener(event, callback) { this[event] = callback; }, click() { this.clicked = true; }, remove() { this.removed = true; } }),
     },
     window: {
       setTimeout: (callback) => { timers.set(++nextTimer, callback); return nextTimer; },
@@ -30,7 +30,7 @@ function appHarness() {
     renderMessages = () => {};
     copyText = (value) => { state.copiedEvidence = value; };
     setServiceStatus = (kind, label) => { state.serviceLabel = label; };
-    this.app = { state, elements, solve, cancelSolve, retrySolve, requestAi, cancelAi, copySessionEvidence, downloadSessionEvidence, sessionEvidenceText, addCopyActions, exampleValues, routeLabel, resultAriaLabel, shouldFocusComposer, shouldCloseSidebarOnEscape, shouldCloseChatSearchOnEscape, shouldFocusChatSearch, latestMessage, renderAiResponse, renderChatList, closeChatSearch, openChatSearch, fetchWithTimeout, submit, clearFormError };
+    this.app = { state, elements, solve, cancelSolve, retrySolve, requestAi, cancelAi, copySessionEvidence, downloadSessionEvidence, sessionEvidenceText, addCopyActions, exampleValues, routeLabel, resultAriaLabel, shouldFocusComposer, shouldCloseSidebarOnEscape, shouldCloseChatSearchOnEscape, shouldFocusChatSearch, latestMessage, renderAiResponse, renderChatList, closeChatSearch, openChatSearch, fetchWithTimeout, submit, clearFormError, renderAssistant };
   })();`), context);
   return { ...context.app, pending, timers, downloads };
 }
@@ -38,6 +38,30 @@ function appHarness() {
 const request = { operation: 'derivative', expression: 'x^2' };
 const result = { status: 'solved', operation: 'derivative', expression: 'x^2', result: '2*x', verification: { status: 'symbolic_check', detail: 'Checked.' }, steps: ['Read the function.', 'Apply the power rule.'] };
 const response = (body) => ({ ok: true, json: async () => body });
+
+for (const status of ['solved', 'unresolved']) {
+  test(`visible cancel action stops the ${status === 'solved' ? 'explanation' : 'fallback'} request`, async () => {
+    const app = appHarness();
+    const solverResponse = { ...result, status, result: status === 'solved' ? '2*x' : null, steps: [] };
+    const message = { request, response: solverResponse };
+    const running = app.requestAi(message, status === 'solved' ? 'explain' : 'fallback');
+    const nodes = [];
+    const visit = (node) => { nodes.push(node); (node.children || []).forEach(visit); };
+    visit(app.renderAssistant(message));
+    const cancel = nodes.find((node) => node.textContent === 'Cancel AI request');
+    assert.ok(cancel, 'each active AI route exposes a visible cancel button');
+    cancel.click();
+    assert.equal(app.pending[0].signal.aborted, true);
+    assert.equal(message.aiLoading, false);
+    assert.equal(message.ai.status, 'error');
+    assert.match(message.ai.message, /cancelled.*usage is not yet known/i);
+    assert.equal(message.response, solverResponse);
+    app.pending[0].resolve(response({ status: 'answered', text: 'Late answer', verification: { status: 'not_checked', method: 'AI output', detail: 'Unverified.' } }));
+    await running;
+    assert.equal(message.ai.status, 'error');
+    assert.equal(message.ai.text, undefined);
+  });
+}
 
 for (const [operation, expression, lower, upper, target, invalidField] of [
   ['derivative', '', '', '', '', 'expression'],

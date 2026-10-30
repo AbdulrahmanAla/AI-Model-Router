@@ -376,18 +376,18 @@
       explain.disabled = Boolean(message.aiLoading);
       explain.addEventListener('click', () => requestAi(message, 'explain'));
       actions.append(explain);
-      if (message.aiLoading) {
-        const cancelAiButton = element('button', '', 'Cancel AI request');
-        cancelAiButton.type = 'button';
-        cancelAiButton.addEventListener('click', () => cancelAi(message));
-        actions.append(cancelAiButton);
-      }
     } else if (response.status === 'unresolved') {
       const fallback = element('button', '', message.aiLoading ? 'Asking AI...' : (message.ai && message.ai.action === 'fallback' ? 'Ask AI again' : 'Ask AI for help'));
       fallback.type = 'button';
       fallback.disabled = Boolean(message.aiLoading);
       fallback.addEventListener('click', () => requestAi(message, 'fallback'));
       actions.append(fallback);
+    }
+    if (message.aiLoading) {
+      const cancelAiButton = element('button', '', 'Cancel AI request');
+      cancelAiButton.type = 'button';
+      cancelAiButton.addEventListener('click', () => cancelAi(message));
+      actions.append(cancelAiButton);
     }
     if (message.ai && message.ai.status === 'answered') actions.append(element('span', 'message-time', `AI calls this message: ${combinedMetrics(message).aiCalls === null ? 'not reported' : combinedMetrics(message).aiCalls}`));
     body.append(actions);
