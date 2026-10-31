@@ -612,11 +612,13 @@
       const item = element('li', 'solution-step');
       const text = String(step);
       const separator = text.indexOf(':');
-      const formula = separator >= 0 ? text.slice(separator + 1).trim() : text;
-      const formulaCandidate = formula.replace(/^Verification\s*\([^)]*\):\s*/i, '').trim();
+      const phraseMatch = separator < 0 ? text.match(/\b(as|to)\s+(.+)$/i) : null;
+      const labelEnd = separator >= 0 ? separator : (phraseMatch ? phraseMatch.index + phraseMatch[1].length : -1);
+      const formula = separator >= 0 ? text.slice(separator + 1).trim() : (phraseMatch ? phraseMatch[2].trim() : text);
+      const formulaCandidate = formula.replace(/^Verification\s*\([^)]*\):\s*/i, '').replace(/[.'’]+(?=\s|$)/g, '').trim();
       const safeFormula = /^[\w\s+\-*/^().=,]+$/.test(formulaCandidate) && /[=^*/]/.test(formulaCandidate);
-      if (separator >= 0 && safeFormula) {
-        item.append(element('span', 'step-label', `${text.slice(0, separator)}:`));
+      if (labelEnd >= 0 && safeFormula) {
+        item.append(element('span', 'step-label', `${text.slice(0, labelEnd + 1)}:`));
         const math = element('span', 'step-math', formulaCandidate);
         math.dataset.latex = expressionToLatex(formulaCandidate.replace(/\*\*/g, '^'));
         item.append(math);
