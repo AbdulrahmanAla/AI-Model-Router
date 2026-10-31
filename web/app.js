@@ -417,20 +417,28 @@
     return { request: null, prompt: source };
   }
 
+  function conversationContext(messages) {
+    const recent = (Array.isArray(messages) ? messages : []).slice(-4);
+    const lines = [];
+    recent.forEach((message) => {
+      if (!message || !message.display) return;
+      lines.push(`User: ${message.display}`);
+      const response = message.response || {};
+      if (response.status === 'solved') {
+        lines.push(`Exact answer: ${response.result}`);
+        if (response.verification && response.verification.detail) lines.push(`Verification: ${response.verification.detail}`);
+        if (Array.isArray(response.steps) && response.steps.length) lines.push(`Steps: ${response.steps.join(' ')}`);
+      } else if (response.status === 'answered' && response.text) {
+        lines.push(`Assistant: ${response.text}`);
+      }
+    });
+    return lines.length ? `\n\nRecent conversation context:\n${lines.join('\n')}` : '';
+  }
+
   function buildRoutePayload() {
     if (elements.chatInput && String(elements.chatInput.value || '').trim()) {
       const parsed = freeformRequest(elements.chatInput.value);
-      let prompt = parsed.prompt;
-      const previous = latestMessage(state.messages);
-      if (!parsed.request && previous && previous.response && previous.response.status === 'solved'
-        && /\b(?:explain|elaborate|expand|deep|clarify|why)\b/i.test(prompt)
-        && /\b(?:this|that|answer|result|solution|steps?|verification|check|calculation)\b/i.test(prompt)) {
-        const verification = previous.response.verification && previous.response.verification.detail
-          ? ` Verification: ${previous.response.verification.detail}` : '';
-        const steps = Array.isArray(previous.response.steps) && previous.response.steps.length
-          ? ` Steps: ${previous.response.steps.join(' ')}` : '';
-        prompt = `${prompt}\n\nContext from the previous exact solution. Question: ${previous.display}. Exact result: ${previous.response.result}.${verification}${steps} Explain this result clearly. Explain its verification and show the reasoning.`;
-      }
+      const prompt = parsed.request ? '' : `${parsed.prompt}${conversationContext(state.messages)}`;
       return { mode: 'deterministic', request: parsed.request, prompt };
     }
     const mode = selectedRouteMode();

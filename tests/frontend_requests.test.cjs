@@ -107,8 +107,8 @@ test('follow-up explanation prompts include the previous exact result as context
   });
   app.elements.chatInput.value = 'provide a deep explanation for this answer';
   const payload = app.buildRoutePayload();
-  assert.match(payload.prompt, /Exact result: x\^2 \+ sin\(x\)/);
-  assert.match(payload.prompt, /Explain this result clearly/);
+  assert.match(payload.prompt, /Recent conversation context/);
+  assert.match(payload.prompt, /Exact answer: x\^2 \+ sin\(x\)/);
 });
 
 test('verification follow-ups include the previous check and steps as context', () => {
