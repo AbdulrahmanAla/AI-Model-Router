@@ -423,11 +423,13 @@
       let prompt = parsed.prompt;
       const previous = latestMessage(state.messages);
       if (!parsed.request && previous && previous.response && previous.response.status === 'solved'
-        && /\b(?:explain|elaborate|expand|deep)\b/i.test(prompt)
-        && /\b(?:answer|result|solution|steps?)\b/i.test(prompt)) {
+        && /\b(?:explain|elaborate|expand|deep|clarify|why)\b/i.test(prompt)
+        && /\b(?:this|that|answer|result|solution|steps?|verification|check|calculation)\b/i.test(prompt)) {
         const verification = previous.response.verification && previous.response.verification.detail
           ? ` Verification: ${previous.response.verification.detail}` : '';
-        prompt = `${prompt}\n\nContext from the previous exact solution. Question: ${previous.display}. Exact result: ${previous.response.result}.${verification} Explain this result clearly and show the reasoning.`;
+        const steps = Array.isArray(previous.response.steps) && previous.response.steps.length
+          ? ` Steps: ${previous.response.steps.join(' ')}` : '';
+        prompt = `${prompt}\n\nContext from the previous exact solution. Question: ${previous.display}. Exact result: ${previous.response.result}.${verification}${steps} Explain this result clearly. Explain its verification and show the reasoning.`;
       }
       return { mode: 'deterministic', request: parsed.request, prompt };
     }

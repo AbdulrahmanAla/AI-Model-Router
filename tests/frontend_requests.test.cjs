@@ -111,6 +111,18 @@ test('follow-up explanation prompts include the previous exact result as context
   assert.match(payload.prompt, /Explain this result clearly/);
 });
 
+test('verification follow-ups include the previous check and steps as context', () => {
+  const app = appHarness();
+  app.state.messages.push({
+    display: 'Differentiate x^3*sin(x)',
+    response: { status: 'solved', result: '3*x^2*sin(x)', verification: { detail: 'Matched 5 valid real sample points.' }, steps: ['Apply the product rule.'] }
+  });
+  app.elements.chatInput.value = 'Explain the verification';
+  const payload = app.buildRoutePayload();
+  assert.match(payload.prompt, /Matched 5 valid real sample points/);
+  assert.match(payload.prompt, /Apply the product rule/);
+});
+
 function descendants(node) {
   return (node.children || []).flatMap((child) => [child, ...descendants(child)]);
 }
