@@ -14,10 +14,12 @@ CASES = [
     ("Hi", "ai"),
     ("What is Python?", "ai"),
     ("What is the derivative of sin(x)?", "solver"),
-    ("Differentiate x^3 + 2x", "solver"),
-    ("What is the integral of 2x + cos(x)?", "solver"),
-    ("Find the limit of sin(x)/x as x approaches 0", "solver"),
-    ("Solve x^2 - 4 = 0", "solver"),
+    ("Differentiate x^3*sin(x^2)", "solver"),
+    ("What is the derivative of exp(x^2)*log(x)?", "solver"),
+    ("Integrate x*exp(x)", "solver"),
+    ("Integrate x^2*exp(x)", "solver"),
+    ("What is the integral of x^2 from -1 to 1?", "solver"),
+    ("Integrate 1/(1+x^2)", "solver"),
 ]
 
 

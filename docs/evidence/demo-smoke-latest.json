@@ -1,5 +1,5 @@
 {
-  "recorded_at_utc": "2026-10-30T22:19:10.359073+00:00",
+  "recorded_at_utc": "2026-10-31T09:00:09.507486+00:00",
   "base_url": "http://127.0.0.1:8020",
   "cases": [
     {
@@ -18,22 +18,32 @@
       "answer_status": "solved"
     },
     {
-      "message": "Differentiate x^3 + 2x",
+      "message": "Differentiate x^3*sin(x^2)",
       "choice": "solver",
       "answer_status": "solved"
     },
     {
-      "message": "What is the integral of 2x + cos(x)?",
+      "message": "What is the derivative of exp(x^2)*log(x)?",
       "choice": "solver",
       "answer_status": "solved"
     },
     {
-      "message": "Find the limit of sin(x)/x as x approaches 0",
+      "message": "Integrate x*exp(x)",
       "choice": "solver",
       "answer_status": "solved"
     },
     {
-      "message": "Solve x^2 - 4 = 0",
+      "message": "Integrate x^2*exp(x)",
+      "choice": "solver",
+      "answer_status": "solved"
+    },
+    {
+      "message": "What is the integral of x^2 from -1 to 1?",
+      "choice": "solver",
+      "answer_status": "solved"
+    },
+    {
+      "message": "Integrate 1/(1+x^2)",
       "choice": "solver",
       "answer_status": "solved"
     }
