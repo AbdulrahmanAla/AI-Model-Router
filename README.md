@@ -1,4 +1,4 @@
-# AI Math Assistant
+# Model Router
 
 A chat-style math website for derivatives, integrals, limits, and simple real polynomial equations. Supported calculations use SymPy with zero general-model calls. Students can explicitly request an AI explanation or fallback when a provider is configured.
 
@@ -14,7 +14,7 @@ python -m venv .venv
 .\.venv\Scripts\python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8000
 ```
 
-Open [AI Math Assistant locally](http://127.0.0.1:8000). Write a question in the chat composer and submit it. Supported phrases are routed to the exact solver; other text stays at the optional AI boundary. If the visual editor is unavailable, the chat composer still accepts typed formulas, where multiplication must be explicit, such as `2*x`. Help in the website lists the supported grammar.
+Open [Model Router locally](http://127.0.0.1:8000). Write a question in the chat composer and submit it. Supported phrases are routed to the exact solver; other text stays at the optional AI boundary. If the visual editor is unavailable, the chat composer still accepts typed formulas, where multiplication must be explicit, such as `2*x`. Help in the website lists the supported grammar.
 
 Choose **Edit question** beneath an answer or error to restore that question to the composer, including integral bounds or limit direction. Change it and submit to create a new attempt while retaining the original in the session. Editing alone makes no solver or AI call.
 

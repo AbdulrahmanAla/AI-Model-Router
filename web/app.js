@@ -722,8 +722,8 @@
     const row = element('article', 'message assistant-message');
     row.setAttribute('aria-label', 'Assistant response');
     const assistantMark = element('div', 'assistant-mark', '🤖');
-    assistantMark.setAttribute('aria-label', 'AI Math Assistant');
-    assistantMark.setAttribute('title', 'AI Math Assistant');
+    assistantMark.setAttribute('aria-label', 'Model Router');
+    assistantMark.setAttribute('title', 'Model Router');
     row.append(assistantMark);
     const body = element('div', 'assistant-body');
     if (message.loading) {
@@ -961,7 +961,7 @@
   function sessionEvidenceText() {
     if (!state.messages.length) return '';
     const summary = sessionSummary();
-    const lines = ['AI Math Assistant session evidence', '',
+    const lines = ['Model Router session evidence', '',
       `Session outcomes: ${summary.solved} solved; ${summary.unresolved} unresolved; ${summary.failed} failed; ${summary.pending} pending`,
       sessionCheckSummary(summary),
       `Session AI attempts: ${summary.attempts}`,

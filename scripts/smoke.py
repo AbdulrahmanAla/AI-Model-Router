@@ -38,7 +38,7 @@ def main():
             else:
                 raise RuntimeError("Server did not become healthy")
             homepage = client.get("/")
-            assert homepage.status_code == 200 and "AI Math Assistant" in homepage.text
+            assert homepage.status_code == 200 and "Model Router" in homepage.text
             cases = [
                 ({"operation": "derivative", "expression": "x^3"}, "3*x**2"),
                 ({"operation": "integral", "expression": "2*x"}, "x**2"),

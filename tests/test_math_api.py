@@ -696,6 +696,6 @@ def test_solver_deadline_is_an_honest_unresolved_result(monkeypatch) -> None:
 def test_root_serves_the_chat_shell() -> None:
     response = client.get("/")
     assert response.status_code == 200
-    assert "AI Math Assistant" in response.text
+    assert "Model Router" in response.text
     assert 'id="session-download"' in response.text
     assert "Ctrl+K or Cmd+K" in response.text

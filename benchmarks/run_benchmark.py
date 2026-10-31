@@ -187,7 +187,7 @@ def run_benchmark(args: argparse.Namespace) -> dict[str, Any]:
 
 
 def _parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Run the AI Math Assistant evaluation cases")
+    parser = argparse.ArgumentParser(description="Run the Model Router evaluation cases")
     parser.add_argument("--base-url", default="http://127.0.0.1:8000")
     parser.add_argument("--cases", default=str(DEFAULT_CASES))
     parser.add_argument("--output", default="benchmark-results.json")

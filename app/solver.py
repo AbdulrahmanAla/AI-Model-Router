@@ -1,4 +1,4 @@
-"""Bounded, structured math solving for the AI Math Assistant."""
+"""Bounded, structured math solving for the Model Router."""
 
 from __future__ import annotations
 

@@ -36,3 +36,20 @@
 #chat-input::placeholder{color:var(--faint)}
 .composer-shell:focus-within{border-color:rgba(0,184,156,.55);box-shadow:0 16px 40px rgba(0,0,0,.24),0 0 0 1px rgba(0,184,156,.12)}
 
+
+/* Readability pass for solver responses. The answer leads, while evidence stays available below it. */
+.conversation{width:min(980px,calc(100% - 34px))}
+.assistant-body{max-width:900px}
+.answer-card{padding:24px 26px;border-radius:16px}
+.answer-heading{font-size:12px;gap:10px}
+.formula{margin-top:16px;font-size:clamp(30px,3.2vw,42px);line-height:1.35}
+.solution-steps{margin-top:22px;padding-top:4px;border-top:1px solid var(--line-soft)}
+.solution-steps summary{padding:8px 0;color:var(--text);font-size:15px;font-weight:600;cursor:pointer}
+.step-list{gap:13px;margin-top:14px;padding-left:30px;color:var(--text);font-size:15px;line-height:1.75}
+.step-list li::marker{font-size:13px}
+.result-notes{margin-top:16px;font-size:13px;line-height:1.65}
+.card-actions{margin-top:20px;gap:9px}
+.card-actions button{padding:8px 11px;font-size:12px}
+.route-details{margin-top:20px}
+.route-details summary{padding-top:14px;font-size:13px}
+@media (max-width:760px){.conversation{width:min(100% - 24px,980px)}.answer-card{padding:18px 16px}.formula{font-size:30px}.step-list{font-size:14px;line-height:1.65;padding-left:26px}}

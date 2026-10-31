@@ -1,4 +1,4 @@
-"""FastAPI entry point for the local AI Math Assistant."""
+"""FastAPI entry point for the local Model Router."""
 
 from __future__ import annotations
 
@@ -57,7 +57,7 @@ class ChatRequest(BaseModel):
     mode: Literal["deterministic", "jev", "ai_only"] = "deterministic"
 
 
-app = FastAPI(title="AI Math Assistant", version="0.1.0")
+app = FastAPI(title="Model Router", version="0.1.0")
 
 
 def _validation_metrics() -> dict[str, object]:

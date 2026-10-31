@@ -1,4 +1,4 @@
-# AI Math Assistant implementation spec
+# Model Router implementation spec
 
 ## Destination
 
@@ -10,7 +10,7 @@ The user approved the current ChatGPT-style layout and the test boundaries on 29
 
 - Derivatives, indefinite and definite integrals, limits, and real polynomial equations of degree at most four.
 - One real variable named `x`. The composer uses a visual equation editor with a bounded adapter for supported MathQuill constructs and offers plain typed formulas if the editor library is unavailable. Arbitrary pasted LaTeX, natural-language interpretation, matrices, plots, accounts, and durable storage are outside this implementation.
-- Chat-style dark website with a narrow sidebar, centered conversation, bottom composer, teal accent, and product name AI Math Assistant.
+- Chat-style dark website with a narrow sidebar, centered conversation, bottom composer, teal accent, and product name Model Router.
 - Exact answer, honest check status, collapsible route metrics, and optional Explain button. No automatic AI call on submit or error. An explicit Ask AI fallback action is available for a valid request the solver cannot finish.
 - Display familiar exact-result notation with the bundled MathQuill static renderer, including fractions, ordinary roots, powers, and finite sets. Keep the authoritative typed answer for accessibility, copying, and session evidence. Unknown commands, indexed roots, excessive notation, or renderer failure retain the typed answer instead of risking a partial visual formula. No new network dependency or AI call is needed for formatting.
 - Long visual expressions, integral bounds, and limit targets stay within their composer fields. Wide typeset answers scroll inside the answer card; surrounding text and steps wrap within the conversation. Preserve editor caret navigation and the height needed for nested fractions.

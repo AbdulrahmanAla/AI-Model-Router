@@ -908,7 +908,7 @@ test('session export includes all explanation calls and reported tokens', () => 
   assert.match(app.state.copiedEvidence, /Routes: solver \+ explain/);
   assert.match(app.state.copiedEvidence, /Solver time: 12\.50 ms/);
   assert.match(app.state.copiedEvidence, /Total solve time: 25\.75 ms/);
-  assert.match(app.sessionEvidenceText(), /AI Math Assistant session evidence/);
+  assert.match(app.sessionEvidenceText(), /Model Router session evidence/);
   assert.match(app.state.copiedEvidence, /AI explanation \(unverified\):\nExplain the power rule\./);
   assert.match(app.state.copiedEvidence, /Steps \(2\):\n1\. Read the function\.\n2\. Apply the power rule\./);
 });

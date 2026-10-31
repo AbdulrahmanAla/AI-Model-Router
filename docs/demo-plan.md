@@ -1,6 +1,6 @@
 # Four-minute demo plan
 
-The demo shows that AI Math Assistant chooses the cheapest adequate path for each request. The presenter types one message at a time in the chat composer and keeps the route details collapsed until the final proof point.
+The demo shows that Model Router chooses the cheapest adequate path for each request. The presenter types one message at a time in the chat composer and keeps the route details collapsed until the final proof point.
 
 ## Run order
 

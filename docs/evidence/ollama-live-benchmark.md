@@ -5,7 +5,7 @@ Recorded with the local Ollama server and model `llama3.2:1b` on 31 October 2026
 - Ollama version: `0.40.13`
 - Model size: `1.3 GB`
 - Endpoint: `http://127.0.0.1:11434`
-- AI Math Assistant route: `POST /api/route`
+- Model Router route: `POST /api/route`
 - Result: HTTP 200, `answered`
 - Warm application latency: about 360 ms
 - Reported usage: 65 input tokens, 49 output tokens, 114 total tokens

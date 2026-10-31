@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="AI Math Assistant computes supported calculus and algebra questions with a local exact solver.">
-  <title>AI Math Assistant</title>
+  <meta name="description" content="Model Router computes supported calculus and algebra questions with a local exact solver.">
+  <title>Model Router</title>
   <link rel="stylesheet" href="/web/styles.css">
   <link rel="stylesheet" href="/web/assets/mathquill.css">
 </head>
@@ -12,7 +12,7 @@
   <div class="app-shell">
     <aside class="sidebar" id="sidebar" aria-label="Sidebar">
       <div class="brand-row">
-        <a class="brand" href="/" aria-label="AI Math Assistant home"><span>AI</span> Math Assistant</a>
+        <a class="brand" href="/" aria-label="Model Router home"><span>Model</span> Router</a>
         <button class="icon-button" id="close-sidebar" type="button" aria-label="Close sidebar" title="Close sidebar">×</button>
       </div>
       <button class="new-chat" id="new-chat" type="button"><span class="new-icon" aria-hidden="true">+</span><span>New chat</span></button>
@@ -44,7 +44,7 @@
         <div class="welcome" id="welcome">
           <div class="welcome-mark" aria-hidden="true">∑</div>
           <h1>What would you like to work through?</h1>
-          <p>Ask in your own words. AI Math Assistant routes supported math to the exact local solver, shows every solution step, and keeps optional AI help clearly labeled.</p>
+          <p>Ask in your own words. Model Router routes supported math to the exact local solver, shows every solution step, and keeps optional AI help clearly labeled.</p>
         <div class="starter-prompts" aria-label="Starter questions">
           <button type="button" class="starter-prompt" data-operation="derivative" data-expression="x^3*sin(x)">Differentiate x³ sin(x)</button>
           <button type="button" class="starter-prompt" data-operation="integral" data-expression="2*x + cos(x)">Integrate 2x + cos(x)</button>
@@ -78,7 +78,7 @@
             <span class="operation-hint" id="route-mode-hint">No model call for supported math</span>
           </div>
           <form id="solve-form" novalidate>
-            <label class="chat-input-label" for="chat-input"><span class="sr-only">Message AI Math Assistant</span><textarea id="chat-input" rows="1" maxlength="2000" placeholder="Message AI Math Assistant..." aria-describedby="input-help"></textarea></label>
+            <label class="chat-input-label" for="chat-input"><span class="sr-only">Message Model Router</span><textarea id="chat-input" rows="1" maxlength="2000" placeholder="Message Model Router..." aria-describedby="input-help"></textarea></label>
             <div class="input-grid legacy-inputs" hidden aria-hidden="true">
               <label class="field expression-field" for="expression"><span>Expression</span><span id="expression" class="math-field" role="textbox" aria-label="Expression" tabindex="0" data-placeholder="For example: x^3 sin(x)" aria-describedby="input-help" aria-keyshortcuts="Enter Shift+Enter Escape /"></span><textarea id="expression-typed" class="typed-math-field" rows="1" hidden spellcheck="false" placeholder="For example: x^3*sin(x)" aria-describedby="input-help"></textarea></label>
               <label class="field route-prompt-field" id="route-prompt-field" for="route-prompt" hidden><span>Language question <small>(optional when an expression is provided)</small></span><textarea id="route-prompt" rows="2" maxlength="2000" placeholder="For example: Explain why the derivative of x squared is 2x."></textarea><span class="operation-hint">Sent as data to the selected route. It is never executed as a formula.</span></label>
@@ -139,7 +139,7 @@
         <p class="muted-copy" id="session-checks"></p>
         <p class="muted-copy">Session activity only; not a benchmark or an AI comparison. Unknown usage stays unreported. Energy and FLOPs are not measured.</p>
       </section>
-      <p><strong>AI Math Assistant starts with an exact local solver.</strong> Supported formulas are parsed with a bounded grammar, solved symbolically, and checked before any optional model request.</p>
+      <p><strong>Model Router starts with an exact local solver.</strong> Supported formulas are parsed with a bounded grammar, solved symbolically, and checked before any optional model request.</p>
       <div class="route-explanation-grid">
         <div><span class="route-explanation-mark">1</span><p><strong>Compute locally</strong><br>Derivatives, integrals, limits, and polynomial roots use the deterministic route.</p></div>
         <div><span class="route-explanation-mark">2</span><p><strong>Show evidence</strong><br>The answer includes the verification status, solution steps, and measured route details.</p></div>
@@ -151,6 +151,6 @@
   <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
   <script src="/web/assets/jquery.min.js"></script>
   <script src="/web/assets/mathquill.min.js"></script>
-  <script src="/web/app.js?v=chat-ui-definite-integral-20261031" defer></script>
+  <script src="/web/app.js?v=model-router-ui-20261031" defer></script>
 </body>
 </html>

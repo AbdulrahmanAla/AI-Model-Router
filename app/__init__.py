@@ -1,1 +1,1 @@
-"""AI Math Assistant application package."""
+"""Model Router application package."""
