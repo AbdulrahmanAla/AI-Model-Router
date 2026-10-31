@@ -136,6 +136,21 @@ test('exact results display typeset fractions while keeping accessible and copie
   assert.equal(plain.length, 1, 'Repeated rendering keeps one authoritative accessible answer');
 });
 
+test('mathematical solution steps render as typeset blocks, including prime notation', () => {
+  const app = appHarness({ withMathQuill: true });
+  app.state.messages.push({ id: 'steps', request, display: 'Differentiate x^3*sin(x)', response: {
+    ...result,
+    steps: [
+      'Read the function as f(x) = x**3*sin(x).',
+      "Product rule: (x**3)*(sin(x)) + (x**3)*(sin(x)') = 3*x**2*sin(x) + (x**3)*cos(x).",
+      'Simplify the derivative to x**3*cos(x) + 3*x**2*sin(x).'
+    ]
+  } });
+  app.renderConversation();
+  const nodes = descendants(app.elements.messages);
+  assert.ok(nodes.filter((node) => node.className === 'step-math').length >= 3);
+});
+
 test('exact result cards offer LaTeX copying without changing the typed result copy', () => {
   const app = appHarness();
   const buttons = [];
