@@ -53,3 +53,12 @@
 .route-details{margin-top:20px}
 .route-details summary{padding-top:14px;font-size:13px}
 @media (max-width:760px){.conversation{width:min(100% - 24px,980px)}.answer-card{padding:18px 16px}.formula{font-size:30px}.step-list{font-size:14px;line-height:1.65;padding-left:26px}}
+
+/* Typeset math steps like a worked solution. */
+.solution-steps{margin-top:24px;padding-top:6px}
+.solution-steps summary{font-size:16px;letter-spacing:-.01em}
+.step-list{gap:18px;margin-top:18px;font-size:15px;line-height:1.7}
+.solution-step{padding:4px 0}
+.step-label{display:block;margin-bottom:8px;color:var(--muted);font-weight:500}
+.step-math{display:block;width:fit-content;max-width:100%;margin:8px auto 2px;padding:10px 18px;border:1px solid rgba(0,184,156,.24);border-radius:10px;background:rgba(0,184,156,.06);color:var(--text);font-family:"Cambria Math",Georgia,serif;font-size:22px;line-height:1.55;overflow-x:auto}
+.step-math .formula-math{font-size:1em}

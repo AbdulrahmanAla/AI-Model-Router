@@ -608,7 +608,23 @@
     summary.append(document.createTextNode(` (${response.steps.length})`));
     details.append(summary);
     const list = element('ol', 'step-list');
-    response.steps.forEach((step) => list.append(element('li', '', step)));
+    response.steps.forEach((step) => {
+      const item = element('li', 'solution-step');
+      const text = String(step);
+      const separator = text.indexOf(':');
+      const formula = separator >= 0 ? text.slice(separator + 1).trim() : text;
+      const formulaCandidate = formula.replace(/^Verification\s*\([^)]*\):\s*/i, '').trim();
+      const safeFormula = /^[\w\s+\-*/^().=,]+$/.test(formulaCandidate) && /[=^*/]/.test(formulaCandidate);
+      if (separator >= 0 && safeFormula) {
+        item.append(element('span', 'step-label', `${text.slice(0, separator)}:`));
+        const math = element('span', 'step-math', formulaCandidate);
+        math.dataset.latex = expressionToLatex(formulaCandidate.replace(/\*\*/g, '^'));
+        item.append(math);
+      } else {
+        item.append(document.createTextNode(text));
+      }
+      list.append(item);
+    });
     details.append(list);
     card.append(details);
   }
@@ -853,7 +869,7 @@
     let MQ;
     try { MQ = window.MathQuill && window.MathQuill.getInterface(2); } catch (_) { return; }
     if (!MQ || typeof MQ.StaticMath !== 'function') return;
-    elements.messages.querySelectorAll('.formula').forEach((formula) => {
+    [...elements.messages.querySelectorAll('.formula'), ...elements.messages.querySelectorAll('.step-math')].forEach((formula) => {
       const latex = formula.dataset.latex;
       if (!supportedResultLatex(latex)) return;
       const original = formula.textContent;
