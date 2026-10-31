@@ -1,12 +1,100 @@
 # Model Router
 
-A chat-style math website for derivatives, integrals, limits, and simple real polynomial equations. Supported calculations use SymPy with zero general-model calls. Students can explicitly request an AI explanation or fallback when a provider is configured.
+Model Router is a chat-style math website for derivatives, integrals, limits, simple real polynomial equations, and bounded natural-language prompts. It recognizes supported math, converts it into a validated structured request, solves it with SymPy, and shows the result with steps and a check status.
 
-The check label describes the evidence available for each answer. Numerical samples are not proofs. AI text is unverified. See the [implementation spec](docs/spec.md) for the supported boundary.
+The exact solver is the default path. It does not need a general-purpose language model. Optional AI actions can explain an exact result, answer a request that needs language generation, or provide a fallback for work outside the exact solver's boundary.
 
-## Run locally
+The project also includes an optional Jev route. Jev makes a small route decision before the application chooses the exact solver, an AI model, or a refusal. The decision is recorded next to the answer so you can see why a route was selected and how many model calls it used.
 
-Python 3.14 is the tested runtime. Node.js runs the frontend behavior tests and JavaScript syntax checks.
+## What the project does
+
+- Solves supported derivatives, integrals, limits, and real polynomial equations with SymPy.
+- Checks results with symbolic checks, substitutions, numerical samples, or numerical quadrature when the operation allows it.
+- Returns `unresolved` when a request is valid but outside the safe supported boundary or the solver deadline.
+- Validates the input grammar and rejects unsafe or malformed requests before expensive work.
+- Provides optional AI explanations that are grounded in an exact result. AI prose remains unverified.
+- Accepts an optional plain-language prompt through the AI route. A prompt is never passed to SymPy as executable math.
+- Recognizes a small set of phrases such as "differentiate x^2" and "integrate x from 0 to 1". Unknown messages stay at the language-model boundary.
+- Records route choice, model calls, token counts, latency, fallback reasons, and missing usage as unknown instead of zero.
+
+## Why use a decision classifier?
+
+A general language model can answer many kinds of requests, but it is expensive to call for every request. A decision classifier handles a narrower job. It reads the request and predicts one label from a small set such as `solver`, `ai`, or `refuse`.
+
+Because it only chooses a route, a decision classifier can be much smaller than a model that generates a full answer. It returns a label and optional confidence or probabilities instead of a long response. That means less output, less work per decision, and a smaller compute cost than using a general model for every task.
+
+The classifier helps reduce general AI use when it sends structured math to the exact solver. The exact solver can answer those requests with zero general-model calls. The Jev route itself makes one routing call when it is enabled, so the total saving depends on how many expensive answer-generation calls it avoids. The benchmark must measure that trade-off for the target workload.
+
+## What Jev is in this project
+
+Jev is a server-side decision model used as a route classifier. The application asks Jev to choose one typed result:
+
+- `solver`: use the bounded SymPy solver for a validated structured math request.
+- `ai`: use the configured AI provider for language work or a request that needs generation.
+- `refuse`: stop when the request is unsafe, malformed, or outside the allowed input size.
+
+Jev chooses a route. It does not calculate the mathematical answer and it cannot change an exact result. If Jev is missing, times out, or returns malformed data, the server falls back to the deterministic classification and records the failed attempt. A structured request still reaches the exact solver when that fallback is `solver`.
+
+The Jev adapter uses `TYPESAFE_API_KEY`, `JEV_BASE_URL`, `JEV_MODEL`, and `JEV_TIMEOUT_SECONDS`. Credentials stay on the server. The default Jev endpoint and model can be overridden with environment variables.
+
+## How a request moves through the project
+
+```text
+Browser
+|
++-- Chat mode: POST /api/chat
+|   |
+|   +-- Parse only the supported free-form math phrases
+|   +-- Validate extracted math with the same schema and grammar as /api/solve
+|   +-- Keep unknown messages as language prompts
+|
++-- Structured route: POST /api/route
+|   |
+|   +-- Accept one structured request or one plain-language prompt
+|   +-- deterministic
+|   |   +-- Structured request -> exact SymPy solver
+|   |   `-- Plain-language prompt -> configured AI provider
+|   +-- jev
+|   |   +-- Jev decision classifier -> solver, ai, or refuse
+|   |   +-- Jev unavailable -> deterministic fallback
+|   |   +-- solver -> exact SymPy result
+|   |   +-- ai -> configured AI provider
+|   |   `-- refuse -> explicit refusal with routing evidence
+|   `-- ai_only -> configured AI provider
+|
+`-- Exact mode: POST /api/solve
+    +-- Validate the request schema and bounded expression grammar
+    +-- Run the SymPy solver in a bounded worker
+    `-- Check the result and return steps, notes, and metrics
+```
+
+The main code is organized around these units:
+
+```text
+AI-Math-Assistant/
+|-- app/
+|   |-- main.py       # FastAPI endpoints and request validation
+|   |-- chat.py        # Conservative free-form math extraction
+|   |-- solver.py     # Bounded SymPy calculations and checks
+|   |-- router.py     # Jev and deterministic route selection
+|   `-- ai.py         # Optional hosted or local AI providers
+|-- web/
+|   |-- index.html    # Chat interface and route selector
+|   `-- app.js        # Browser requests, results, and route evidence
+|-- benchmarks/
+|   |-- cases.json    # 40 frozen cases, ten per operation
+|   |-- run_benchmark.py
+|   `-- route_benchmark.py
+|-- tests/            # API, router, benchmark, and browser contract tests
+`-- docs/
+    |-- routing-spec.md
+    |-- evaluation.md
+    `-- deploy.md
+```
+
+## Run it locally
+
+Python 3.14 is the tested runtime. Node.js is used for JavaScript syntax and frontend behavior checks.
 
 ```powershell
 python -m venv .venv
@@ -14,85 +102,80 @@ python -m venv .venv
 .\.venv\Scripts\python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8000
 ```
 
-Open [Model Router locally](http://127.0.0.1:8000). Write a question in the chat composer and submit it. Supported phrases are routed to the exact solver; other text stays at the optional AI boundary. If the visual editor is unavailable, the chat composer still accepts typed formulas, where multiplication must be explicit, such as `2*x`. Help in the website lists the supported grammar.
+Open [Model Router locally](http://127.0.0.1:8000). Write a question in the chat composer and submit it. You can enter a formula such as `x^3*sin(x)` or a supported phrase such as `find the derivative of x^2`. The visual editor supports fractions, exponents, roots, trigonometric functions, and symbols. Typed input uses explicit multiplication such as `2*x`.
 
-Choose **Edit question** beneath an answer or error to restore that question to the composer, including integral bounds or limit direction. Change it and submit to create a new attempt while retaining the original in the session. Editing alone makes no solver or AI call.
+The route selector offers the exact solver, deterministic routing, Jev routing, and AI-only comparison. Exact math works without any provider configuration.
 
-Useful demo shortcuts: press `/` from the page to focus the math composer, `Ctrl+K` on Windows or `Cmd+K` on macOS to search the session chats, and `Escape` to close the mobile sidebar or cancel an active request.
+## Configure optional AI and Jev providers
 
-## Try the worked examples
+For a hosted OpenAI-compatible provider, set `AI_BASE_URL`, `AI_MODEL`, and `AI_API_KEY`. The adapter appends `/chat/completions` to the base URL.
 
-1. Open **Worked examples** in the sidebar, or **Explore worked examples** on the welcome screen.
-2. Choose **Substitution** or **Integration by parts**. Selection fills the composer without making a request.
-3. Press **Solve**. Read the exact result, numbered steps, check status, and model-call count.
-4. Open **Worked examples** again and choose **Definite integral**. Both bounds are filled for you.
-5. Try **A limit that does not exist** or **Real-domain check** to see why the exact route stops safely.
+For a local Ollama provider, set the provider and model:
 
-Explanations from an AI provider remain optional. The worked steps for recognized rules use deterministic calculations. These are educational derivations, not a trace of every internal SymPy operation.
+```powershell
+$env:AI_PROVIDER = "ollama"
+$env:OLLAMA_MODEL = "qwen3.5:4b"
+$env:OLLAMA_BASE_URL = "http://127.0.0.1:11434"
+$env:OLLAMA_TIMEOUT_SECONDS = "120"
+.\.venv\Scripts\python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8000
+```
 
-Open **Why this route?** to inspect this session's question outcomes, check types, and model usage. **Copy session evidence** and **Download session evidence** include the same summary before the detailed answers. The counts describe session activity and current question outcomes, rather than benchmark accuracy. Unknown provider usage stays unreported.
+For Jev routing, set `TYPESAFE_API_KEY`. You can also set `JEV_BASE_URL`, `JEV_MODEL`, and `JEV_TIMEOUT_SECONDS`. The Jev route is optional. If it is not configured, the server uses the deterministic route and reports that fallback.
 
-## Check before a direct merge
+Keep `.env` and all provider keys out of Git. See [provider research](docs/research/provider.md), [the routing specification](docs/routing-spec.md), and [the deployment guide](docs/deploy.md) for configuration limits.
+
+## Check the project
+
+Run the local verification gate before merging:
 
 ```powershell
 .\.venv\Scripts\python.exe scripts/check.py
 ```
 
-The local gate runs public API tests, JavaScript syntax checks, and real HTTP checks of all four operations and the 40 frozen evaluation cases. It fails if any expected outcome is wrong or zero-call routing evidence is missing. Provider contract tests use a fake external transport and make no paid calls. Browser journey evidence is recorded separately in [delivery validation](docs/delivery-validation.md).
+The gate runs public API tests, router tests, JavaScript checks, frontend behavior tests, and real HTTP checks against the 40 frozen math cases. Provider contract tests use fake transports and do not make paid calls.
 
-## Connect an optional model provider
+## Benchmark status
 
-Create an untracked `.env` file or set these variables in your shell or deployment secret store: `AI_BASE_URL` should point to your provider's API base ending at its version prefix, `AI_MODEL` should name an accessible model, and `AI_API_KEY` should contain your key. The adapter appends `/chat/completions`. Confirm your provider supports the documented non-streaming request and usage fields.
+The benchmark harness is ready, but the final Jev versus exact versus AI comparison is still in progress. The table below is a placeholder. Replace each `pending` value with a measured result from the same frozen cases and repeated route order.
 
-```powershell
-.\.venv\Scripts\python.exe -m uvicorn app.main:app --env-file .env --host 127.0.0.1 --port 8000
+| Route | Cases | Accuracy | Median latency | General-model calls | Token usage |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Exact solver | 40 | pending | pending | pending | pending |
+| Deterministic route | 40 | pending | pending | pending | pending |
+| Jev route | 40 | pending | pending | pending | pending |
+| AI-only route | 40 | pending | pending | pending | pending |
+
+Run the solver-only benchmark without provider calls:
+
+```text
+python -m benchmarks.run_benchmark --base-url http://127.0.0.1:8000 --repeats 5 --output benchmark-results.json
 ```
 
-Keep `.env` out of Git. Exact math works without this configuration. Explain and Ask AI actions show unavailable until a provider is configured. The browser receives no provider key. [Provider research](docs/research/provider.md) records compatibility limits.
+Run the routed comparison only when the providers are configured and you accept the paid-call cost:
 
-### Run a local Ollama model
-
-Install Ollama, download a small model, and keep the model server on the loopback interface. The validated local setup uses Ollama `0.40.13` with `llama3.2:1b` (1.3 GB). The Ollama API exposes `http://127.0.0.1:11434/api/chat` and reports native prompt and generation counts plus nanosecond durations when the response includes them:
-
-```powershell
-ollama pull llama3.2:1b
-$env:AI_PROVIDER = "ollama"
-$env:OLLAMA_MODEL = "llama3.2:1b"
-$env:OLLAMA_BASE_URL = "http://127.0.0.1:11434"
-$env:OLLAMA_TIMEOUT_SECONDS = "120"
-\.venv\Scripts\python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8000
+```text
+python -m benchmarks.route_benchmark --base-url http://127.0.0.1:8000 --live-routes --allow-paid-jev --routes solver,deterministic,jev,ai_only --repeats 5 --latency-budget-ms 5000 --output routed-results-live.json
 ```
 
-The local adapter sends no authorization header and does not require `AI_API_KEY`. Local inference has no API charge, but model download size, GPU or CPU time, memory, electricity, and latency still count as resources. If Ollama is unavailable, exact solver requests continue to work and AI actions report a recoverable unavailable state.
+The routed benchmark reports answer accuracy, successful tasks, route overhead, model calls, prompt and completion tokens, wall latency, explicit local CPU and memory observations when available, and failed outcomes. It keeps missing provider usage as unknown. It does not infer energy, FLOPs, hosted GPU work, or a universal speedup.
 
-On Windows, the official GUI installer is listed by `winget` as `Ollama.Ollama`. If that download is blocked, the official portable package is `Ollama.Ollama.Portable`:
+Read [the evaluation guide](docs/evaluation.md) for the scoring rules and the live comparison boundary.
 
-```powershell
-winget show --id Ollama.Ollama.Portable --exact
-```
+## How this can expand
 
-Use the published `Installer SHA256` to verify the archive before extracting it. Do not run a partial download. Start `ollama.exe`, confirm `http://127.0.0.1:11434/api/tags` responds, and only then pull the model. The live smoke evidence for the validated model is in [ollama-live-benchmark.md](docs/evidence/ollama-live-benchmark.md). It confirms one successful routed request with native usage fields; it is a runtime check, not a quality benchmark.
+- Add more route labels for retrieval, code execution, vision, or specialist math tools.
+- Add confidence thresholds and a safe fallback policy for low-confidence Jev decisions.
+- Cache route decisions for repeated request shapes while keeping user data out of shared keys.
+- Train or deploy a local decision classifier for private, low-latency routing.
+- Add a larger workload mix with natural-language prompts, exact math, and unsupported requests.
+- Add a manual rubric for explanation quality alongside the existing machine-readable answer score.
+- Add dashboards for route choice, avoided general-model calls, latency, and provider cost.
+- Add model and prompt version fields so benchmark results remain reproducible.
 
-To reproduce an explanation followed by a failed retry without a live model, run `python scripts/preview_ai_contract.py`. Open the printed local URL, solve a question, and request an explanation twice. The first response and its token counters are explicitly labeled synthetic fixtures; later provider attempts fail. This preview binds only to localhost and substitutes the external HTTP transport. It does not measure model quality, usage, or efficiency.
+## Limits and claims
 
-## Evaluate the compute-saving claim
+The exact route is authoritative only within its documented math boundary. Numerical samples are evidence, not a universal proof. AI answers and explanations are unverified. Jev selects a route and does not establish mathematical truth.
 
-Use the [evaluation guide](docs/evaluation.md) to run the frozen 40-case set against the running HTTP server. Solver-only mode checks correctness and zero-call routing. Live comparison requires explicit opt-in and a configured provider. It can incur API charges.
+The project measures model calls, provider-reported tokens, and selected local timing data. It does not measure total cloud compute, energy, or GPU work. Do not describe the pending table as a completed performance result.
 
-Report model calls and provider-reported tokens separately from latency. The project does not measure energy, FLOPs, or total cloud compute. Do not describe a no-key run as evidence of equal AI quality or an AI speedup.
-
-## Deploy manually
-
-Use the [manual deployment guide](docs/deploy.md). No GitHub Actions are required. Keep the demo private while a billable provider is connected because this prototype has no multi-user authentication or per-user quota system.
-
-The working application is under `app/` and `web/`. Local scratch work is ignored and is not part of the public source tree.
-
-## Visual equation editor
-
-The composer uses a bundled MathQuill editor for expressions, bounds, and limit targets. Type fractions, exponents, roots, trigonometric functions, and symbols visually. The browser converts the MathQuill LaTeX into the same bounded structured expression grammar used by the exact solver. The editor is a presentation layer only. It does not expand the solver's supported mathematics, and it never sends raw LaTeX to the API.
-
-MathQuill is included under the Mozilla Public License. See `web/assets/LICENSES.txt` for third-party notices.
-Solved cards expose **Copy exact result** for the typed solver contract and **Copy LaTeX** for math-aware editors when a distinct LaTeX form is available. The two formats serve different uses and never replace one another.
-Full-solution copying includes the typed result and a LaTeX line when available, plus verification and steps.
-
-Use **Copy request JSON** on a result card to preserve the exact structured input, including integral bounds or limit direction, for a reproducible API request.
+The visual editor is a presentation layer. It converts MathQuill input into the same bounded structured grammar used by the solver and never sends raw LaTeX to the API. MathQuill is included under the Mozilla Public License. See `web/assets/LICENSES.txt` for third-party notices.
