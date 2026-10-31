@@ -174,16 +174,44 @@ The benchmark environment was Python 3.14.7 on a 12th Gen Intel Core i5-12400F w
 
 The evidence files keep measured values separate from assumptions. The raw JSON report contains the run fields. The evidence note maps each headline number to its source field. The explanation note shows the calculation order and states what the model does not include, such as queueing, batching, caching, network transfer, provider warm-up, and workload changes.
 
-## How to expand the project
+## Expand beyond math
 
-- Add route labels for retrieval, code execution, vision, or specialist math tools.
-- Add confidence thresholds and a safe fallback policy for low-confidence Jev decisions.
-- Train or deploy a local decision classifier for private, low-latency routing.
-- Cache route decisions for repeated request shapes while keeping user data out of shared keys.
-- Add a larger workload mix with natural-language prompts, exact math, and unsupported requests.
-- Add a manual rubric for explanation quality alongside the machine-readable answer score.
-- Add dashboards for route choice, avoided general-model calls, latency, and provider cost.
-- Add model and prompt version fields so benchmark results remain reproducible.
+The routing pattern is general. Math is the first domain adapter, but the application can route requests in any area that has a clear structured input, a specialist tool, and a way to check the result.
+
+The reusable part is the control flow:
+
+```text
+User request
+|
++-- Validate the bounded input
++-- Decision classifier chooses a specialist tool, an AI model, or refuse
++-- Specialist tool handles requests with a deterministic or checkable method
++-- AI handles language work and cases that need generation
+`-- Record the route, result, checks, calls, timing, and failures
+```
+
+To add another domain, keep the route boundary and replace the math adapter:
+
+1. Define a structured request and a small, safe input grammar.
+2. Add a specialist tool that can handle the supported cases without a large model.
+3. Add Jev choices for that tool, AI generation, and refusal.
+4. Add checks that show whether the specialist result is valid.
+5. Add frozen fixtures and benchmark metrics for accuracy, latency, calls, and failures.
+
+The same design can support areas such as:
+
+| Area | Specialist route | AI route |
+| --- | --- | --- |
+| Science and engineering | Unit conversion, equation solving, simulation setup, or formula checks | Explain the result or compare design options |
+| Finance | Deterministic projections, spreadsheet formulas, or rule checks | Summarize reports or answer questions about the output |
+| Data quality | Schema checks, duplicate detection, and validation rules | Explain data issues and suggest investigation steps |
+| Code tools | Linters, formatters, test runners, and static analysis | Explain failures or propose a change |
+| Customer support | Account, policy, and workflow lookups | Draft a response or summarize a conversation |
+| Document processing | Field extraction, classification rules, and redaction checks | Summarize or rewrite the document |
+
+The math-specific parts are the SymPy solver, expression grammar, and mathematical checks. Other domains need their own schemas, specialist tools, and evidence rules. The classifier and route contract can stay the same.
+
+Future improvements can add confidence thresholds, local decision models, route caching, specialist tool registries, dashboards for avoided model calls, and versioned benchmark fixtures. Each new domain should keep unsupported inputs explicit and should never treat an AI response as verified without a domain check.
 
 ## Limits and interpretation
 
