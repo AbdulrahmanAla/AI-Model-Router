@@ -1,0 +1,229 @@
+{
+  "annual": {
+    "baseline": {
+      "ai_calls": 12600000.0,
+      "ai_calls_per_request": 1.05,
+      "ai_requests": 12000000.0,
+      "carbon_kg": 504.0,
+      "compute_hours": 3500.0,
+      "cost_per_success_usd": 0.004489578947368421,
+      "electricity_cost_usd": 51181.2,
+      "energy_kwh": 1260.0,
+      "input_tokens": 7560000000.0,
+      "llm_energy_kwh": 1260.0,
+      "llm_gpu_hours": 3500.0,
+      "mean_latency_ms": 900.0,
+      "name": "AI only",
+      "output_tokens": 1890000000.0,
+      "requests": 12000000.0,
+      "solver_cpu_hours": 0.0,
+      "solver_energy_kwh": 0.0,
+      "solver_requests": 0,
+      "success_rate": 0.95,
+      "successful_tasks": 11400000.0,
+      "total_tokens": 9450000000.0,
+      "total_tokens_millions": 9450.0
+    },
+    "hybrid": {
+      "ai_calls": 1890000.0000000002,
+      "ai_calls_per_request": 0.15750000000000003,
+      "ai_requests": 1800000.0000000002,
+      "carbon_kg": 79.11584480000002,
+      "compute_hours": 637.6873333333334,
+      "cost_per_success_usd": 0.0006446880565440808,
+      "electricity_cost_usd": 7678.234753440001,
+      "energy_kwh": 197.78961200000003,
+      "input_tokens": 1134000000.0000002,
+      "llm_energy_kwh": 189.00000000000003,
+      "llm_gpu_hours": 525.0000000000001,
+      "mean_latency_ms": 632.35285,
+      "name": "This app hybrid",
+      "output_tokens": 283500000.00000006,
+      "requests": 12000000.0,
+      "solver_cpu_hours": 112.68733333333334,
+      "solver_energy_kwh": 8.789612,
+      "solver_requests": 10200000.0,
+      "success_rate": 0.9925,
+      "successful_tasks": 11910000.0,
+      "total_tokens": 1417500000.0000002,
+      "total_tokens_millions": 1417.5000000000002
+    }
+  },
+  "annual_savings": {
+    "ai_calls": {
+      "absolute": 10710000.0,
+      "percent": 0.85
+    },
+    "carbon_kg": {
+      "absolute": 424.8841552,
+      "percent": 0.8430241174603175
+    },
+    "compute_hours": {
+      "absolute": 2862.3126666666667,
+      "percent": 0.8178036190476191
+    },
+    "electricity_cost_usd": {
+      "absolute": 43502.965246559994,
+      "percent": 0.8499793917797941
+    },
+    "energy_kwh": {
+      "absolute": 1062.210388,
+      "percent": 0.8430241174603175
+    },
+    "mean_latency_ms": {
+      "absolute": 267.64715,
+      "percent": 0.29738572222222226
+    },
+    "total_tokens": {
+      "absolute": 8032500000.0,
+      "percent": 0.85
+    }
+  },
+  "assumptions": {
+    "electricity": "Scenario assumption. 0.12 USD per kWh and 400 g CO2e per kWh.",
+    "limitations": "This is a sensitivity model. It is not a measured provider energy or cost result.",
+    "llm_energy": "Scenario assumption. 1 GPU-second at 300 W per model call, multiplied by PUE.",
+    "llm_latency_ms": "Scenario assumption. One 900 ms model response before queueing.",
+    "llm_retry_rate": "Scenario assumption. 5% extra calls for retries or transient failures.",
+    "llm_tokens": "Scenario assumption. 600 input tokens plus 150 output tokens per call.",
+    "pricing": "Scenario assumption. 0.003 USD per 1k input tokens and 0.015 USD per 1k output tokens.",
+    "solver_coverage": "Measured fixture ratio. The exact route handled 85% of the observations.",
+    "solver_cpu_ms": "Measured fixture p50 solver worker time of 39.772 ms.",
+    "solver_wall_ms": "Measured fixture p50 end-to-end latency of 585.121 ms.",
+    "traffic": "Scenario assumption. One million requests per month for twelve months."
+  },
+  "generated_at": "2026-10-31T12:53:35.660662+00:00",
+  "monthly": {
+    "baseline": {
+      "ai_calls": 1050000.0,
+      "ai_calls_per_request": 1.05,
+      "ai_requests": 1000000.0,
+      "carbon_kg": 42.0,
+      "compute_hours": 291.6666666666667,
+      "cost_per_success_usd": 0.004489578947368422,
+      "electricity_cost_usd": 4265.1,
+      "energy_kwh": 105.0,
+      "input_tokens": 630000000.0,
+      "llm_energy_kwh": 105.0,
+      "llm_gpu_hours": 291.6666666666667,
+      "mean_latency_ms": 900.0,
+      "name": "AI only",
+      "output_tokens": 157500000.0,
+      "requests": 1000000.0,
+      "solver_cpu_hours": 0.0,
+      "solver_energy_kwh": 0.0,
+      "solver_requests": 0,
+      "success_rate": 0.95,
+      "successful_tasks": 950000.0,
+      "total_tokens": 787500000.0,
+      "total_tokens_millions": 787.5
+    },
+    "hybrid": {
+      "ai_calls": 157500.00000000003,
+      "ai_calls_per_request": 0.15750000000000003,
+      "ai_requests": 150000.00000000003,
+      "carbon_kg": 6.592987066666668,
+      "compute_hours": 53.14061111111111,
+      "cost_per_success_usd": 0.0006446880565440806,
+      "electricity_cost_usd": 639.8528961200001,
+      "energy_kwh": 16.48246766666667,
+      "input_tokens": 94500000.00000001,
+      "llm_energy_kwh": 15.750000000000002,
+      "llm_gpu_hours": 43.75000000000001,
+      "mean_latency_ms": 632.35285,
+      "name": "This app hybrid",
+      "output_tokens": 23625000.000000004,
+      "requests": 1000000.0,
+      "solver_cpu_hours": 9.39061111111111,
+      "solver_energy_kwh": 0.7324676666666666,
+      "solver_requests": 850000.0,
+      "success_rate": 0.9925,
+      "successful_tasks": 992500.0,
+      "total_tokens": 118125000.00000001,
+      "total_tokens_millions": 118.12500000000001
+    }
+  },
+  "monthly_savings": {
+    "ai_calls": {
+      "absolute": 892500.0,
+      "percent": 0.85
+    },
+    "carbon_kg": {
+      "absolute": 35.407012933333334,
+      "percent": 0.8430241174603175
+    },
+    "compute_hours": {
+      "absolute": 238.52605555555556,
+      "percent": 0.817803619047619
+    },
+    "electricity_cost_usd": {
+      "absolute": 3625.2471038800004,
+      "percent": 0.8499793917797942
+    },
+    "energy_kwh": {
+      "absolute": 88.51753233333334,
+      "percent": 0.8430241174603175
+    },
+    "mean_latency_ms": {
+      "absolute": 267.64715,
+      "percent": 0.29738572222222226
+    },
+    "total_tokens": {
+      "absolute": 669375000.0,
+      "percent": 0.85
+    }
+  },
+  "parameters": {
+    "carbon_intensity_g_per_kwh": 400.0,
+    "electricity_price_per_kwh": 0.12,
+    "llm_accelerator_power_w": 300.0,
+    "llm_calls_per_request": 1.0,
+    "llm_gpu_seconds_per_call": 1.0,
+    "llm_input_price_per_1k": 0.003,
+    "llm_input_tokens": 600,
+    "llm_latency_ms": 900.0,
+    "llm_output_price_per_1k": 0.015,
+    "llm_output_tokens": 150,
+    "llm_retry_rate": 0.05,
+    "llm_success_rate": 0.95,
+    "months": 12,
+    "pue": 1.2,
+    "requests_per_month": 1000000,
+    "solver_coverage": 0.85,
+    "solver_cpu_ms": 39.772,
+    "solver_cpu_power_w": 65.0,
+    "solver_success_rate": 1.0,
+    "solver_wall_ms": 585.121
+  },
+  "savings": {
+    "ai_calls": {
+      "absolute": 10710000.0,
+      "percent": 0.85
+    },
+    "carbon_kg": {
+      "absolute": 424.8841552,
+      "percent": 0.8430241174603175
+    },
+    "compute_hours": {
+      "absolute": 2862.3126666666667,
+      "percent": 0.8178036190476191
+    },
+    "electricity_cost_usd": {
+      "absolute": 43502.965246559994,
+      "percent": 0.8499793917797941
+    },
+    "energy_kwh": {
+      "absolute": 1062.210388,
+      "percent": 0.8430241174603175
+    },
+    "mean_latency_ms": {
+      "absolute": 267.64715,
+      "percent": 0.29738572222222226
+    },
+    "total_tokens": {
+      "absolute": 8032500000.0,
+      "percent": 0.85
+    }
+  },
+  "schema_version": 1
+}

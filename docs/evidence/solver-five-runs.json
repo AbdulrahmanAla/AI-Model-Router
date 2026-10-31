@@ -12039,7 +12039,7 @@
       }
     }
   ],
-  "cases_file": "C:\\Users\\D7my\\Documents\\ChatGPT\\HUMAIN\\benchmarks\\cases.json",
+  "cases_file": "benchmarks/cases.json",
   "environment": {
     "concurrency": 1,
     "cpu": "12th Gen Intel Core i5-12400F",
