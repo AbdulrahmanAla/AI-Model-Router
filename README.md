@@ -254,13 +254,3 @@ $env:OLLAMA_TIMEOUT_SECONDS = "120"
 For Jev routing, set `TYPESAFE_API_KEY`. You can also set `JEV_BASE_URL`, `JEV_MODEL`, and `JEV_TIMEOUT_SECONDS`. The Jev route is optional. If it is not configured, the server uses the deterministic route and reports that fallback.
 
 Keep `.env` and all provider keys out of Git. See [provider research](docs/research/provider.md) and [the deployment guide](docs/deploy.md) for provider limits and deployment details.
-
-## Check the project
-
-Run the local verification gate before merging:
-
-```powershell
-.\.venv\Scripts\python.exe scripts/check.py
-```
-
-The gate runs public API tests, router tests, JavaScript checks, frontend behavior tests, and real HTTP checks against the 40 frozen math cases. Provider contract tests use fake transports and do not make paid calls.
